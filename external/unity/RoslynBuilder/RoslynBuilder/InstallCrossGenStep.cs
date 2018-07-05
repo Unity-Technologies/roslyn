@@ -8,7 +8,7 @@ namespace RoslynBuilder
 	{
 		// Note: this version must match the version of CoreCLR that's currently used by Roslyn
 		// If it doesn't match, it will complain about ClrJit version not matching when doing CrossGen
-		const string kCoreClrVersion = "2.0.0";
+		const string kCoreClrVersion = "2.0.7";
 		const string kCoreClrPackageName = "runtime.win-x64.Microsoft.NETCore.Runtime.CoreCLR";
 
 		private static NPath PackagesDirectory => KnownPaths.RoslynRoot.Combine("Artifacts", "Packages").EnsureDirectoryExists();
