@@ -1,0 +1,14 @@
+name: set_exe_bit_linux
+
+agent:
+  type: Unity::VM
+  image: cds-ops/ubuntu-18.04-agent:v1.0.11-765607
+  flavor: b1.large
+
+commands:
+  - .yamato/set_exe_bit_linux.sh
+
+artifacts: 
+  linux64.zip:
+    paths:
+      - incomingbuilds/linux64/**

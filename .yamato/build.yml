@@ -1,0 +1,15 @@
+name: build_win_bare_minimum
+
+agent:
+  type: Unity::VM
+  image: cds-ops/win10-vs2017:stable
+  flavor: b1.xlarge
+
+commands:
+  - git submodule update --init --recursive
+  - external\unity\build-roslyn.bat
+
+artifacts: 
+  build.zip:
+    paths:
+      - Artifacts/Builds/**

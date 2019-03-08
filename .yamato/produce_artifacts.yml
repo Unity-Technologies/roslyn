@@ -1,0 +1,21 @@
+name: produce_artifacts
+
+agent:
+  type: Unity::VM
+  image: cds-ops/ubuntu-18.04-agent:v1.0.11-765607
+  flavor: b1.large
+
+dependencies:
+  - .yamato/build.yml
+  - .yamato/set_exe_bit_linux.yml
+  - .yamato/set_exe_bit_osx.yml
+
+commands:
+  - apt-get update -qy && apt-get -qy upgrade
+  - apt-get install -y p7zip-full p7zip-rar
+  - 7z a ../../builds.7z Artifacts/Builds/*
+
+artifacts: 
+  build-osx.zip:
+    paths:
+      - Artifacts/Builds/Binaries/Mac/**
