@@ -12,7 +12,7 @@ SET myProgramFiles=C:\Program Files (x86)
 
 SET msbuild=%myProgramFiles%\MSBuild\14.0\bin\MSBuild.exe
 
-IF NOT EXIST %msbuild% (SET msbuild=C:\Windows\Microsoft.NET\Framework\v4.0.30319\MSBuild.exe)
+IF NOT EXIST "%msbuild%" (SET msbuild=C:\Windows\Microsoft.NET\Framework\v4.0.30319\MSBuild.exe)
 
 SET solutionPath=%~dp0\RoslynBuilder\RoslynBuilder.sln
 SET roslynBuilder=%~dp0\..\..\Artifacts\RoslynBuilder\RoslynBuilder.exe
