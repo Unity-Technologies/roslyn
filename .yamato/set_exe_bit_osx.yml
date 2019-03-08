@@ -5,6 +5,9 @@ agent:
   image: buildfarm/mac:latest
   flavor: m1.mac
 
+dependencies:
+  - .yamato/build.yml
+
 commands:
   - .yamato/set_exe_bit_osx.sh
 
