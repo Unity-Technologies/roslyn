@@ -10,7 +10,7 @@ SET myProgramFiles=C:\Program Files (x86)
 
 :BUILD
 
-SET msbuild=%myProgramFiles%\MSBuild\14.0\bin\MSBuild.exe
+SET msbuild=%myProgramFiles%\MSBuild\15.0\Bin\MSBuild.exe
 SET solutionPath=%~dp0\RoslynBuilder\RoslynBuilder.sln
 SET roslynBuilder=%~dp0\..\..\Artifacts\RoslynBuilder\RoslynBuilder.exe
 
