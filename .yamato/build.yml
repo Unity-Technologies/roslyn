@@ -2,7 +2,7 @@ name: build
 
 agent:
   type: Unity::VM
-  image: platform-foundation/windows-mono-bokken:latest
+  image: xboxone/xboxone-build:latest
   flavor: b1.xlarge
 
 interpreter: powershell
