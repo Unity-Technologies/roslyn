@@ -12,6 +12,7 @@ namespace RoslynBuilder
 			BuildRoslynComponents("netcoreapp2.0", "win-x64", KnownPaths.CscWindowsBinariesDirectory);
 			BuildRoslynComponents("netcoreapp2.0", "osx-x64", KnownPaths.CscMacBinariesDirectory);
 			BuildRoslynComponents("netcoreapp2.0", "linux-x64", KnownPaths.CscLinuxBinariesDirectory);
+			BuildRoslynComponents("netcoreapp2.0", "linux-arm64", KnownPaths.CscLinuxArm64BinariesDirectory);
 			BuildRoslynComponents("net46", null, KnownPaths.CscNet46Directory);
 		}
 

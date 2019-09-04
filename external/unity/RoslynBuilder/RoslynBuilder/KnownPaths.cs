@@ -36,6 +36,7 @@ namespace RoslynBuilder
 		public static NPath CscWindowsBinariesDirectory => CscBinariesDirectory.Combine("Windows");
 		public static NPath CscMacBinariesDirectory => CscBinariesDirectory.Combine("Mac");
 		public static NPath CscLinuxBinariesDirectory => CscBinariesDirectory.Combine("Linux");
+		public static NPath CscLinuxArm64BinariesDirectory => CscBinariesDirectory.Combine("LinuxArm64");
 		public static NPath CscNet46Directory => CscBinariesDirectory.Combine("Net46");
 		public static NPath BuildsZipDirectory => RoslynRoot.Combine("Artifacts", "Builds");
 
