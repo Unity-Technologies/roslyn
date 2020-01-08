@@ -1,5 +1,5 @@
 publish:
-  name: 'Publish 7za Stevedore artifacts, including source (GPL)'
+  name: 'Publish 7za Stevedore artifacts'
   agent:
     type: Unity::VM
     image: cds-ops/cds-ubuntu-18.04-base:stable
