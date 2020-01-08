@@ -1,0 +1,12 @@
+name: 'Test Mono Upload'
+
+agent:
+  type: Unity::VM
+  image: cds-ops/cds-ubuntu-18.04-base:stable
+  flavor: b1.small
+
+commands:
+  # Script needs the version string of the source artifact (which must match StevedoreUpload args).
+  - ./stevedore-build-artifacts.sh "test_roslyn"
+  - curl -sSo StevedoreUpload.exe "$STEVEDORE_UPLOAD_TOOL_URL"
+  - mono StevedoreUpload.exe --repo=testing --version-len=12 --version="test_roslyn1" producedbuilds/*
