@@ -6,11 +6,12 @@ publish:
     flavor: b1.small
   dependencies:
     - .yamato/build.yml
-    - .yamato/set_exe_bit_linux.yml
-    - .yamato/set_exe_bit_osx.yml
-    - .yamato/produce_artifacts.yml
   commands:
+    - sudo DEBIAN_FRONTEND=noninteractive apt-get update -qy && sudo DEBIAN_FRONTEND=noninteractive apt-get -qy upgrade
+    - sudo apt-get install -y p7zip-full p7zip-rar
+    - 7z a producedbuilds/linux.7z Artifacts/Builds/Binaries/Linux/*
+    - 7z a producedbuilds/mac.7z Artifacts/Builds/Binaries/Mac/*
     # Script needs the version string of the source artifact (which must match StevedoreUpload args).
     - ./stevedore-build-artifacts.sh "test_roslyn"
     - curl -sSo StevedoreUpload.exe "$STEVEDORE_UPLOAD_TOOL_URL"
-    - mono StevedoreUpload.exe --repo=testing --version-len=12 --version="$GIT_REVISION" test/art/*
+    - mono StevedoreUpload.exe --repo=testing --version-len=12 --version="$GIT_REVISION" producedbuilds/*
