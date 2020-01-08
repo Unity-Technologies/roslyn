@@ -5,6 +5,9 @@ publish:
     image: cds-ops/cds-ubuntu-18.04-base:stable
     flavor: b1.small
   dependencies:
+    - .yamato/build.yml
+    - .yamato/set_exe_bit_linux.yml
+    - .yamato/set_exe_bit_osx.yml
     - .yamato/produce_artifacts.yml
   commands:
     # Script needs the version string of the source artifact (which must match StevedoreUpload args).
