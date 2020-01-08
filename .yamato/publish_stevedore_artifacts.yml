@@ -5,7 +5,7 @@ publish:
     image: cds-ops/cds-ubuntu-18.04-base:stable
     flavor: b1.small
   dependencies:
-    - .yamato/build.yml
+    - .yamato/build.yml#1003259
   commands:
     - sudo DEBIAN_FRONTEND=noninteractive apt-get update -qy
     - sudo apt-get install -y p7zip-full p7zip-rar
