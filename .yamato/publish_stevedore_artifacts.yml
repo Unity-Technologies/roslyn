@@ -11,7 +11,6 @@ publish:
     - sudo apt-get install -y p7zip-full p7zip-rar
     - 7z a producedbuilds/linux.7z Artifacts/Builds/Binaries/Linux/*
     - 7z a producedbuilds/mac.7z Artifacts/Builds/Binaries/Mac/*
-    
     # Script needs the version string of the source artifact (which must match StevedoreUpload args).
     - ./stevedore-build-artifacts.sh "test_roslyn"
     - curl -sSo StevedoreUpload.exe "$STEVEDORE_UPLOAD_TOOL_URL"
