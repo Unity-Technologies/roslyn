@@ -8,14 +8,14 @@ if [ ! "$version_string" ]; then
     exit 1
 fi
 
-chmod -v +x Artifacts/Builds/Binaries/Linux/csc
+sudo chmod -v +x Artifacts/Builds/Binaries/Linux/csc
 ls -l Artifacts/Builds/Binaries/Linux/csc
-chmod -v +x Artifacts/Builds/Binaries/Linux/VBCSCompiler
+sudo chmod -v +x Artifacts/Builds/Binaries/Linux/VBCSCompiler
 ls -l Artifacts/Builds/Binaries/Linux/VBCSCompiler
 
-chmod -v +x Artifacts/Builds/Binaries/Mac/csc
+sudo chmod -v +x Artifacts/Builds/Binaries/Mac/csc
 ls -l Artifacts/Builds/Binaries/Mac/csc
-chmod -v +x Artifacts/Builds/Binaries/Mac/VBCSCompiler
+sudo chmod -v +x Artifacts/Builds/Binaries/Mac/VBCSCompiler
 ls -l Artifacts/Builds/Binaries/Mac/VBCSCompiler
 
 mkdir -p producedbuilds

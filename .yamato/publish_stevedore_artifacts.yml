@@ -7,7 +7,7 @@ agent:
 dependencies:
   - .yamato/build.yml
 commands:
-  - apt-get install -y p7zip-full p7zip-rar
+  - sudo apt-get install -y p7zip-full p7zip-rar
   # Script needs the version string of the source artifact (which must match StevedoreUpload args).
   - ./stevedore-build-artifacts.sh "$(echo "$GIT_REVISION"|cut -b1-12)"
   - curl -sSo StevedoreUpload.exe "$STEVEDORE_UPLOAD_TOOL_URL"
