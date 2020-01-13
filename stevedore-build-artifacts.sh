@@ -8,11 +8,22 @@ if [ ! "$version_string" ]; then
     exit 1
 fi
 
+chmod -v +x Artifacts/Builds/Binaries/Linux/csc
+ls -l Artifacts/Builds/Binaries/Linux/csc
+chmod -v +x Artifacts/Builds/Binaries/Linux/VBCSCompiler
+ls -l Artifacts/Builds/Binaries/Linux/VBCSCompiler
+
+chmod -v +x Artifacts/Builds/Binaries/Mac/csc
+ls -l Artifacts/Builds/Binaries/Mac/csc
+chmod -v +x Artifacts/Builds/Binaries/Mac/VBCSCompiler
+ls -l Artifacts/Builds/Binaries/Mac/VBCSCompiler
+
 mkdir -p producedbuilds
 
 7z a producedbuilds/roslyn-csc-linux.7z Artifacts/Builds/Binaries/Linux/*
 7z a producedbuilds/roslyn-csc-mac.7z Artifacts/Builds/Binaries/Mac/*
-7z a producedbuilds/roslyn-csc-windows.7z Artifacts/Builds/Binaries/Windows/*
+7z a producedbuilds/roslyn-csc-win64.7z Artifacts/Builds/Binaries/Windows/*
+7z a producedbuilds/roslyn-csc-net46.7z Artifacts/Builds/Binaries/Net46/*
 
 for path in $artifact_path;do
   artifact_hash="$(sha256sum "$path" | cut -f1 -d ' ')"

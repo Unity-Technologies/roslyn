@@ -1,4 +1,4 @@
-name: 'Publish 7za Stevedore artifacts'
+name: 'Publish 7z Stevedore artifacts'
 
 agent:
   type: Unity::VM
@@ -10,6 +10,6 @@ commands:
   - sudo DEBIAN_FRONTEND=noninteractive apt-get update -qy
   - sudo apt-get install -y p7zip-full p7zip-rar
   # Script needs the version string of the source artifact (which must match StevedoreUpload args).
-  - ./stevedore-build-artifacts.sh "test_roslyn2"
+  - ./stevedore-build-artifacts.sh "$(echo "$GIT_REVISION"|cut -b1-12)"
   - curl -sSo StevedoreUpload.exe "$STEVEDORE_UPLOAD_TOOL_URL"
-  - mono StevedoreUpload.exe --repo=testing --version-len=12 --version="test_roslyn2" producedbuilds/*
+  - mono StevedoreUpload.exe --repo=testing --version-len=12 --version="$GIT_REVISION" producedbuilds/*
