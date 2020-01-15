@@ -1,4 +1,4 @@
-name: 'Publish 7z Stevedore artifacts'
+name: 'Publish roslyn-csc Stevedore artifacts'
 
 agent:
   type: Unity::VM
@@ -7,8 +7,7 @@ agent:
 dependencies:
   - .yamato/build.yml
 commands:
-  - sudo apt-get install -y p7zip-full p7zip-rar
   # Script needs the version string of the source artifact (which must match StevedoreUpload args).
-  - ./stevedore-build-artifacts.sh "$(echo "$GIT_REVISION"|cut -b1-12)"
+  - ./stevedore-build-artifacts.sh
   - curl -sSo StevedoreUpload.exe "$STEVEDORE_UPLOAD_TOOL_URL"
   - mono StevedoreUpload.exe --repo=testing --version-len=12 --version="$GIT_REVISION" producedbuilds/*
