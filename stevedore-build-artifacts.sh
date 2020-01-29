@@ -1,7 +1,5 @@
 #!/bin/sh
 
-artifact_path='producedbuilds/*'
-
 chmod -v +x Artifacts/Builds/Binaries/Linux/csc
 ls -l Artifacts/Builds/Binaries/Linux/csc
 chmod -v +x Artifacts/Builds/Binaries/Linux/VBCSCompiler
