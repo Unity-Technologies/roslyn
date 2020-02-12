@@ -41,7 +41,7 @@ namespace Microsoft.CodeAnalysis.GenerateMember.GenerateParameterizedMember
                     // a generic method if the expression 'x' captured any method type variables.
                     var capturedTypeParameters = GetCapturedTypeParameters(cancellationToken);
                     var availableTypeParameters = this.State.TypeToGenerateIn.GetAllTypeParameters();
-                    var result = capturedTypeParameters.Except(availableTypeParameters).ToImmutableArray();
+                    var result = capturedTypeParameters.Except<ITypeParameterSymbol>(availableTypeParameters, AllNullabilityIgnoringSymbolComparer.Instance).ToImmutableArray();
                     return result;
                 }
                 else
@@ -73,7 +73,8 @@ namespace Microsoft.CodeAnalysis.GenerateMember.GenerateParameterizedMember
                     hasConstructorConstraint: typeParameter.HasConstructorConstraint,
                     hasReferenceConstraint: typeParameter.HasReferenceTypeConstraint,
                     hasValueConstraint: typeParameter.HasValueTypeConstraint,
-                    hasUnmanagedConstraint: typeParameter.HasUnmanagedTypeConstraint);
+                    hasUnmanagedConstraint: typeParameter.HasUnmanagedTypeConstraint,
+                    hasNotNullConstraint: typeParameter.HasNotNullConstraint);
             }
 
             private List<ITypeSymbol> MergeClassTypes(List<ITypeSymbol> classTypes, CancellationToken cancellationToken)

@@ -14,6 +14,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.SignatureHelp
     Partial Friend Class FunctionAggregationSignatureHelpProvider
         Inherits AbstractVisualBasicSignatureHelpProvider
 
+        <ImportingConstructor>
+        Public Sub New()
+        End Sub
+
         Public Overrides Function IsTriggerCharacter(ch As Char) As Boolean
             Return ch = "("c
         End Function
@@ -82,7 +86,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.SignatureHelp
 
             Return CreateSignatureHelpItems(
                 accessibleMethods.Select(Function(m) Convert(m, functionAggregation, semanticModel, symbolDisplayService, anonymousTypeDisplayService, documentationCommentFormattingService, cancellationToken)).ToList(),
-                textSpan, GetCurrentArgumentState(root, position, syntaxFacts, textSpan, cancellationToken))
+                textSpan, GetCurrentArgumentState(root, position, syntaxFacts, textSpan, cancellationToken), selectedItem:=Nothing)
         End Function
 
         Private Overloads Function Convert(method As IMethodSymbol,

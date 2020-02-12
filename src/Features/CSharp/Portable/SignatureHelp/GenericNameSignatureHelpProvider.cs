@@ -21,6 +21,11 @@ namespace Microsoft.CodeAnalysis.CSharp.SignatureHelp
     [ExportSignatureHelpProvider("GenericNameSignatureHelpProvider", LanguageNames.CSharp), Shared]
     internal partial class GenericNameSignatureHelpProvider : AbstractCSharpSignatureHelpProvider
     {
+        [ImportingConstructor]
+        public GenericNameSignatureHelpProvider()
+        {
+        }
+
         public override bool IsTriggerCharacter(char ch)
         {
             return ch == '<' || ch == ',';
@@ -129,7 +134,7 @@ namespace Microsoft.CodeAnalysis.CSharp.SignatureHelp
 
             return CreateSignatureHelpItems(accessibleSymbols.Select(s =>
                 Convert(s, lessThanToken, semanticModel, symbolDisplayService, anonymousTypeDisplayService, documentationCommentFormattingService, cancellationToken)).ToList(),
-                textSpan, GetCurrentArgumentState(root, position, syntaxFacts, textSpan, cancellationToken));
+                textSpan, GetCurrentArgumentState(root, position, syntaxFacts, textSpan, cancellationToken), selectedItem: null);
         }
 
         public override SignatureHelpState GetCurrentArgumentState(SyntaxNode root, int position, ISyntaxFactsService syntaxFacts, TextSpan currentSpan, CancellationToken cancellationToken)

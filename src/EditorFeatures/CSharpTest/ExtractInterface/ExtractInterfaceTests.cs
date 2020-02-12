@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using System.Xml.Linq;
 using Microsoft.CodeAnalysis.Editor.CSharp.ExtractInterface;
 using Microsoft.CodeAnalysis.Editor.Implementation.Interactive;
+using Microsoft.CodeAnalysis.Editor.Shared.Utilities;
 using Microsoft.CodeAnalysis.Editor.UnitTests;
 using Microsoft.CodeAnalysis.Editor.UnitTests.ExtractInterface;
 using Microsoft.CodeAnalysis.Editor.UnitTests.Workspaces;
@@ -1061,7 +1062,7 @@ class $$Test<T, U>
         public void ExtractInterfaceCommandDisabledInSubmission()
         {
             var exportProvider = ExportProviderCache
-                .GetOrCreateExportProviderFactory(TestExportProvider.EntireAssemblyCatalogWithCSharpAndVisualBasic.WithParts(typeof(InteractiveDocumentSupportsFeatureService)))
+                .GetOrCreateExportProviderFactory(TestExportProvider.EntireAssemblyCatalogWithCSharpAndVisualBasic.WithParts(typeof(InteractiveSupportsFeatureService.InteractiveTextBufferSupportsFeatureService)))
                 .CreateExportProvider();
 
             using (var workspace = TestWorkspace.Create(XElement.Parse(@"
@@ -1081,7 +1082,7 @@ class $$Test<T, U>
 
                 var textView = workspace.Documents.Single().GetTextView();
 
-                var handler = new ExtractInterfaceCommandHandler();
+                var handler = new ExtractInterfaceCommandHandler(exportProvider.GetExportedValue<IThreadingContext>());
 
                 var state = handler.GetCommandState(new ExtractInterfaceCommandArgs(textView, textView.TextBuffer));
                 Assert.True(state.IsUnspecified);
@@ -1204,6 +1205,38 @@ class $$TestClass
 @"interface ITestClass
 {
     void M<T>() where T : unmanaged;
+}");
+        }
+
+        [WpfFact, Trait(Traits.Feature, Traits.Features.ExtractInterface)]
+        public async Task TestNotNullConstraint_Type()
+        {
+            var markup = @"
+class $$TestClass<T> where T : notnull
+{
+    public void M(T arg) => throw null;
+}";
+
+            await TestExtractInterfaceCommandCSharpAsync(markup, expectedSuccess: true, expectedInterfaceCode:
+@"interface ITestClass<T> where T : notnull
+{
+    void M(T arg);
+}");
+        }
+
+        [WpfFact, Trait(Traits.Feature, Traits.Features.ExtractInterface)]
+        public async Task TestNotNullConstraint_Method()
+        {
+            var markup = @"
+class $$TestClass
+{
+    public void M<T>() where T : notnull => throw null;
+}";
+
+            await TestExtractInterfaceCommandCSharpAsync(markup, expectedSuccess: true, expectedInterfaceCode:
+@"interface ITestClass
+{
+    void M<T>() where T : notnull;
 }");
         }
     }

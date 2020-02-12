@@ -3,12 +3,12 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Diagnostics;
 using System.Linq;
 using System.Threading;
 using Microsoft.CodeAnalysis.CSharp.Extensions;
 using Microsoft.CodeAnalysis.CSharp.Extensions.ContextQuery;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
-using Microsoft.CodeAnalysis.Host;
 using Microsoft.CodeAnalysis.LanguageServices;
 using Microsoft.CodeAnalysis.PooledObjects;
 using Microsoft.CodeAnalysis.Shared.Extensions;
@@ -24,6 +24,30 @@ namespace Microsoft.CodeAnalysis.CSharp
 
         private CSharpSemanticFactsService()
         {
+        }
+
+        protected override IEnumerable<ISymbol> GetCollidableSymbols(SemanticModel semanticModel, SyntaxNode location, SyntaxNode container, CancellationToken cancellationToken)
+        {
+            // Get all the symbols visible to the current location.
+            var visibleSymbols = semanticModel.LookupSymbols(location.SpanStart);
+
+            // Some symbols in the enclosing block could cause conflicts even if they are not available at the location.
+            // E.g. symbols inside if statements / try catch statements.
+            var symbolsInBlock = semanticModel.GetExistingSymbols(container, cancellationToken,
+                descendInto: n => ShouldDescendInto(n));
+
+            return symbolsInBlock.Concat(visibleSymbols);
+
+            // Walk through the enclosing block symbols, but avoid exploring local functions
+            //     a) Visible symbols from the local function would be returned by LookupSymbols
+            //        (e.g. location is inside a local function, the local function method name).
+            //     b) Symbols declared inside the local function do not cause collisions with symbols declared outside them, so avoid considering those symbols.
+            // Exclude lambdas as well when the language version is C# 8 or higher because symbols declared inside no longer collide with outer variables.
+            bool ShouldDescendInto(SyntaxNode node)
+            {
+                var isLanguageVersionGreaterOrEqualToCSharp8 = (semanticModel.Compilation as CSharpCompilation)?.LanguageVersion >= LanguageVersion.CSharp8;
+                return isLanguageVersionGreaterOrEqualToCSharp8 ? !SyntaxFactsService.IsAnonymousOrLocalFunction(node) : !SyntaxFactsService.IsLocalFunctionStatement(node);
+            }
         }
 
         public bool SupportsImplicitInterfaceImplementation => true;
@@ -144,17 +168,11 @@ namespace Microsoft.CodeAnalysis.CSharp
             return false;
         }
 
-        public bool SupportsParameterizedProperties
-        {
-            get
-            {
-                return false;
-            }
-        }
+        public bool SupportsParameterizedProperties => false;
 
         public bool TryGetSpeculativeSemanticModel(SemanticModel oldSemanticModel, SyntaxNode oldNode, SyntaxNode newNode, out SemanticModel speculativeModel)
         {
-            Contract.Requires(oldNode.Kind() == newNode.Kind());
+            Debug.Assert(oldNode.Kind() == newNode.Kind());
 
             var model = oldSemanticModel;
 
@@ -280,11 +298,6 @@ namespace Microsoft.CodeAnalysis.CSharp
             }
         }
 
-        public bool IsNameOfContext(SemanticModel semanticModel, int position, CancellationToken cancellationToken)
-        {
-            return semanticModel.SyntaxTree.IsNameOfContext(position, semanticModel, cancellationToken);
-        }
-
         public bool IsPartial(ITypeSymbol typeSymbol, CancellationToken cancellationToken)
         {
             var syntaxRefs = typeSymbol.DeclaringSyntaxReferences;
@@ -303,6 +316,9 @@ namespace Microsoft.CodeAnalysis.CSharp
             return SpecializedCollections.SingletonEnumerable(
                 semanticModel.GetDeclaredSymbol(memberDeclaration, cancellationToken));
         }
+
+        public IParameterSymbol FindParameterForArgument(SemanticModel semanticModel, SyntaxNode argumentNode, CancellationToken cancellationToken)
+            => ((ArgumentSyntax)argumentNode).DetermineParameter(semanticModel, allowParams: false, cancellationToken);
 
         public ImmutableArray<ISymbol> GetBestOrAllSymbols(SemanticModel semanticModel, SyntaxNode node, SyntaxToken token, CancellationToken cancellationToken)
         {
@@ -376,5 +392,8 @@ namespace Microsoft.CodeAnalysis.CSharp
 
             return semanticModel.GetSymbolInfo(node, cancellationToken);
         }
+
+        public bool IsInsideNameOfExpression(SemanticModel semanticModel, SyntaxNode node, CancellationToken cancellationToken)
+            => (node as ExpressionSyntax).IsInsideNameOfExpression(semanticModel, cancellationToken);
     }
 }

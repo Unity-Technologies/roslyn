@@ -8,9 +8,15 @@ Namespace Microsoft.CodeAnalysis.Editor.UnitTests.IntelliSense
     <[UseExportProvider]>
     Public Class VisualBasicCompletionCommandHandlerTests_Projections
 
-        <WpfFact, Trait(Traits.Feature, Traits.Features.Completion)>
-        Public Async Function TestSimpleWithJustSubjectBuffer() As Task
-            Using state = TestState.CreateVisualBasicTestState(
+        Public Shared ReadOnly Property AllCompletionImplementations() As IEnumerable(Of Object())
+            Get
+                Return TestStateFactory.GetAllCompletionImplementations()
+            End Get
+        End Property
+
+        <MemberData(NameOf(AllCompletionImplementations))> <WpfTheory, Trait(Traits.Feature, Traits.Features.Completion)>
+        Public Async Function TestSimpleWithJustSubjectBuffer(completionImplementation As CompletionImplementation) As Task
+            Using state = TestStateFactory.CreateVisualBasicTestState(completionImplementation,
                 <Document><![CDATA[
 Option Strict Off
 Option Explicit On
@@ -43,9 +49,10 @@ End Namespace
             End Using
         End Function
 
-        <WpfFact, Trait(Traits.Feature, Traits.Features.Completion)>
-        Public Async Function TestAfterDot() As Task
-            Using state = TestState.CreateVisualBasicTestState(
+        <MemberData(NameOf(AllCompletionImplementations))>
+        <WpfTheory, Trait(Traits.Feature, Traits.Features.Completion)>
+        Public Async Function TestAfterDot(completionImplementation As CompletionImplementation) As Task
+            Using state = TestStateFactory.CreateVisualBasicTestState(completionImplementation,
                 <Document><![CDATA[
 {|S2:
 Class C
@@ -72,17 +79,18 @@ End Class
                 Dim buffer = subjectDocument.GetTextBuffer()
 
                 state.SendTypeCharsToSpecificViewAndBuffer(".", view, buffer)
-                Await state.AssertCompletionSession()
+                Await state.AssertCompletionSession(view)
 
                 state.SendTypeCharsToSpecificViewAndBuffer("Cons", view, buffer)
                 Await state.WaitForAsynchronousOperationsAsync()
-                Await state.AssertSelectedCompletionItem(displayText:="Console")
+                Await state.AssertSelectedCompletionItem(displayText:="Console", projectionsView:=view)
             End Using
         End Function
 
-        <WpfFact, Trait(Traits.Feature, Traits.Features.Completion)>
-        Public Async Function TestInObjectCreationExpression() As Task
-            Using state = TestState.CreateVisualBasicTestState(
+        <MemberData(NameOf(AllCompletionImplementations))>
+        <WpfTheory, Trait(Traits.Feature, Traits.Features.Completion)>
+        Public Async Function TestInObjectCreationExpression(completionImplementation As CompletionImplementation) As Task
+            Using state = TestStateFactory.CreateVisualBasicTestState(completionImplementation,
                 <Document><![CDATA[
 {|S2:
 Class C
@@ -109,11 +117,11 @@ End Class
                 Dim buffer = subjectDocument.GetTextBuffer()
 
                 state.SendTypeCharsToSpecificViewAndBuffer(" ", view, buffer)
-                Await state.AssertCompletionSession()
+                Await state.AssertCompletionSession(view)
 
                 state.SendTypeCharsToSpecificViewAndBuffer("Str", view, buffer)
                 Await state.WaitForAsynchronousOperationsAsync()
-                Await state.AssertSelectedCompletionItem(displayText:="String", isHardSelected:=True)
+                Await state.AssertSelectedCompletionItem(displayText:="String", isHardSelected:=True, projectionsView:=view)
             End Using
         End Function
     End Class

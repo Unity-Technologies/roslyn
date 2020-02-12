@@ -12,7 +12,7 @@ namespace Microsoft.CodeAnalysis.CSharp.UnitTests.PDB
 {
     public class PDBConstantTests : CSharpTestBase
     {
-        [Fact]
+        [ConditionalFact(typeof(WindowsOnly), Reason = ConditionalSkipReason.NativePdbRequiresDesktop)]
         public void StringsWithSurrogateChar()
         {
             var source = @"
@@ -79,7 +79,8 @@ public class T
 </symbols>", format: DebugInformationFormat.PortablePdb);
         }
 
-        [Fact, WorkItem(546862, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/546862")]
+        [WorkItem(546862, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/546862")]
+        [ConditionalFact(typeof(WindowsOnly), Reason = ConditionalSkipReason.NativePdbRequiresDesktop)]
         public void InvalidUnicodeString()
         {
             var source = @"
@@ -140,7 +141,7 @@ public class T
 </symbols>", format: DebugInformationFormat.PortablePdb);
         }
 
-        [Fact]
+        [ConditionalFact(typeof(WindowsOnly), Reason = ConditionalSkipReason.NativePdbRequiresDesktop)]
         public void AllTypes()
         {
             var source = @"
@@ -264,7 +265,7 @@ public class C<S>
 </symbols>");
         }
 
-        [Fact]
+        [ConditionalFact(typeof(WindowsOnly), Reason = ConditionalSkipReason.NativePdbRequiresDesktop)]
         public void SimpleLocalConstant()
         {
             var text = @"
@@ -308,7 +309,7 @@ class C
 </symbols>");
         }
 
-        [Fact]
+        [ConditionalFact(typeof(WindowsOnly), Reason = ConditionalSkipReason.NativePdbRequiresDesktop)]
         public void LambdaLocalConstants()
         {
             var text = @"
@@ -378,7 +379,7 @@ class C
         }
 
         [WorkItem(543342, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/543342")]
-        [Fact]
+        [ConditionalFact(typeof(WindowsOnly), Reason = ConditionalSkipReason.NativePdbRequiresDesktop)]
         public void IteratorLocalConstants()
         {
             var source = @"
@@ -461,7 +462,9 @@ class C
 </symbols>");
         }
 
-        [Fact]
+        [ConditionalFact(typeof(WindowsDesktopOnly), Reason = "https://github.com/dotnet/roslyn/issues/33564")]
+        // https://github.com/dotnet/roslyn/issues/33564: Was [ConditionalFact(typeof(WindowsOnly), Reason = ConditionalSkipReason.NativePdbRequiresDesktop)]
+        [WorkItem(33564, "https://github.com/dotnet/roslyn/issues/33564")]
         public void LocalConstantsTypes()
         {
             var text = @"
@@ -506,7 +509,7 @@ class C
             }
         }
 
-        [Fact]
+        [ConditionalFact(typeof(WindowsOnly), Reason = ConditionalSkipReason.NativePdbRequiresDesktop)]
         public void WRN_PDBConstantStringValueTooLong()
         {
             var longStringValue = new string('a', 2049);
@@ -553,7 +556,7 @@ class C
              * */
         }
 
-        [Fact]
+        [ConditionalFact(typeof(WindowsOnly), Reason = ConditionalSkipReason.NativePdbRequiresDesktop)]
         public void StringConstantTooLong()
         {
             var text = @"
@@ -642,7 +645,8 @@ this is a string constant that is too long to fit into the PDB"";
 </symbols>", format: DebugInformationFormat.PortablePdb);
         }
 
-        [Fact, WorkItem(178988, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/178988")]
+        [WorkItem(178988, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/178988")]
+        [ConditionalFact(typeof(WindowsOnly), Reason = ConditionalSkipReason.NativePdbRequiresDesktop)]
         public void StringWithNulCharacter_MaxSupportedLength()
         {
             const int length = 2031;
@@ -701,7 +705,8 @@ class C
 </symbols>", format: DebugInformationFormat.PortablePdb);
         }
 
-        [Fact, WorkItem(178988, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/178988")]
+        [WorkItem(178988, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/178988")]
+        [ConditionalFact(typeof(WindowsOnly), Reason = ConditionalSkipReason.NativePdbRequiresDesktop)]
         public void StringWithNulCharacter_OverSupportedLength()
         {
             const int length = 2032;
@@ -757,7 +762,7 @@ class C
 </symbols>", format: DebugInformationFormat.PortablePdb);
         }
 
-        [Fact]
+        [ConditionalFact(typeof(WindowsOnly), Reason = ConditionalSkipReason.NativePdbRequiresDesktop)]
         public void DecimalLocalConstants()
         {
             var text = @"

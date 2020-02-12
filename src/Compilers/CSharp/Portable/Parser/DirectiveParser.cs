@@ -98,6 +98,10 @@ namespace Microsoft.CodeAnalysis.CSharp.Syntax.InternalSyntax
                     result = this.ParseLoadDirective(hash, this.EatContextualToken(contextualKind), isActive, isAfterFirstTokenInFile && !isAfterNonWhitespaceOnLine);
                     break;
 
+                case SyntaxKind.NullableKeyword:
+                    result = this.ParseNullableDirective(hash, this.EatContextualToken(contextualKind), isActive);
+                    break;
+
                 default:
                     if (lexer.Options.Kind == SourceCodeKind.Script && contextualKind == SyntaxKind.ExclamationToken && hashPosition == 0 && !hash.HasTrailingTrivia)
                     {
@@ -316,8 +320,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Syntax.InternalSyntax
                 {
                     if (errorText.Equals("version", StringComparison.Ordinal))
                     {
-                        Assembly assembly = typeof(CSharpCompiler).GetTypeInfo().Assembly;
-                        string version = CommonCompiler.GetAssemblyFileVersion(assembly);
+                        string version = CommonCompiler.GetProductVersion(typeof(CSharpCompiler));
                         eod = this.AddError(eod, triviaOffset, triviaWidth, ErrorCode.ERR_CompilerAndLanguageVersion, version,
                             this.Options.SpecifiedLanguageVersion.ToDisplayString());
                     }
@@ -424,18 +427,55 @@ namespace Microsoft.CodeAnalysis.CSharp.Syntax.InternalSyntax
             return SyntaxFactory.LoadDirectiveTrivia(hash, keyword, file, end, isActive);
         }
 
+        private DirectiveTriviaSyntax ParseNullableDirective(SyntaxToken hash, SyntaxToken token, bool isActive)
+        {
+            if (isActive)
+            {
+                token = CheckFeatureAvailability(token, MessageID.IDS_FeatureNullableReferenceTypes);
+            }
+
+            SyntaxToken setting = this.CurrentToken.Kind switch
+            {
+                SyntaxKind.EnableKeyword => EatToken(),
+                SyntaxKind.DisableKeyword => EatToken(),
+                SyntaxKind.RestoreKeyword => EatToken(),
+                _ => EatToken(SyntaxKind.DisableKeyword, ErrorCode.ERR_NullableDirectiveQualifierExpected, reportError: isActive)
+            };
+
+            SyntaxToken target = this.CurrentToken.Kind switch
+            {
+                SyntaxKind.WarningsKeyword => EatToken(),
+                SyntaxKind.AnnotationsKeyword => EatToken(),
+                SyntaxKind.EndOfDirectiveToken => null,
+                SyntaxKind.EndOfFileToken => null,
+                _ => EatToken(SyntaxKind.WarningsKeyword, ErrorCode.ERR_NullableDirectiveTargetExpected, reportError: !setting.IsMissing && isActive)
+            };
+
+            var end = this.ParseEndOfDirective(ignoreErrors: setting.IsMissing || target?.IsMissing == true || !isActive);
+            return SyntaxFactory.NullableDirectiveTrivia(hash, token, setting, target, end, isActive);
+        }
+
         private DirectiveTriviaSyntax ParsePragmaDirective(SyntaxToken hash, SyntaxToken pragma, bool isActive)
         {
-            pragma = CheckFeatureAvailability(pragma, MessageID.IDS_FeaturePragma);
+            if (isActive)
+            {
+                pragma = CheckFeatureAvailability(pragma, MessageID.IDS_FeaturePragma);
+            }
 
             bool hasError = false;
             if (this.CurrentToken.ContextualKind == SyntaxKind.WarningKeyword)
             {
                 var warning = this.EatContextualToken(SyntaxKind.WarningKeyword);
                 SyntaxToken style;
-                if (this.CurrentToken.Kind == SyntaxKind.DisableKeyword || this.CurrentToken.Kind == SyntaxKind.RestoreKeyword)
+                if (this.CurrentToken.Kind == SyntaxKind.DisableKeyword || this.CurrentToken.Kind == SyntaxKind.RestoreKeyword ||
+                    this.CurrentToken.Kind == SyntaxKind.EnableKeyword)
                 {
                     style = this.EatToken();
+
+                    if (isActive && style.Kind == SyntaxKind.EnableKeyword)
+                    {
+                        style = CheckFeatureAvailability(style, MessageID.IDS_FeaturePragmaWarningEnable, forceWarning: true);
+                    }
                     var ids = new SeparatedSyntaxListBuilder<ExpressionSyntax>(10);
                     while (this.CurrentToken.Kind != SyntaxKind.EndOfDirectiveToken)
                     {

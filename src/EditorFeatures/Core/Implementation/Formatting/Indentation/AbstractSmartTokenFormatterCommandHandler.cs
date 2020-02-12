@@ -2,6 +2,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Threading;
 using Microsoft.CodeAnalysis.Editor.Shared.Extensions;
 using Microsoft.CodeAnalysis.Editor.Shared.Utilities;
@@ -22,6 +23,8 @@ using VSCommanding = Microsoft.VisualStudio.Commanding;
 
 namespace Microsoft.CodeAnalysis.Editor.Implementation.Formatting.Indentation
 {
+    using Microsoft.CodeAnalysis.Indentation;
+
     internal abstract class AbstractSmartTokenFormatterCommandHandler :
         IChainedCommandHandler<ReturnKeyCommandArgs>
     {
@@ -38,15 +41,15 @@ namespace Microsoft.CodeAnalysis.Editor.Implementation.Formatting.Indentation
             _editorOperationsFactoryService = editorOperationsFactoryService;
         }
 
-        protected abstract ISmartTokenFormatter CreateSmartTokenFormatter(OptionSet optionSet, IEnumerable<IFormattingRule> formattingRules, SyntaxNode root);
+        protected abstract ISmartTokenFormatter CreateSmartTokenFormatter(OptionSet optionSet, IEnumerable<AbstractFormattingRule> formattingRules, SyntaxNode root);
 
-        protected abstract bool UseSmartTokenFormatter(SyntaxNode root, TextLine line, IEnumerable<IFormattingRule> formattingRules, OptionSet options, CancellationToken cancellationToken);
+        protected abstract bool UseSmartTokenFormatter(SyntaxNode root, TextLine line, IEnumerable<AbstractFormattingRule> formattingRules, OptionSet options, CancellationToken cancellationToken);
         protected abstract bool IsInvalidToken(SyntaxToken token);
 
-        protected abstract IEnumerable<IFormattingRule> GetFormattingRules(Document document, int position);
+        protected abstract IEnumerable<AbstractFormattingRule> GetFormattingRules(Document document, int position);
 
         /// <returns>True if any change is made.</returns>
-        protected bool FormatToken(ITextView view, Document document, SyntaxToken token, IEnumerable<IFormattingRule> formattingRules, CancellationToken cancellationToken)
+        protected bool FormatToken(ITextView view, Document document, SyntaxToken token, IEnumerable<AbstractFormattingRule> formattingRules, CancellationToken cancellationToken)
         {
             var root = document.GetSyntaxRootSynchronously(cancellationToken);
             var documentOptions = document.GetOptionsAsync(cancellationToken).WaitAndGetResult(cancellationToken);
@@ -138,7 +141,7 @@ namespace Microsoft.CodeAnalysis.Editor.Implementation.Formatting.Indentation
                 return;
             }
 
-            var indentationService = document.GetLanguageService<ISynchronousIndentationService>();
+            var indentationService = document.GetLanguageService<IIndentationService>();
             var indentation = indentationService.GetDesiredIndentation(document,
                 currentPosition.GetContainingLine().LineNumber, cancellationToken);
 
@@ -198,7 +201,7 @@ namespace Microsoft.CodeAnalysis.Editor.Implementation.Formatting.Indentation
             }
 
             // okay, it is an empty line with some whitespaces 
-            Contract.Requires(indentation <= lineInSubjectBuffer.Length);
+            Debug.Assert(indentation <= lineInSubjectBuffer.Length);
 
             var offset = GetOffsetFromIndentation(indentation, view.Options);
             view.TryMoveCaretToAndEnsureVisible(lineInSubjectBuffer.Start.Add(offset));
@@ -299,7 +302,7 @@ namespace Microsoft.CodeAnalysis.Editor.Implementation.Formatting.Indentation
         /// <summary>
         /// check whether we can do automatic formatting using token formatter instead of smart indenter for the "enter" key
         /// </summary>
-        private bool TryFormatUsingTokenFormatter(ITextView view, ITextBuffer subjectBuffer, Document document, IEnumerable<IFormattingRule> formattingRules, CancellationToken cancellationToken)
+        private bool TryFormatUsingTokenFormatter(ITextView view, ITextBuffer subjectBuffer, Document document, IEnumerable<AbstractFormattingRule> formattingRules, CancellationToken cancellationToken)
         {
             var position = view.GetCaretPoint(subjectBuffer).Value;
             var line = position.GetContainingLine().AsTextLine();

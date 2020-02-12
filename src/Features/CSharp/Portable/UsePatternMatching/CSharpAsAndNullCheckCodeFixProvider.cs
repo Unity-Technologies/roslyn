@@ -1,7 +1,9 @@
 ﻿// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
 
 using System;
+using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Collections.ObjectModel;
 using System.Composition;
 using System.Linq;
 using System.Threading;
@@ -21,6 +23,11 @@ namespace Microsoft.CodeAnalysis.CSharp.UsePatternMatching
     [ExportCodeFixProvider(LanguageNames.CSharp), Shared]
     internal partial class CSharpAsAndNullCheckCodeFixProvider : SyntaxEditorBasedCodeFixProvider
     {
+        [ImportingConstructor]
+        public CSharpAsAndNullCheckCodeFixProvider()
+        {
+        }
+
         public override ImmutableArray<string> FixableDiagnosticIds
             => ImmutableArray.Create(IDEDiagnosticIds.InlineAsTypeCheckId);
 
@@ -36,81 +43,93 @@ namespace Microsoft.CodeAnalysis.CSharp.UsePatternMatching
             Document document, ImmutableArray<Diagnostic> diagnostics,
             SyntaxEditor editor, CancellationToken cancellationToken)
         {
+            var declaratorLocations = new HashSet<Location>();
+            var statementParentScopes = new HashSet<SyntaxNode>();
+            void RemoveStatement(StatementSyntax statement)
+            {
+                editor.RemoveNode(statement, SyntaxRemoveOptions.KeepUnbalancedDirectives);
+                if (statement.Parent is BlockSyntax || statement.Parent is SwitchSectionSyntax)
+                {
+                    statementParentScopes.Add(statement.Parent);
+                }
+            }
+
             foreach (var diagnostic in diagnostics)
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                AddEdits(editor, diagnostic, cancellationToken);
+
+                if (declaratorLocations.Add(diagnostic.AdditionalLocations[0]))
+                {
+                    AddEdits(editor, diagnostic, RemoveStatement, cancellationToken);
+                }
+            }
+
+            foreach (var parentScope in statementParentScopes)
+            {
+                editor.ReplaceNode(parentScope, (newParentScope, syntaxGenerator) =>
+                {
+                    var firstStatement = newParentScope is BlockSyntax
+                        ? ((BlockSyntax)newParentScope).Statements.First()
+                        : ((SwitchSectionSyntax)newParentScope).Statements.First();
+                    return syntaxGenerator.ReplaceNode(newParentScope, firstStatement, firstStatement.WithoutLeadingBlankLinesInTrivia());
+                });
             }
 
             return Task.CompletedTask;
         }
 
-        private static ExpressionSyntax GetCondition(SyntaxNode node)
-        {
-            switch (node.Kind())
-            {
-                case SyntaxKind.WhileStatement:
-                    return ((WhileStatementSyntax)node).Condition;
-                case SyntaxKind.IfStatement:
-                    return ((IfStatementSyntax)node).Condition;
-                case SyntaxKind.ReturnStatement:
-                    return ((ReturnStatementSyntax)node).Expression;
-                case SyntaxKind.LocalDeclarationStatement:
-                    return ((LocalDeclarationStatementSyntax)node).Declaration.Variables[0].Initializer.Value;
-                default:
-                    throw ExceptionUtilities.UnexpectedValue(node.Kind());
-            }
-        }
-
         private static void AddEdits(
             SyntaxEditor editor,
             Diagnostic diagnostic,
+            Action<StatementSyntax> removeStatement,
             CancellationToken cancellationToken)
         {
-            var localDeclarationLocation = diagnostic.AdditionalLocations[0];
-            var targetStatementLocation = diagnostic.AdditionalLocations[1];
-            var conditionLocation = diagnostic.AdditionalLocations[2];
-            var asExpressionLocation = diagnostic.AdditionalLocations[3];
+            var declaratorLocation = diagnostic.AdditionalLocations[0];
+            var comparisonLocation = diagnostic.AdditionalLocations[1];
+            var asExpressionLocation = diagnostic.AdditionalLocations[2];
 
-            var localDeclaration = (LocalDeclarationStatementSyntax)localDeclarationLocation.FindNode(cancellationToken);
-            var targetStatement = (StatementSyntax)targetStatementLocation.FindNode(cancellationToken);
-            var conditionPart = (BinaryExpressionSyntax)conditionLocation.FindNode(cancellationToken);
+            var declarator = (VariableDeclaratorSyntax)declaratorLocation.FindNode(cancellationToken);
+            var comparison = (ExpressionSyntax)comparisonLocation.FindNode(cancellationToken);
             var asExpression = (BinaryExpressionSyntax)asExpressionLocation.FindNode(cancellationToken);
-            var newIdentifier = localDeclaration.Declaration.Variables[0].Identifier
-                .WithoutTrivia().WithTrailingTrivia(conditionPart.Right.GetTrailingTrivia());
 
-            ExpressionSyntax updatedConditionPart = SyntaxFactory.IsPatternExpression(
+            var rightSideOfComparison = comparison is BinaryExpressionSyntax binaryExpression
+                ? (SyntaxNode)binaryExpression.Right
+                : ((IsPatternExpressionSyntax)comparison).Pattern;
+            var newIdentifier = declarator.Identifier
+                .WithoutTrivia().WithTrailingTrivia(rightSideOfComparison.GetTrailingTrivia());
+
+            ExpressionSyntax isExpression = SyntaxFactory.IsPatternExpression(
                 asExpression.Left, SyntaxFactory.DeclarationPattern(
                     ((TypeSyntax)asExpression.Right).WithoutTrivia(),
                     SyntaxFactory.SingleVariableDesignation(newIdentifier)));
 
-            // We should negate the is-expression if we have something like "x == null"
-            if (conditionPart.IsKind(SyntaxKind.EqualsExpression))
+            // We should negate the is-expression if we have something like "x == null" or "x is null"
+            if (comparison.IsKind(SyntaxKind.EqualsExpression, SyntaxKind.IsPatternExpression))
             {
-                updatedConditionPart = SyntaxFactory.PrefixUnaryExpression(
+                isExpression = SyntaxFactory.PrefixUnaryExpression(
                     SyntaxKind.LogicalNotExpression,
-                    updatedConditionPart.Parenthesize());
+                    isExpression.Parenthesize());
             }
 
-            var currentCondition = GetCondition(targetStatement);
-            var updatedCondition = currentCondition.ReplaceNode(conditionPart, updatedConditionPart);
-
-            var block = (BlockSyntax)localDeclaration.Parent;
-            var declarationIndex = block.Statements.IndexOf(localDeclaration);
-
-            // Trivia on the local declaration will move to the next statement.
-            // use the callback form as the next statement may be the place where we're
-            // inlining the declaration, and thus need to see the effects of that change.
-            editor.ReplaceNode(
-                block.Statements[declarationIndex + 1],
-                (s, g) => s.WithPrependedNonIndentationTriviaFrom(localDeclaration));
-            editor.RemoveNode(localDeclaration, SyntaxRemoveOptions.KeepUnbalancedDirectives);
-
-            editor.ReplaceNode(targetStatement, (currentStatement, g) =>
+            if (declarator.Parent is VariableDeclarationSyntax declaration &&
+                declaration.Parent is LocalDeclarationStatementSyntax localDeclaration &&
+                declaration.Variables.Count == 1)
             {
-                var updatedStatement = currentStatement.ReplaceNode(GetCondition(currentStatement), updatedCondition);
-                return updatedStatement.WithAdditionalAnnotations(Formatter.Annotation);
-            });
+                // Trivia on the local declaration will move to the next statement.
+                // use the callback form as the next statement may be the place where we're
+                // inlining the declaration, and thus need to see the effects of that change.
+                editor.ReplaceNode(
+                    localDeclaration.GetNextStatement(),
+                    (s, g) => s.WithPrependedNonIndentationTriviaFrom(localDeclaration));
+
+                removeStatement(localDeclaration);
+            }
+            else
+            {
+                editor.RemoveNode(declarator, SyntaxRemoveOptions.KeepUnbalancedDirectives);
+            }
+
+            editor.ReplaceNode(comparison, isExpression.WithTriviaFrom(comparison));
         }
 
         private class MyCodeAction : CodeAction.DocumentChangeAction

@@ -2,9 +2,7 @@
 
 using System.Globalization;
 using System.IO;
-using System.Linq;
 using System.Reflection.Metadata;
-using Microsoft.CodeAnalysis.CSharp.Symbols;
 using Microsoft.CodeAnalysis.CSharp.Test.Utilities;
 using Microsoft.CodeAnalysis.Emit;
 using Microsoft.CodeAnalysis.Test.Utilities;
@@ -17,7 +15,7 @@ namespace Microsoft.CodeAnalysis.CSharp.UnitTests.PDB
     public class PDBIteratorTests : CSharpPDBTestBase
     {
         [WorkItem(543376, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/543376")]
-        [Fact]
+        [ConditionalFact(typeof(WindowsOnly), Reason = ConditionalSkipReason.NativePdbRequiresDesktop)]
         public void SimpleIterator1()
         {
             var text = @"
@@ -61,7 +59,7 @@ class Program
         }
 
         [WorkItem(543376, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/543376")]
-        [Fact]
+        [ConditionalFact(typeof(WindowsOnly), Reason = ConditionalSkipReason.NativePdbRequiresDesktop)]
         public void SimpleIterator2()
         {
             var text = @"
@@ -106,7 +104,7 @@ class Program
         }
 
         [WorkItem(543490, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/543490")]
-        [Fact]
+        [ConditionalFact(typeof(WindowsOnly), Reason = ConditionalSkipReason.NativePdbRequiresDesktop)]
         public void SimpleIterator3()
         {
             var text = @"
@@ -152,7 +150,7 @@ class Program
 </symbols>");
         }
 
-        [Fact]
+        [ConditionalFact(typeof(WindowsOnly), Reason = ConditionalSkipReason.NativePdbRequiresDesktop)]
         public void IteratorWithLocals_ReleasePdb()
         {
             var text = @"
@@ -222,7 +220,7 @@ class Program
 </symbols>");
         }
 
-        [Fact]
+        [ConditionalFact(typeof(WindowsOnly), Reason = ConditionalSkipReason.NativePdbRequiresDesktop)]
         public void IteratorWithLocals_DebugPdb()
         {
             var text = @"
@@ -302,7 +300,7 @@ class Program
 </symbols>");
         }
 
-        [Fact]
+        [ConditionalFact(typeof(WindowsOnly), Reason = ConditionalSkipReason.NativePdbRequiresDesktop)]
         public void IteratorWithCapturedSyntheticVariables()
         {
             // this iterator captures the synthetic variable generated from the expansion of the foreach loop
@@ -385,7 +383,7 @@ class Test<T>
         }
 
         [WorkItem(542705, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/542705"), WorkItem(528790, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/528790"), WorkItem(543490, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/543490")]
-        [Fact()]
+        [ConditionalFact(typeof(WindowsOnly), Reason = ConditionalSkipReason.NativePdbRequiresDesktop)]
         public void IteratorBackToNextStatementAfterYieldReturn()
         {
             var text = @"
@@ -480,7 +478,7 @@ class C
         }
 
         [WorkItem(543490, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/543490")]
-        [Fact()]
+        [ConditionalFact(typeof(WindowsOnly), Reason = ConditionalSkipReason.NativePdbRequiresDesktop)]
         public void IteratorMultipleEnumerables()
         {
             var text = @"
@@ -685,7 +683,7 @@ public class Test
 </symbols>");
         }
 
-        [Fact]
+        [ConditionalFact(typeof(WindowsOnly), Reason = ConditionalSkipReason.NativePdbRequiresDesktop)]
         public void VariablesWithSubstitutedType1()
         {
             var text = @"
@@ -753,7 +751,7 @@ class C
 </symbols>");
         }
 
-        [Fact]
+        [ConditionalFact(typeof(WindowsOnly), Reason = ConditionalSkipReason.NativePdbRequiresDesktop)]
         public void IteratorWithConditionalBranchDiscriminator1()
         {
             var text = @"
@@ -826,8 +824,7 @@ class C
   IL_0041:  nop
   IL_0042:  ldc.i4.0
   IL_0043:  ret
-}
-");
+}");
 
             v.VerifyPdb("C+<F>d__1.MoveNext", @"
 <symbols>
@@ -859,7 +856,7 @@ class C
 </symbols>");
         }
 
-        [Fact]
+        [ConditionalFact(typeof(WindowsOnly), Reason = ConditionalSkipReason.NativePdbRequiresDesktop)]
         public void SynthesizedVariables1()
         {
             var source =
@@ -962,7 +959,7 @@ class C
 
         [WorkItem(836491, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/836491")]
         [WorkItem(827337, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/827337")]
-        [Fact]
+        [ConditionalFact(typeof(WindowsOnly), Reason = ConditionalSkipReason.NativePdbRequiresDesktop)]
         public void DisplayClass_AcrossSuspensionPoints_Debug()
         {
             string source = @"
@@ -1033,7 +1030,7 @@ class C
 
         [WorkItem(836491, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/836491")]
         [WorkItem(827337, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/827337")]
-        [Fact]
+        [ConditionalFact(typeof(WindowsOnly), Reason = ConditionalSkipReason.NativePdbRequiresDesktop)]
         public void DisplayClass_InBetweenSuspensionPoints_Release()
         {
             string source = @"
@@ -1155,7 +1152,7 @@ class C
 </symbols>");
         }
 
-        [Fact]
+        [ConditionalFact(typeof(WindowsOnly), Reason = ConditionalSkipReason.NativePdbRequiresDesktop)]
         public void DisplayClass_InBetweenSuspensionPoints_Debug()
         {
             string source = @"
@@ -1250,8 +1247,7 @@ class C
   IL_0078:  stfld      ""int C.<M>d__0.<>1__state""
   IL_007d:  ldc.i4.0
   IL_007e:  ret
-}
-");
+}");
 
             v.VerifyPdb("C+<M>d__0.MoveNext", @"
 <symbols>
@@ -1310,7 +1306,7 @@ class C
 
         [WorkItem(836491, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/836491")]
         [WorkItem(827337, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/827337")]
-        [Fact]
+        [ConditionalFact(typeof(WindowsOnly), Reason = ConditionalSkipReason.NativePdbRequiresDesktop)]
         public void DynamicLocal_AcrossSuspensionPoints_Debug()
         {
             string source = @"
@@ -1372,7 +1368,6 @@ class C
     </method>
   </methods>
 </symbols>");
-
             v.VerifyPdb("C.M", @"
 <symbols>
   <files>
@@ -1395,7 +1390,7 @@ class C
         [WorkItem(836491, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/836491")]
         [WorkItem(827337, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/827337")]
         [WorkItem(1070519, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/1070519")]
-        [Fact]
+        [ConditionalFact(typeof(WindowsOnly), Reason = ConditionalSkipReason.NativePdbRequiresDesktop)]
         public void DynamicLocal_InBetweenSuspensionPoints_Release()
         {
             string source = @"
@@ -1454,7 +1449,7 @@ class C
         }
 
         [WorkItem(1070519, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/1070519")]
-        [Fact]
+        [ConditionalFact(typeof(WindowsOnly), Reason = ConditionalSkipReason.NativePdbRequiresDesktop)]
         public void DynamicLocal_InBetweenSuspensionPoints_Debug()
         {
             string source = @"
@@ -1517,7 +1512,8 @@ class C
 </symbols>");
         }
 
-        [Fact, WorkItem(667579, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/667579")]
+        [WorkItem(667579, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/667579")]
+        [ConditionalFact(typeof(WindowsOnly), Reason = ConditionalSkipReason.NativePdbRequiresDesktop)]
         public void DebuggerHiddenIterator()
         {
             var text = @"
@@ -1613,7 +1609,8 @@ MethodDebugInformation (index: 0x31, size: 40):
 7: nil
 8: nil
 9: nil
-a: nil",
+a: nil
+",
                     writer.ToString());
             }
         }

@@ -705,5 +705,143 @@ class C
     }
 }");
         }
+
+        [Fact, Trait(Traits.Feature, Traits.Features.CodeActionsUseConditionalExpression)]
+        public async Task TestReturnTrueFalse1()
+        {
+            await TestInRegularAndScriptAsync(
+@"
+class C
+{
+    bool M(int a)
+    {
+        [||]if (a == 0)
+        {
+            return true;
+        }
+        else
+        {
+            return false;
+        }
+    }
+}",
+@"
+class C
+{
+    bool M(int a)
+    {
+        return a == 0;
+    }
+}");
+        }
+
+        [Fact, Trait(Traits.Feature, Traits.Features.CodeActionsUseConditionalExpression)]
+        public async Task TestReturnTrueFalse2()
+        {
+            await TestInRegularAndScriptAsync(
+@"
+class C
+{
+    bool M(int a)
+    {
+        [||]if (a == 0)
+        {
+            return false;
+        }
+        else
+        {
+            return true;
+        }
+    }
+}",
+@"
+class C
+{
+    bool M(int a)
+    {
+        return a != 0;
+    }
+}");
+        }
+
+        [Fact, Trait(Traits.Feature, Traits.Features.CodeActionsUseConditionalExpression)]
+        public async Task TestReturnTrueFalse3()
+        {
+            await TestInRegularAndScriptAsync(
+@"
+class C
+{
+    bool M(int a)
+    {
+        [||]if (a == 0)
+        {
+            return false;
+        }
+
+        return true;
+    }
+}",
+@"
+class C
+{
+    bool M(int a)
+    {
+        return a != 0;
+    }
+}");
+        }
+
+        [Fact, Trait(Traits.Feature, Traits.Features.CodeActionsUseConditionalExpression)]
+        public async Task TestReturnTrueFalse4()
+        {
+            await TestInRegularAndScriptAsync(
+@"
+using System.Collections.Generic;
+
+class C
+{
+    IEnumerable<bool> M(int a)
+    {
+        [||]if (a == 0)
+        {
+            yield return false;
+        }
+        else
+        {
+            yield return true;
+        }
+    }
+}",
+@"
+using System.Collections.Generic;
+
+class C
+{
+    IEnumerable<bool> M(int a)
+    {
+        yield return a != 0;
+    }
+}");
+        }
+
+        [WorkItem(36117, "https://github.com/dotnet/roslyn/issues/36117")]
+        [Fact, Trait(Traits.Feature, Traits.Features.CodeActionsUseConditionalExpression)]
+        public async Task TestMissingWhenCrossingPreprocessorDirective()
+        {
+            await TestMissingInRegularAndScriptAsync(
+@"
+class C
+{
+    int M()
+    {
+        bool check = true;
+#if true
+        [||]if (check)
+            return 3;
+#endif
+        return 2;
+    }
+}");
+        }
     }
 }

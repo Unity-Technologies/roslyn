@@ -1,5 +1,6 @@
 ﻿// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
 
+using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
 using Microsoft.CodeAnalysis.Shared.Extensions;
@@ -9,11 +10,36 @@ namespace Microsoft.CodeAnalysis.LanguageServices
 {
     internal static class ISyntaxFactsServiceExtensions
     {
+        public static bool IsLegalIdentifier(this ISyntaxFactsService syntaxFacts, string name)
+        {
+            if (name.Length == 0)
+            {
+                return false;
+            }
+
+            if (!syntaxFacts.IsIdentifierStartCharacter(name[0]))
+            {
+                return false;
+            }
+
+            for (int i = 1; i < name.Length; i++)
+            {
+                if (!syntaxFacts.IsIdentifierPartCharacter(name[i]))
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        public static bool IsReservedOrContextualKeyword(this ISyntaxFactsService syntaxFacts, SyntaxToken token)
+            => syntaxFacts.IsReservedKeyword(token) || syntaxFacts.IsContextualKeyword(token);
+
         public static bool IsWord(this ISyntaxFactsService syntaxFacts, SyntaxToken token)
         {
             return syntaxFacts.IsIdentifier(token)
-                || syntaxFacts.IsKeyword(token)
-                || syntaxFacts.IsContextualKeyword(token)
+                || syntaxFacts.IsReservedOrContextualKeyword(token)
                 || syntaxFacts.IsPreprocessorKeyword(token);
         }
 
@@ -33,8 +59,8 @@ namespace Microsoft.CodeAnalysis.LanguageServices
             return node.GetLeadingTrivia().Skip(leadingBlankLines.Length).ToImmutableArray();
         }
 
-        public static void GetPartsOfAssignmentStatement( 
-            this ISyntaxFactsService syntaxFacts, SyntaxNode statement, 
+        public static void GetPartsOfAssignmentStatement(
+            this ISyntaxFactsService syntaxFacts, SyntaxNode statement,
             out SyntaxNode left, out SyntaxNode right)
         {
             syntaxFacts.GetPartsOfAssignmentStatement(statement, out left, out _, out right);
@@ -94,6 +120,9 @@ namespace Microsoft.CodeAnalysis.LanguageServices
         public static bool SpansPreprocessorDirective(this ISyntaxFactsService service, SyntaxNode node)
             => service.SpansPreprocessorDirective(SpecializedCollections.SingletonEnumerable(node));
 
+        public static bool SpansPreprocessorDirective(this ISyntaxFactsService service, params SyntaxNode[] nodes)
+            => service.SpansPreprocessorDirective(nodes);
+
         public static bool IsWhitespaceOrEndOfLineTrivia(this ISyntaxFactsService syntaxFacts, SyntaxTrivia trivia)
             => syntaxFacts.IsWhitespaceTrivia(trivia) || syntaxFacts.IsEndOfLineTrivia(trivia);
 
@@ -112,9 +141,26 @@ namespace Microsoft.CodeAnalysis.LanguageServices
             return token;
         }
 
-        public static bool IsAnonymousOrLocalFunctionStatement(this ISyntaxFactsService syntaxFacts, SyntaxNode node)
+        public static bool IsAnonymousOrLocalFunction(this ISyntaxFactsService syntaxFacts, SyntaxNode node)
             => syntaxFacts.IsAnonymousFunction(node) ||
                syntaxFacts.IsLocalFunctionStatement(node);
 
+        public static SyntaxNode GetExpressionOfElementAccessExpression(this ISyntaxFactsService syntaxFacts, SyntaxNode node)
+        {
+            syntaxFacts.GetPartsOfElementAccessExpression(node, out var expression, out _);
+            return expression;
+        }
+
+        public static SyntaxNode GetArgumentListOfElementAccessExpression(this ISyntaxFactsService syntaxFacts, SyntaxNode node)
+        {
+            syntaxFacts.GetPartsOfElementAccessExpression(node, out _, out var argumentList);
+            return argumentList;
+        }
+
+        public static SyntaxNode GetExpressionOfConditionalAccessExpression(this ISyntaxFactsService syntaxFacts, SyntaxNode node)
+        {
+            syntaxFacts.GetPartsOfConditionalAccessExpression(node, out var expression, out _);
+            return expression;
+        }
     }
 }

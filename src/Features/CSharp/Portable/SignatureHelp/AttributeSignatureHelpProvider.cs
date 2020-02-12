@@ -21,6 +21,11 @@ namespace Microsoft.CodeAnalysis.CSharp.SignatureHelp
     [ExportSignatureHelpProvider("AttributeSignatureHelpProvider", LanguageNames.CSharp), Shared]
     internal partial class AttributeSignatureHelpProvider : AbstractCSharpSignatureHelpProvider
     {
+        [ImportingConstructor]
+        public AttributeSignatureHelpProvider()
+        {
+        }
+
         public override bool IsTriggerCharacter(char ch)
         {
             return ch == '(' || ch == ',';
@@ -92,11 +97,14 @@ namespace Microsoft.CodeAnalysis.CSharp.SignatureHelp
             var anonymousTypeDisplayService = document.GetLanguageService<IAnonymousTypeDisplayService>();
             var documentationCommentFormatter = document.GetLanguageService<IDocumentationCommentFormattingService>();
             var textSpan = SignatureHelpUtilities.GetSignatureHelpSpan(attribute.ArgumentList);
-
             var syntaxFacts = document.GetLanguageService<ISyntaxFactsService>();
+
+            var symbolInfo = semanticModel.GetSymbolInfo(attribute, cancellationToken);
+            var selectedItem = TryGetSelectedIndex(accessibleConstructors, symbolInfo);
+
             return CreateSignatureHelpItems(accessibleConstructors.Select(c =>
                 Convert(c, within, attribute, semanticModel, symbolDisplayService, anonymousTypeDisplayService, documentationCommentFormatter, cancellationToken)).ToList(),
-                textSpan, GetCurrentArgumentState(root, position, syntaxFacts, textSpan, cancellationToken));
+                textSpan, GetCurrentArgumentState(root, position, syntaxFacts, textSpan, cancellationToken), selectedItem);
         }
 
         public override SignatureHelpState GetCurrentArgumentState(SyntaxNode root, int position, ISyntaxFactsService syntaxFacts, TextSpan currentSpan, CancellationToken cancellationToken)

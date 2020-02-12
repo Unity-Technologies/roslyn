@@ -30,30 +30,42 @@ namespace Microsoft.CodeAnalysis.Remote
                 _owner = owner;
             }
 
-            public override async Task<IList<(Checksum, object)>> RequestAssetsAsync(int scopeId, ISet<Checksum> checksums, ISerializerService serializerService, CancellationToken callerCancellation)
+            public override async Task<IList<(Checksum, object)>> RequestAssetsAsync(int scopeId, ISet<Checksum> checksums, ISerializerService serializerService, CancellationToken cancellationToken)
             {
-                using (RoslynLogger.LogBlock(FunctionId.SnapshotService_RequestAssetAsync, GetRequestLogInfo, scopeId, checksums, callerCancellation))
+                using (RoslynLogger.LogBlock(FunctionId.SnapshotService_RequestAssetAsync, GetRequestLogInfo, scopeId, checksums, cancellationToken))
                 {
+                    // Surround this with a try/catch to report exceptions because we want to report any crashes here.
                     try
                     {
-                        return await _owner.RunServiceAsync(cancellationToken =>
+                        return await _owner.RunServiceAsync(() =>
                         {
-                            return _owner.Rpc.InvokeAsync(WellKnownServiceHubServices.AssetService_RequestAssetAsync,
+                            return _owner.InvokeAsync(WellKnownServiceHubServices.AssetService_RequestAssetAsync,
                                 new object[] { scopeId, checksums.ToArray() },
                                 (s, c) => ReadAssets(s, scopeId, checksums, serializerService, c), cancellationToken);
-                        }, callerCancellation).ConfigureAwait(false);
+                        }, cancellationToken).ConfigureAwait(false);
                     }
-                    catch (Exception ex) when (ReportUnlessCanceled(ex, callerCancellation))
+                    catch (Exception ex) when (ReportUnlessCanceled(ex, cancellationToken))
                     {
                         throw ExceptionUtilities.Unreachable;
                     }
                 }
             }
 
+            public override async Task<bool> IsExperimentEnabledAsync(string experimentName, CancellationToken cancellationToken)
+            {
+                using (RoslynLogger.LogBlock(FunctionId.SnapshotService_IsExperimentEnabledAsync, experimentName, cancellationToken))
+                {
+                    return await _owner.RunServiceAsync(() =>
+                    {
+                        return _owner.InvokeAsync<bool>(WellKnownServiceHubServices.AssetService_IsExperimentEnabledAsync,
+                            new object[] { experimentName }, cancellationToken);
+                    }, cancellationToken).ConfigureAwait(false);
+                }
+            }
+
             private bool ReportUnlessCanceled(Exception ex, CancellationToken cancellationToken)
             {
-                if (!cancellationToken.IsCancellationRequested &&
-                    ((IDisposableObservable)_owner.Rpc).IsDisposed)
+                if (!cancellationToken.IsCancellationRequested && _owner.IsDisposed)
                 {
                     // kill OOP if snapshot service got disconnected due to this exception.
                     FailFast.OnFatalException(ex);

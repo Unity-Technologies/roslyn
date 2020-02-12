@@ -2,6 +2,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -36,6 +37,8 @@ namespace Microsoft.CodeAnalysis.Editor.UnitTests.Workspaces
         private const string FeaturesAttributeName = "Features";
         private const string DocumentationModeAttributeName = "DocumentationMode";
         private const string DocumentElementName = "Document";
+        private const string AdditionalDocumentElementName = "AdditionalDocument";
+        private const string AnalyzerConfigDocumentElementName = "AnalyzerConfigDocument";
         private const string AnalyzerElementName = "Analyzer";
         private const string AssemblyNameAttributeName = "AssemblyName";
         private const string CommonReferencesAttributeName = "CommonReferences";
@@ -59,6 +62,7 @@ namespace Microsoft.CodeAnalysis.Editor.UnitTests.Workspaces
         private const string AliasAttributeName = "Alias";
         private const string ProjectNameAttribute = "Name";
         private const string CheckOverflowAttributeName = "CheckOverflow";
+        private const string AllowUnsafeAttributeName = "AllowUnsafe";
         private const string OutputKindName = "OutputKind";
 
         /// <summary>
@@ -173,7 +177,7 @@ namespace Microsoft.CodeAnalysis.Editor.UnitTests.Workspaces
             string[] files,
             ExportProvider exportProvider)
         {
-            Contract.Requires(parseOptions == null || (files.Length == parseOptions.Length), "Please specify a parse option for each file.");
+            Debug.Assert(parseOptions == null || (files.Length == parseOptions.Length), "Please specify a parse option for each file.");
 
             var documentElements = new List<XElement>();
             var index = 0;

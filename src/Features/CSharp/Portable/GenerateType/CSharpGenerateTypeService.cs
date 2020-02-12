@@ -33,6 +33,11 @@ namespace Microsoft.CodeAnalysis.CSharp.GenerateType
     {
         private static readonly SyntaxAnnotation s_annotation = new SyntaxAnnotation();
 
+        [ImportingConstructor]
+        public CSharpGenerateTypeService()
+        {
+        }
+
         protected override string DefaultFileExtension => ".cs";
 
         protected override ExpressionSyntax GetLeftSideOfDot(SimpleNameSyntax simpleName)
@@ -217,7 +222,8 @@ namespace Microsoft.CodeAnalysis.CSharp.GenerateType
                     return false;
                 }
 
-                if (!simpleName.IsLeftSideOfDot() && !simpleName.IsInsideNameOf())
+                if (!simpleName.IsLeftSideOfDot() &&
+                    !simpleName.IsInsideNameOfExpression(semanticModel, cancellationToken))
                 {
                     if (nameOrMemberAccessExpression == null || !nameOrMemberAccessExpression.IsKind(SyntaxKind.SimpleMemberAccessExpression) || !simpleName.IsRightSideOfDot())
                     {
@@ -584,7 +590,7 @@ namespace Microsoft.CodeAnalysis.CSharp.GenerateType
 
         protected override bool IsConversionImplicit(Compilation compilation, ITypeSymbol sourceType, ITypeSymbol targetType)
         {
-            return compilation.ClassifyConversion(sourceType, targetType).IsImplicit;
+            return compilation.ClassifyConversion(sourceType.WithoutNullability(), targetType.WithoutNullability()).IsImplicit;
         }
 
         public override async Task<Tuple<INamespaceSymbol, INamespaceOrTypeSymbol, Location>> GetOrGenerateEnclosingNamespaceSymbolAsync(

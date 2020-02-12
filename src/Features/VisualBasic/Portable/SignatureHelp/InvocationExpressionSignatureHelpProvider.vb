@@ -1,5 +1,6 @@
 ﻿' Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
 
+Imports System.Collections.Immutable
 Imports System.Composition
 Imports System.Threading
 Imports Microsoft.CodeAnalysis.DocumentationComments
@@ -14,6 +15,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.SignatureHelp
     <ExportSignatureHelpProvider("InvocationExpressionSignatureHelpProvider", LanguageNames.VisualBasic), [Shared]>
     Partial Friend Class InvocationExpressionSignatureHelpProvider
         Inherits AbstractVisualBasicSignatureHelpProvider
+
+        <ImportingConstructor>
+        Public Sub New()
+        End Sub
 
         Public Overrides Function IsTriggerCharacter(ch As Char) As Boolean
             Return ch = "("c OrElse ch = ","c
@@ -83,7 +88,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.SignatureHelp
 
             ' if the symbol could be bound, replace that item in the symbol list
             If matchedMethodSymbol IsNot Nothing AndAlso matchedMethodSymbol.IsGenericMethod Then
-                memberGroup = memberGroup.SelectAsArray(Function(m) If(matchedMethodSymbol.OriginalDefinition Is m, matchedMethodSymbol, m))
+                memberGroup = memberGroup.SelectAsArray(Function(m) If(Equals(matchedMethodSymbol.OriginalDefinition, m), matchedMethodSymbol, m))
             End If
 
             Dim enclosingSymbol = semanticModel.GetEnclosingSymbol(position)
@@ -124,7 +129,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.SignatureHelp
             Dim textSpan = SignatureHelpUtilities.GetSignatureHelpSpan(invocationExpression.ArgumentList)
             Dim syntaxFacts = document.GetLanguageService(Of ISyntaxFactsService)
 
-            Return CreateSignatureHelpItems(items, textSpan, GetCurrentArgumentState(root, position, syntaxFacts, textSpan, cancellationToken))
+            Dim selectedItem = TryGetSelectedIndex(memberGroup, symbolInfo)
+            Return CreateSignatureHelpItems(items, textSpan, GetCurrentArgumentState(root, position, syntaxFacts, textSpan, cancellationToken), selectedItem)
         End Function
     End Class
 End Namespace

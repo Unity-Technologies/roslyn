@@ -110,7 +110,7 @@ namespace Microsoft.CodeAnalysis.GenerateType
 
                 if (char.IsLower(name[0]) && !semanticDocument.SemanticModel.Compilation.IsCaseSensitive)
                 {
-                    // It's near universal in .Net that types start with a capital letter.  As such,
+                    // It's near universal in .NET that types start with a capital letter.  As such,
                     // if this name starts with a lowercase letter, don't even bother to offer 
                     // "generate type".  The user most likely wants to run 'Add Import' (which will
                     // then fix up a case where they typed an existing type name in lowercase, 
@@ -133,7 +133,7 @@ namespace Microsoft.CodeAnalysis.GenerateType
                 if (!semanticFacts.IsTypeContext(semanticModel, this.NameOrMemberAccessExpression.SpanStart, cancellationToken) &&
                     !semanticFacts.IsExpressionContext(semanticModel, this.NameOrMemberAccessExpression.SpanStart, cancellationToken) &&
                     !semanticFacts.IsStatementContext(semanticModel, this.NameOrMemberAccessExpression.SpanStart, cancellationToken) &&
-                    !semanticFacts.IsNameOfContext(semanticModel, this.NameOrMemberAccessExpression.SpanStart, cancellationToken) &&
+                    !semanticFacts.IsInsideNameOfExpression(semanticModel, this.NameOrMemberAccessExpression, cancellationToken) &&
                     !semanticFacts.IsNamespaceContext(semanticModel, this.NameOrMemberAccessExpression.SpanStart, cancellationToken))
                 {
                     return false;
@@ -245,7 +245,9 @@ namespace Microsoft.CodeAnalysis.GenerateType
                     return;
                 }
 
-                this.BaseTypeOrInterfaceOpt = baseType;
+                // Strip off top-level nullability since we can't put top-level nullability into the base list. We will still include nested nullability
+                // if you're deriving some interface like IEnumerable<string?>.
+                this.BaseTypeOrInterfaceOpt = baseType.WithNullability(NullableAnnotation.NotApplicable);
             }
 
             private bool GenerateStruct(TService service, SemanticModel semanticModel, CancellationToken cancellationToken)

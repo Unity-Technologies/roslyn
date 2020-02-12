@@ -7,6 +7,7 @@ using System.Linq;
 using System.Threading;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Host;
+using Microsoft.CodeAnalysis.LanguageServices;
 using Microsoft.CodeAnalysis.Options;
 using Microsoft.CodeAnalysis.Shared.Extensions;
 using Microsoft.CodeAnalysis.Simplification;
@@ -33,8 +34,10 @@ namespace Microsoft.CodeAnalysis.Editing
         internal abstract SyntaxTrivia CarriageReturnLineFeed { get; }
         internal abstract SyntaxTrivia ElasticCarriageReturnLineFeed { get; }
         internal abstract bool RequiresExplicitImplementationForInterfaceMembers { get; }
+        internal abstract ISyntaxFactsService SyntaxFacts { get; }
 
         internal abstract SyntaxTrivia EndOfLine(string text);
+        internal abstract SyntaxTrivia Whitespace(string text);
 
         /// <summary>
         /// Gets the <see cref="SyntaxGenerator"/> for the specified language.
@@ -861,11 +864,25 @@ namespace Microsoft.CodeAnalysis.Editing
         public SyntaxNode RemoveAllAttributes(SyntaxNode declaration)
             => this.RemoveNodes(declaration, this.GetAttributes(declaration).Concat(this.GetReturnAttributes(declaration)));
 
-        internal SyntaxNode RemoveAllComments(SyntaxNode declaration)
+        /// <summary>
+        /// Removes comments from leading and trailing trivia, as well
+        /// as potentially removing comments from opening and closing tokens.
+        /// </summary>
+        internal abstract SyntaxNode RemoveAllComments(SyntaxNode node);
+
+        internal SyntaxNode RemoveLeadingAndTrailingComments(SyntaxNode node)
         {
-            return declaration.WithLeadingTrivia(declaration.GetLeadingTrivia().Where(t => !IsRegularOrDocComment(t)))
-                              .WithTrailingTrivia(declaration.GetTrailingTrivia().Where(t => !IsRegularOrDocComment(t)));
+            return node.WithLeadingTrivia(RemoveCommentLines(node.GetLeadingTrivia()))
+                .WithTrailingTrivia(RemoveCommentLines(node.GetTrailingTrivia()));
         }
+
+        internal SyntaxToken RemoveLeadingAndTrailingComments(SyntaxToken token)
+        {
+            return token.WithLeadingTrivia(RemoveCommentLines(token.LeadingTrivia))
+                .WithTrailingTrivia(RemoveCommentLines(token.TrailingTrivia));
+        }
+
+        internal abstract SyntaxTriviaList RemoveCommentLines(SyntaxTriviaList syntaxTriviaList);
 
         internal abstract bool IsRegularOrDocComment(SyntaxTrivia trivia);
 
@@ -1080,6 +1097,8 @@ namespace Microsoft.CodeAnalysis.Editing
         /// </summary>
         public abstract IReadOnlyList<SyntaxNode> GetParameters(SyntaxNode declaration);
 
+        internal abstract SyntaxNode GetParameterListNode(SyntaxNode declaration);
+
         /// <summary>
         /// Inserts the parameters at the specified index into the declaration.
         /// </summary>
@@ -1261,6 +1280,8 @@ namespace Microsoft.CodeAnalysis.Editing
         #endregion
 
         #region Utility
+
+        internal abstract SeparatedSyntaxList<TElement> SeparatedList<TElement>(SyntaxNodeOrTokenList list) where TElement : SyntaxNode;
 
         internal static SyntaxTokenList Merge(SyntaxTokenList original, SyntaxTokenList newList)
         {
@@ -1564,6 +1585,11 @@ namespace Microsoft.CodeAnalysis.Editing
         /// </summary>
         public abstract SyntaxNode WhileStatement(SyntaxNode condition, IEnumerable<SyntaxNode> statements);
 
+        /// <summary>
+        /// Creates a block of statements. Not supported in VB.
+        /// </summary>
+        internal abstract SyntaxNode ScopeBlock(IEnumerable<SyntaxNode> statements);
+
         #endregion
 
         #region Expressions
@@ -1642,6 +1668,8 @@ namespace Microsoft.CodeAnalysis.Editing
         /// </summary>
         public abstract SyntaxNode GenericName(string identifier, IEnumerable<SyntaxNode> typeArguments);
 
+        internal abstract SyntaxNode GenericName(SyntaxToken identifier, IEnumerable<SyntaxNode> typeArguments);
+
         /// <summary>
         /// Creates an expression that denotes a generic identifier name.
         /// </summary>
@@ -1687,6 +1715,11 @@ namespace Microsoft.CodeAnalysis.Editing
         /// The right operand can be either and identifier or generic name.
         /// </summary>
         public abstract SyntaxNode QualifiedName(SyntaxNode left, SyntaxNode right);
+
+        /// <summary>
+        /// Returns a new name node qualified with the 'global' alias ('Global' in VB).
+        /// </summary>
+        internal abstract SyntaxNode GlobalAliasedName(SyntaxNode name);
 
         /// <summary>
         /// Creates a name expression from a dotted name string.
@@ -2205,6 +2238,11 @@ namespace Microsoft.CodeAnalysis.Editing
         public abstract SyntaxNode AwaitExpression(SyntaxNode expression);
 
         /// <summary>
+        /// Wraps with parens.
+        /// </summary>
+        internal abstract SyntaxNode AddParentheses(SyntaxNode expression);
+
+        /// <summary>
         /// Creates an nameof expression.
         /// </summary>
         public abstract SyntaxNode NameOfExpression(SyntaxNode expression);
@@ -2213,6 +2251,15 @@ namespace Microsoft.CodeAnalysis.Editing
         /// Creates an tuple expression.
         /// </summary>
         public abstract SyntaxNode TupleExpression(IEnumerable<SyntaxNode> arguments);
+
+        #endregion
+
+        #region Patterns
+
+        internal abstract bool SupportsPatterns(ParseOptions options);
+        internal abstract SyntaxNode IsPatternExpression(SyntaxNode expression, SyntaxNode pattern);
+        internal abstract SyntaxNode DeclarationPattern(INamedTypeSymbol type, string name);
+        internal abstract SyntaxNode ConstantPattern(SyntaxNode expression);
 
         #endregion
     }

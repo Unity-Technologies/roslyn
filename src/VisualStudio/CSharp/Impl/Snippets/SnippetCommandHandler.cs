@@ -4,9 +4,11 @@ using System.ComponentModel.Composition;
 using System.Threading;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Extensions;
+using Microsoft.CodeAnalysis.Editor.Shared.Utilities;
 using Microsoft.CodeAnalysis.Text;
 using Microsoft.VisualStudio.Commanding;
 using Microsoft.VisualStudio.Editor;
+using Microsoft.VisualStudio.Language.Intellisense.AsyncCompletion;
 using Microsoft.VisualStudio.LanguageServices.Implementation.Snippets;
 using Microsoft.VisualStudio.Shell;
 using Microsoft.VisualStudio.Text;
@@ -20,14 +22,15 @@ namespace Microsoft.VisualStudio.LanguageServices.CSharp.Snippets
     [ContentType(CodeAnalysis.Editor.ContentTypeNames.CSharpContentType)]
     [Name("CSharp Snippets")]
     [Order(After = CodeAnalysis.Editor.PredefinedCommandHandlerNames.Completion)]
-    [Order(After = CodeAnalysis.Editor.PredefinedCommandHandlerNames.IntelliSense)]
+    [Order(After = PredefinedCompletionNames.CompletionCommandHandler)]
+    [Order(After = CodeAnalysis.Editor.PredefinedCommandHandlerNames.SignatureHelpAfterCompletion)]
     internal sealed class SnippetCommandHandler :
         AbstractSnippetCommandHandler,
         ICommandHandler<SurroundWithCommandArgs>
     {
         [ImportingConstructor]
-        public SnippetCommandHandler(IVsEditorAdaptersFactoryService editorAdaptersFactoryService, SVsServiceProvider serviceProvider)
-            : base(editorAdaptersFactoryService, serviceProvider)
+        public SnippetCommandHandler(IThreadingContext threadingContext, IVsEditorAdaptersFactoryService editorAdaptersFactoryService, SVsServiceProvider serviceProvider)
+            : base(threadingContext, editorAdaptersFactoryService, serviceProvider)
         {
         }
 
@@ -69,7 +72,7 @@ namespace Microsoft.VisualStudio.LanguageServices.CSharp.Snippets
         {
             if (!textView.Properties.TryGetProperty(typeof(AbstractSnippetExpansionClient), out AbstractSnippetExpansionClient expansionClient))
             {
-                expansionClient = new SnippetExpansionClient(Guids.CSharpLanguageServiceId, textView, subjectBuffer, EditorAdaptersFactoryService);
+                expansionClient = new SnippetExpansionClient(ThreadingContext, Guids.CSharpLanguageServiceId, textView, subjectBuffer, EditorAdaptersFactoryService);
                 textView.Properties.AddProperty(typeof(AbstractSnippetExpansionClient), expansionClient);
             }
 

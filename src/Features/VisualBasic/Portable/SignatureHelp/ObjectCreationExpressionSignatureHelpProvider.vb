@@ -14,6 +14,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.SignatureHelp
     Partial Friend Class ObjectCreationExpressionSignatureHelpProvider
         Inherits AbstractVisualBasicSignatureHelpProvider
 
+        <ImportingConstructor>
+        Public Sub New()
+        End Sub
+
         Public Overrides Function IsTriggerCharacter(ch As Char) As Boolean
             Return ch = "("c OrElse ch = ","c
         End Function
@@ -78,11 +82,14 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.SignatureHelp
             Dim textSpan = SignatureHelpUtilities.GetSignatureHelpSpan(objectCreationExpression.ArgumentList)
             Dim syntaxFacts = document.GetLanguageService(Of ISyntaxFactsService)
 
-            Return CreateSignatureHelpItems(
-                If(type.TypeKind = TypeKind.Delegate,
-                      GetDelegateTypeConstructors(objectCreationExpression, semanticModel, symbolDisplayService, anonymousTypeDisplayService, documentationCommentFormattingService, type, within, cancellationToken),
-                      GetNormalTypeConstructors(document, objectCreationExpression, semanticModel, symbolDisplayService, anonymousTypeDisplayService, type, within, cancellationToken)),
-                textSpan, GetCurrentArgumentState(root, position, syntaxFacts, textSpan, cancellationToken))
+            Dim itemsAndSelected = If(type.TypeKind = TypeKind.Delegate,
+                GetDelegateTypeConstructors(objectCreationExpression, semanticModel, symbolDisplayService, anonymousTypeDisplayService, documentationCommentFormattingService, type, within, cancellationToken),
+                GetNormalTypeConstructors(document, objectCreationExpression, semanticModel, symbolDisplayService, anonymousTypeDisplayService, type, within, cancellationToken))
+
+            Return CreateSignatureHelpItems(itemsAndSelected.Items,
+                                            textSpan,
+                                            GetCurrentArgumentState(root, position, syntaxFacts, textSpan, cancellationToken),
+                                            itemsAndSelected.SelectedItem)
         End Function
     End Class
 End Namespace

@@ -3,6 +3,7 @@
 using System.Collections.Immutable;
 using Microsoft.CodeAnalysis.Completion;
 using Microsoft.CodeAnalysis.Editor.Shared.Extensions;
+using Microsoft.CodeAnalysis.Editor.Shared.Utilities;
 using Microsoft.CodeAnalysis.Options;
 using Microsoft.CodeAnalysis.Shared.TestHooks;
 using Microsoft.CodeAnalysis.Text;
@@ -13,6 +14,8 @@ using Microsoft.VisualStudio.Text.Editor;
 using Microsoft.VisualStudio.Text.Editor.Commanding.Commands;
 using Microsoft.VisualStudio.Text.Operations;
 using Roslyn.Utilities;
+using RoslynCompletionTrigger = Microsoft.CodeAnalysis.Completion.CompletionTrigger;
+using RoslynCompletionItem = Microsoft.CodeAnalysis.Completion.CompletionItem;
 
 namespace Microsoft.CodeAnalysis.Editor.Implementation.IntelliSense.Completion
 {
@@ -49,6 +52,7 @@ namespace Microsoft.CodeAnalysis.Editor.Implementation.IntelliSense.Completion
         private readonly ImmutableHashSet<string> _roles;
 
         public Controller(
+            IThreadingContext threadingContext,
             ITextView textView,
             ITextBuffer subjectBuffer,
             IEditorOperationsFactoryService editorOperationsFactoryService,
@@ -58,7 +62,7 @@ namespace Microsoft.CodeAnalysis.Editor.Implementation.IntelliSense.Completion
             ImmutableHashSet<char> autoBraceCompletionChars,
             bool isDebugger,
             bool isImmediateWindow)
-            : base(textView, subjectBuffer, presenter, asyncListener, null, "Completion")
+            : base(threadingContext, textView, subjectBuffer, presenter, asyncListener, null, "Completion")
         {
             _editorOperationsFactoryService = editorOperationsFactoryService;
             _undoHistoryRegistry = undoHistoryRegistry;
@@ -69,6 +73,7 @@ namespace Microsoft.CodeAnalysis.Editor.Implementation.IntelliSense.Completion
         }
 
         internal static Controller GetInstance(
+            IThreadingContext threadingContext,
             ITextView textView,
             ITextBuffer subjectBuffer,
             IEditorOperationsFactoryService editorOperationsFactoryService,
@@ -83,7 +88,8 @@ namespace Microsoft.CodeAnalysis.Editor.Implementation.IntelliSense.Completion
 
             return textView.GetOrCreatePerSubjectBufferProperty(subjectBuffer, s_controllerPropertyKey,
                 (v, b) => new Controller(
-                    textView, subjectBuffer, editorOperationsFactoryService, undoHistoryRegistry, 
+                    threadingContext,
+                    textView, subjectBuffer, editorOperationsFactoryService, undoHistoryRegistry,
                     presenter, asyncListener, autoBraceCompletionChars, isDebugger, isImmediateWindow));
         }
 
@@ -120,9 +126,9 @@ namespace Microsoft.CodeAnalysis.Editor.Implementation.IntelliSense.Completion
             if (model == null && !shouldBlock)
             {
                 // We didn't get a model back, and we're a language that doesn't want to block
-                // when this happens.  Essentially, the user typed something like a commit 
+                // when this happens.  Essentially, the user typed something like a commit
                 // character before we got any results back.  In this case, because we're not
-                // willing to block, we just stop everything that we're doing and return to 
+                // willing to block, we just stop everything that we're doing and return to
                 // the non-active state.
                 DismissSessionIfActive();
             }
@@ -140,14 +146,20 @@ namespace Microsoft.CodeAnalysis.Editor.Implementation.IntelliSense.Completion
             else
             {
                 var selectedItem = modelOpt.SelectedItemOpt;
-                var viewSpan = selectedItem == null ? (ViewTextSpan?)null : modelOpt.GetViewBufferSpan(selectedItem.Span);
-                var triggerSpan = viewSpan == null 
+
+                // set viewSpan = null if the selectedItem is not from the completion list.
+                // https://github.com/dotnet/roslyn/issues/23891
+                var viewSpan = selectedItem == null || modelOpt.TriggerDocument == null
+                    ? (ViewTextSpan?)null
+                    : modelOpt.GetViewBufferSpan(selectedItem.Span);
+
+                var triggerSpan = viewSpan == null
                     ? null
                     : modelOpt.GetCurrentSpanInSnapshot(viewSpan.Value, this.TextView.TextSnapshot)
                               .CreateTrackingSpan(SpanTrackingMode.EdgeInclusive);
 
                 sessionOpt.PresenterSession.PresentItems(
-                    triggerSpan, modelOpt.FilteredItems, selectedItem,
+                    modelOpt.TriggerSnapshot, triggerSpan, modelOpt.FilteredItems, selectedItem,
                     modelOpt.SuggestionModeItem, modelOpt.UseSuggestionMode,
                     modelOpt.IsSoftSelection, modelOpt.CompletionItemFilters, modelOpt.FilterText);
             }
@@ -155,7 +167,7 @@ namespace Microsoft.CodeAnalysis.Editor.Implementation.IntelliSense.Completion
 
         private bool StartNewModelComputation(
             CompletionService completionService,
-            CompletionTrigger trigger)
+            RoslynCompletionTrigger trigger)
         {
             AssertIsForeground();
             Contract.ThrowIfTrue(sessionOpt != null);
@@ -184,7 +196,7 @@ namespace Microsoft.CodeAnalysis.Editor.Implementation.IntelliSense.Completion
                 _editorOperationsFactoryService.GetEditorOperations(TextView).InsertText("");
             }
 
-            var computation = new ModelComputation<Model>(this, PrioritizedTaskScheduler.AboveNormalInstance);
+            var computation = new ModelComputation<Model>(ThreadingContext, this, PrioritizedTaskScheduler.AboveNormalInstance);
 
             this.sessionOpt = new Session(this, computation, Presenter.CreateSession(TextView, SubjectBuffer, null));
 
@@ -217,7 +229,7 @@ namespace Microsoft.CodeAnalysis.Editor.Implementation.IntelliSense.Completion
                 : workspace.Options;
         }
 
-        private void CommitItem(CompletionItem item)
+        private void CommitItem(RoslynCompletionItem item)
         {
             AssertIsForeground();
 

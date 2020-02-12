@@ -30,7 +30,8 @@ namespace Microsoft.CodeAnalysis.Editor.Implementation.EditAndContinue
     {
         private TrackingSession _sessionOpt;
 
-        internal ActiveStatementTrackingService()
+        [ImportingConstructor]
+        public ActiveStatementTrackingService()
         {
         }
 
@@ -139,9 +140,11 @@ namespace Microsoft.CodeAnalysis.Editor.Implementation.EditAndContinue
             }
 
             private void DocumentOpened(object sender, DocumentEventArgs e)
-                => DocumentOpenedAsync(e.Document);
+            {
+                _ = DocumentOpenedAsync(e.Document);
+            }
 
-            private async void DocumentOpenedAsync(Document document)
+            private async Task DocumentOpenedAsync(Document document)
             {
                 try
                 {
@@ -232,12 +235,12 @@ namespace Microsoft.CodeAnalysis.Editor.Implementation.EditAndContinue
                         SetTrackingSpansNoLock(document.Id, null);
 
                         // fire and forget:
-                        RefreshTrackingSpansAsync(document, snapshot);
+                        _ = RefreshTrackingSpansAsync(document, snapshot);
                     }
                 }
             }
 
-            private async void RefreshTrackingSpansAsync(Document document, ITextSnapshot snapshot)
+            private async Task RefreshTrackingSpansAsync(Document document, ITextSnapshot snapshot)
             {
                 try
                 {

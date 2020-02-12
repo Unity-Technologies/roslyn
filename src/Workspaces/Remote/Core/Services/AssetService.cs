@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.CodeAnalysis.Execution;
 using Microsoft.CodeAnalysis.Internal.Log;
 using Microsoft.CodeAnalysis.Serialization;
 using Roslyn.Utilities;
@@ -15,17 +16,17 @@ namespace Microsoft.CodeAnalysis.Remote
     /// 
     /// TODO: change this service to workspace service
     /// </summary>
-    internal class AssetService
+    internal class AssetService : IAssetProvider
     {
         private readonly ISerializerService _serializerService;
         private readonly int _scopeId;
         private readonly AssetStorage _assetStorage;
 
-        public AssetService(int scopeId, AssetStorage assetStorage, RemoteWorkspace remoteWorkspace)
+        public AssetService(int scopeId, AssetStorage assetStorage, ISerializerService serializerService)
         {
-            _serializerService = remoteWorkspace.Services.GetService<ISerializerService>();
             _scopeId = scopeId;
             _assetStorage = assetStorage;
+            _serializerService = serializerService;
         }
 
         public IEnumerable<T> GetGlobalAssetsOfType<T>(CancellationToken cancellationToken)

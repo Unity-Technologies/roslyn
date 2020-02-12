@@ -1,6 +1,7 @@
 ﻿// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
 
 using System.Collections.Generic;
+using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.CodeAnalysis.Editor.Shared.Utilities;
 using Microsoft.CodeAnalysis.SymbolSearch;
@@ -17,17 +18,18 @@ namespace Microsoft.VisualStudio.LanguageServices.SymbolSearch
 
             private readonly IVsActivityLog _activityLog;
 
-            public LogService(IVsActivityLog activityLog)
+            public LogService(IThreadingContext threadingContext, IVsActivityLog activityLog)
+                : base(threadingContext)
             {
                 _activityLog = activityLog;
             }
 
-            public Task LogInfoAsync(string text)
+            public Task LogInfoAsync(string text, CancellationToken cancellationToken)
             {
                 return LogAsync(text, __ACTIVITYLOG_ENTRYTYPE.ALE_INFORMATION);
             }
 
-            public Task LogExceptionAsync(string exception, string text)
+            public Task LogExceptionAsync(string exception, string text, CancellationToken cancellationToken)
             {
                 return LogAsync(text + ". " + exception, __ACTIVITYLOG_ENTRYTYPE.ALE_ERROR);
             }
@@ -42,7 +44,7 @@ namespace Microsoft.VisualStudio.LanguageServices.SymbolSearch
             {
                 if (!this.IsForeground())
                 {
-                    this.InvokeBelowInputPriority(() => Log(text, type));
+                    this.InvokeBelowInputPriorityAsync(() => Log(text, type));
                     return;
                 }
 

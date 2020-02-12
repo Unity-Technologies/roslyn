@@ -6,6 +6,7 @@ using System.Linq;
 using System.Reflection;
 using Microsoft.CodeAnalysis.Host;
 using Microsoft.CodeAnalysis.Host.Mef;
+using Microsoft.CodeAnalysis.Serialization;
 using Microsoft.VisualStudio.CodingConventions;
 
 namespace Microsoft.CodeAnalysis.Remote
@@ -22,7 +23,7 @@ namespace Microsoft.CodeAnalysis.Remote
         /// <summary>
         /// This delegate allows test code to override the behavior of <see cref="HostServices"/>.
         /// </summary>
-        /// <seealso cref="HookHostServices"/>
+        /// <seealso cref="TestAccessor.HookHostServices"/>
         private static Func<HostServices> s_hostServicesHook;
         private static HostServices s_hostServices;
 
@@ -58,24 +59,13 @@ namespace Microsoft.CodeAnalysis.Remote
             }
         }
 
-        /// <summary>
-        /// For test use only. Injects replacement behavior for the <see cref="HostServices"/> property.
-        /// </summary>
-        internal static void HookHostServices(Func<HostServices> hook)
-        {
-            s_hostServicesHook = hook;
-
-            // The existing container, if any, is not retained past this call.
-            s_hostServices = null;
-        }
-
         private readonly int _scopeId;
 
         public RoslynServices(int scopeId, AssetStorage storage, HostServices hostServices)
         {
             _scopeId = scopeId;
 
-            AssetService = new AssetService(_scopeId, storage, SolutionService.PrimaryWorkspace);
+            AssetService = new AssetService(_scopeId, storage, SolutionService.PrimaryWorkspace.Services.GetService<ISerializerService>());
             SolutionService = new SolutionService(AssetService);
             CompilationService = new CompilationService(SolutionService);
         }
@@ -83,5 +73,29 @@ namespace Microsoft.CodeAnalysis.Remote
         public AssetService AssetService { get; }
         public SolutionService SolutionService { get; }
         public CompilationService CompilationService { get; }
+
+        internal TestAccessor GetTestAccessor()
+            => new TestAccessor(this);
+
+        internal readonly struct TestAccessor
+        {
+            private readonly RoslynServices _roslynServices;
+
+            public TestAccessor(RoslynServices roslynServices)
+            {
+                _roslynServices = roslynServices;
+            }
+
+            /// <summary>
+            /// Injects replacement behavior for the <see cref="HostServices"/> property.
+            /// </summary>
+            internal static void HookHostServices(Func<HostServices> hook)
+            {
+                s_hostServicesHook = hook;
+
+                // The existing container, if any, is not retained past this call.
+                s_hostServices = null;
+            }
+        }
     }
 }
