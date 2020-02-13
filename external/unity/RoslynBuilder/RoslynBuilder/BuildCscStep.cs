@@ -9,10 +9,9 @@ namespace RoslynBuilder
 	{
 		public void Execute()
 		{
-			BuildRoslynComponents("netcoreapp2.0", "win-x64", KnownPaths.CscWindowsBinariesDirectory);
-			BuildRoslynComponents("netcoreapp2.0", "osx-x64", KnownPaths.CscMacBinariesDirectory);
-			BuildRoslynComponents("netcoreapp2.0", "linux-x64", KnownPaths.CscLinuxBinariesDirectory);
-			BuildRoslynComponents("net46", null, KnownPaths.CscNet46Directory);
+			BuildRoslynComponents("netcoreapp2.1", "win-x64", KnownPaths.CscWindowsBinariesDirectory);
+			BuildRoslynComponents("netcoreapp2.1", "osx-x64", KnownPaths.CscMacBinariesDirectory);
+			BuildRoslynComponents("netcoreapp2.1", "linux-x64", KnownPaths.CscLinuxBinariesDirectory);
 		}
 
 		private static void BuildRoslynComponents(string framework, string runtime, NPath outputDir)
@@ -49,7 +48,9 @@ namespace RoslynBuilder
 
 			commandLineArgs.Add("/p:UseShippingAssemblyVersion=true");
 			commandLineArgs.Add("/p:OfficialBuild=true");
-			commandLineArgs.Add("/p:SkipApplyOptimizations=true");
+			commandLineArgs.Add("/p:UsingToolIbcOptimization=false");
+			commandLineArgs.Add("/p:UsingToolVisualStudioIbcTraining=false");
+			commandLineArgs.Add("/p:PublishReadyToRun=true");
 			// turn off source link since it assumes Roslyn is checked out from a github repo
 			commandLineArgs.Add("/p:EnableSourceLink=false");
 

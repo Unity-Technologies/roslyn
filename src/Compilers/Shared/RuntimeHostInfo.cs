@@ -1,10 +1,10 @@
 ﻿// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
 
-using Roslyn.Utilities;
 using System;
 using System.Diagnostics;
 using System.IO;
 using System.IO.Pipes;
+using Roslyn.Utilities;
 
 namespace Microsoft.CodeAnalysis
 {
@@ -17,6 +17,7 @@ namespace Microsoft.CodeAnalysis
         internal static bool IsCoreClrRuntime => !IsDesktopRuntime;
 
         internal static string ToolExtension => IsCoreClrRuntime ? "dll" : "exe";
+        private static string NativeToolSuffix => PlatformInformation.IsWindows ? ".exe" : "";
 
         /// <summary>
         /// This gets information about invoking a tool on the current runtime. This will attempt to 
@@ -26,13 +27,13 @@ namespace Microsoft.CodeAnalysis
         {
             Debug.Assert(!toolFilePathWithoutExtension.EndsWith(".dll") && !toolFilePathWithoutExtension.EndsWith(".exe"));
 
-            var toolFilePath = $"{toolFilePathWithoutExtension}.{ToolExtension}";
-            var embeddedFilePath = $"{toolFilePathWithoutExtension}{(PlatformInformation.IsWindows ? ".exe" : "")}";
-            if (File.Exists(embeddedFilePath))
+            var nativeToolFilePath = $"{toolFilePathWithoutExtension}{NativeToolSuffix}";
+            if (IsCoreClrRuntime && File.Exists(nativeToolFilePath))
             {
-                return (embeddedFilePath, commandLineArguments, embeddedFilePath);
+                return (nativeToolFilePath, commandLineArguments, nativeToolFilePath);
             }
-            else if (IsDotNetHost(out string pathToDotNet))
+            var toolFilePath = $"{toolFilePathWithoutExtension}.{ToolExtension}";
+            if (IsDotNetHost(out string pathToDotNet))
             {
                 commandLineArguments = $@"exec ""{toolFilePath}"" {commandLineArguments}";
                 return (pathToDotNet, commandLineArguments, toolFilePath);

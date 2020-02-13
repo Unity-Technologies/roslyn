@@ -2,7 +2,6 @@
 
 using System;
 using System.Collections.Specialized;
-using Roslyn.Test.Utilities;
 using Xunit;
 
 namespace Microsoft.CodeAnalysis.CompilerServer.UnitTests
@@ -38,33 +37,6 @@ namespace Microsoft.CodeAnalysis.CompilerServer.UnitTests
             {
                 Assert.Equal(ServerDispatcher.DefaultServerKeepAlive, _controller.GetKeepAliveTimeout());
             }
-        }
-
-        [ConditionalFact(typeof(UnixLikeOnly))]
-        public void RunServerWithLongTempPath()
-        {
-            var pipeName = Guid.NewGuid().ToString("N");
-            // Make a really long path. This should work on Windows, which doesn't rely on temp path,
-            // but not on Unix, which has a max path length
-            var tempPath = new string('a', 100);
-
-            // This test fails by spinning forever. If the path is not seen as invalid, the server
-            // starts up and will never return.
-            Assert.Equal(CommonCompiler.Failed, DesktopBuildServerController.RunServer(pipeName, tempPath: tempPath));
-        }
-
-        [ConditionalFact(typeof(UnixLikeOnly))]
-        public void RunServerWithLongTempPathInstance()
-        {
-            var pipeName = Guid.NewGuid().ToString("N");
-            // Make a really long path. This should work on Windows, which doesn't rely on temp path,
-            // but not on Unix, which has a max path length
-            var tempPath = new string('a', 100);
-            BuildServerController buildServerController = new DesktopBuildServerController(new NameValueCollection());
-
-            // This test fails by spinning forever. If the path is not seen as invalid, the server
-            // starts up and will never return.
-            Assert.Equal(CommonCompiler.Failed, DesktopBuildServerController.RunServer(pipeName, tempPath: tempPath));
         }
     }
 }
