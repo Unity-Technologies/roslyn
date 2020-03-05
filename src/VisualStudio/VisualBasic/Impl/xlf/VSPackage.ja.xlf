@@ -8,13 +8,13 @@
         <note>Used anywhere the string is needed (that is, everywhere.)</note>
       </trans-unit>
       <trans-unit id="1012">
-        <source>Microsoft Visual Basic Code Page Editor</source>
-        <target state="translated">Microsoft Visual Basic コード ページ エディター</target>
+        <source>Visual Basic Editor with Encoding</source>
+        <target state="translated">エンコード付き Visual Basic エディター</target>
         <note />
       </trans-unit>
       <trans-unit id="1013">
-        <source>Microsoft Visual Basic Editor</source>
-        <target state="translated">Microsoft Visual Basic エディター</target>
+        <source>Visual Basic Editor</source>
+        <target state="translated">Visual Basic エディター</target>
         <note />
       </trans-unit>
       <trans-unit id="10160">
@@ -74,7 +74,7 @@
       </trans-unit>
       <trans-unit id="10162">
         <source>Naming Style;Name Styles;Naming Rule;Naming Conventions</source>
-        <target state="translated">名前付けのスタイル;名前のスタイル;名前付け規則;名前付けの規則</target>
+        <target state="translated">名前付けのスタイル;名前のスタイル;名前付けルール;名前付けの規則</target>
         <note>Naming Style options page keywords</note>
       </trans-unit>
       <trans-unit id="111">

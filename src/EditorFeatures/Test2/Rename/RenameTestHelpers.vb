@@ -1,7 +1,7 @@
 ﻿' Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
 
+Imports System.IO
 Imports System.Threading
-Imports System.Threading.Tasks
 Imports Microsoft.CodeAnalysis.Diagnostics
 Imports Microsoft.CodeAnalysis.Editor.Host
 Imports Microsoft.CodeAnalysis.Editor.Implementation.InlineRename
@@ -10,6 +10,7 @@ Imports Microsoft.CodeAnalysis.Editor.Shared.Utilities
 Imports Microsoft.CodeAnalysis.Editor.UnitTests.RenameTracking
 Imports Microsoft.CodeAnalysis.Editor.UnitTests.Utilities.GoToHelpers
 Imports Microsoft.CodeAnalysis.Editor.UnitTests.Workspaces
+Imports Microsoft.CodeAnalysis.Experiments
 Imports Microsoft.CodeAnalysis.Shared.TestHooks
 Imports Microsoft.CodeAnalysis.Text
 Imports Microsoft.CodeAnalysis.Text.Shared.Extensions
@@ -23,7 +24,9 @@ Namespace Microsoft.CodeAnalysis.Editor.UnitTests.Rename
     Friend Module RenameTestHelpers
 
         Friend _exportProviderFactory As IExportProviderFactory = ExportProviderCache.GetOrCreateExportProviderFactory(
-            TestExportProvider.EntireAssemblyCatalogWithCSharpAndVisualBasic.WithParts(GetType(MockDocumentNavigationServiceFactory)))
+            TestExportProvider.EntireAssemblyCatalogWithCSharpAndVisualBasic.WithParts(
+                GetType(MockDocumentNavigationServiceFactory),
+                GetType(TestExperimentationService)))
 
         Friend ReadOnly Property ExportProviderFactory As IExportProviderFactory
             Get
@@ -79,7 +82,7 @@ Namespace Microsoft.CodeAnalysis.Editor.UnitTests.Rename
             For Each document In workspace.Documents
                 For Each selectedSpan In document.SelectedSpans
                     Dim trackingSpan = document.InitialTextSnapshot.CreateTrackingSpan(selectedSpan.ToSpan(), SpanTrackingMode.EdgeInclusive)
-                    Assert.Equal(newIdentifierName, trackingSpan.GetText(document.TextBuffer.CurrentSnapshot).Trim)
+                    Assert.Equal(newIdentifierName, trackingSpan.GetText(document.GetTextBuffer().CurrentSnapshot).Trim)
                 Next
             Next
 
@@ -90,12 +93,22 @@ Namespace Microsoft.CodeAnalysis.Editor.UnitTests.Rename
                     If expectedReplacementText <> "CONFLICT" Then
                         For Each annotatedSpan In annotations.Value
                             Dim trackingSpan = document.InitialTextSnapshot.CreateTrackingSpan(annotatedSpan.ToSpan(), SpanTrackingMode.EdgeInclusive)
-                            Assert.Equal(expectedReplacementText, trackingSpan.GetText(document.TextBuffer.CurrentSnapshot))
+                            Assert.Equal(expectedReplacementText, trackingSpan.GetText(document.GetTextBuffer().CurrentSnapshot))
                         Next
                     End If
                 Next
             Next
         End Function
+
+        Public Sub VerifyFileName(document As Document, newIdentifierName As String)
+            Dim expectedName = Path.ChangeExtension(newIdentifierName, Path.GetExtension(document.Name))
+            Assert.Equal(expectedName, document.Name)
+        End Sub
+
+        Public Sub VerifyFileName(workspace As TestWorkspace, newIdentifierName As String)
+            Dim documentId = workspace.Documents.Single().Id
+            VerifyFileName(workspace.CurrentSolution.GetDocument(documentId), newIdentifierName)
+        End Sub
 
         Public Function CreateWorkspaceWithWaiter(element As XElement) As TestWorkspace
             Dim workspace = TestWorkspace.CreateWorkspace(

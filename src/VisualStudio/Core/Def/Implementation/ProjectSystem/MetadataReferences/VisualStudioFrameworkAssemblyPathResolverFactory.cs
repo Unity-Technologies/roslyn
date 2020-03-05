@@ -117,7 +117,7 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.ProjectSystem
                     return null;
                 }
 
-                IVsHierarchy hierarchy = _workspace.GetHierarchy(projectId);
+                var hierarchy = _workspace.GetHierarchy(projectId);
                 if (hierarchy == null ||
                     !hierarchy.TryGetProperty((__VSHPROPID)__VSHPROPID4.VSHPROPID_TargetFrameworkMoniker, out string targetMoniker) ||
                     targetMoniker == null)
@@ -161,7 +161,7 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.ProjectSystem
                 catch (InvalidOperationException)
                 {
                     // VsTargetFrameworkProvider throws InvalidOperationException in the 
-                    // some cases (like when targetting packs are missing).  In that case
+                    // some cases (like when targeting packs are missing).  In that case
                     // we can't resolve this path.
                     return null;
                 }

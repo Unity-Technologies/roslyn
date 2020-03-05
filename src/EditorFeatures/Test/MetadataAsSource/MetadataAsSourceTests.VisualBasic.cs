@@ -42,6 +42,7 @@ End Module");
 ' mscorlib.v4_6_1038_0.dll
 #End Region
 
+Imports System
 Imports System.Runtime.InteropServices
 
 Namespace System
@@ -63,10 +64,8 @@ Namespace System
     End Class
 End Namespace";
 
-                using (var context = TestContext.Create(LanguageNames.VisualBasic))
-                {
-                    await context.GenerateAndVerifySourceAsync("System.ObsoleteAttribute", expected);
-                }
+                using var context = TestContext.Create(LanguageNames.VisualBasic);
+                await context.GenerateAndVerifySourceAsync("System.ObsoleteAttribute", expected);
             }
 
             [Fact, Trait(Traits.Feature, Traits.Features.MetadataAsSource)]

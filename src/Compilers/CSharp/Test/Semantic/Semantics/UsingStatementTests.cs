@@ -29,15 +29,6 @@ struct MyManagedType : System.IDisposable
     { }
 }";
 
-        private const string _asyncDisposable = @"
-namespace System
-{
-    public interface IAsyncDisposable
-    {
-        System.Threading.Tasks.ValueTask DisposeAsync();
-    }
-}";
-
         [Fact]
         public void SemanticModel()
         {
@@ -72,7 +63,7 @@ class C
             var memberAccessExpression = tree.GetCompilationUnitRoot().DescendantNodes().OfType<MemberAccessExpressionSyntax>().Single();
 
             var info = model.GetSymbolInfo(memberAccessExpression.Expression);
-            Assert.NotNull(info);
+            Assert.NotEqual(default, info);
             Assert.Equal(declaredLocal, info.Symbol);
 
             var lookupSymbol = model.LookupSymbols(memberAccessExpression.SpanStart, name: declaredLocal.Name).Single();
@@ -1132,7 +1123,7 @@ class C2
         }
     }
 }";
-            var compilation = CreateCompilationWithTasksExtensions(source + _asyncDisposable).VerifyDiagnostics(
+            var compilation = CreateCompilationWithTasksExtensions(new[] { source, IAsyncDisposableDefinition }).VerifyDiagnostics(
                 // (16,22): error CS4012: Parameters or locals of type 'S1' cannot be declared in async methods or lambda expressions.
                 //         await using (S1 c = new S1())
                 Diagnostic(ErrorCode.ERR_BadSpecialByRefLocal, "S1").WithArguments("S1").WithLocation(16, 22)

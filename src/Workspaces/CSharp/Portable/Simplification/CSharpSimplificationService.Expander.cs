@@ -189,7 +189,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Simplification
                             {
                                 var newParameters = parameterList.Parameters;
 
-                                for (int i = 0; i < parameterSymbols.Length; i++)
+                                for (var i = 0; i < parameterSymbols.Length; i++)
                                 {
                                     var typeSyntax = parameterSymbols[i].Type.GenerateTypeSyntax().WithTrailingTrivia(s_oneWhitespaceSeparator);
                                     var newParameter = parameters[i].WithType(typeSyntax).WithAdditionalAnnotations(Simplifier.Annotation);
@@ -297,7 +297,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Simplification
                     return false;
                 }
 
-                bool found = false;
+                var found = false;
                 foreach (var argument in tuple.Arguments)
                 {
                     string elementName = null;
@@ -633,8 +633,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Simplification
                 var parent = originalSimpleName.Parent;
 
                 // do not complexify further for location where only simple names are allowed
-                if (parent is MemberDeclarationSyntax ||
-                    parent is MemberBindingExpressionSyntax ||
+                if (parent is MemberBindingExpressionSyntax ||
                     originalSimpleName.GetAncestor<NameEqualsSyntax>() != null ||
                     (parent is MemberAccessExpressionSyntax && parent.Kind() != SyntaxKind.SimpleMemberAccessExpression) ||
                     ((parent.Kind() == SyntaxKind.SimpleMemberAccessExpression || parent.Kind() == SyntaxKind.NameMemberCref) && originalSimpleName.IsRightSideOfDot()) ||
@@ -730,7 +729,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Simplification
                 if (isInsideCref)
                 {
                     var leftTokens = expression.DescendantTokens();
-                    List<SyntaxToken> candidateTokens = new List<SyntaxToken>();
+                    var candidateTokens = new List<SyntaxToken>();
 
                     foreach (var candidateToken in leftTokens)
                     {
@@ -776,7 +775,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Simplification
 
             private IList<ISymbol> TypeArgumentSymbolsPresentInName(SimpleNameSyntax simpleName)
             {
-                List<ISymbol> typeArgumentSymbols = new List<ISymbol>();
+                var typeArgumentSymbols = new List<ISymbol>();
                 var typeArgumentListSyntax = simpleName.DescendantNodesAndSelf().Where(n => n is TypeArgumentListSyntax);
                 foreach (var typeArgumentList in typeArgumentListSyntax)
                 {

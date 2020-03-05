@@ -43,8 +43,6 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.ProjectSystem.L
 
         #region Mutable fields that should only be used from the UI thread
 
-        private readonly VsENCRebuildableProjectImpl _editAndContinueProject;
-
         private readonly SolutionEventsBatchScopeCreator _batchScopeCreator;
 
         #endregion
@@ -58,12 +56,13 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.ProjectSystem.L
             string externalErrorReportingPrefix,
             HostDiagnosticUpdateSource hostDiagnosticUpdateSourceOpt,
             ICommandLineParserService commandLineParserServiceOpt)
-            : base(threadingContext)
+            : base(threadingContext, assertIsForeground: true)
         {
             Contract.ThrowIfNull(hierarchy);
 
             var componentModel = (IComponentModel)serviceProvider.GetService(typeof(SComponentModel));
             Workspace = componentModel.GetService<VisualStudioWorkspace>();
+            var workspaceImpl = (VisualStudioWorkspaceImpl)Workspace;
 
             var projectFilePath = hierarchy.TryGetProjectFilePath();
 
@@ -91,7 +90,7 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.ProjectSystem.L
                     ProjectGuid = GetProjectIDGuid(hierarchy),
                 });
 
-            ((VisualStudioWorkspaceImpl)Workspace).AddProjectRuleSetFileToInternalMaps(
+            workspaceImpl.AddProjectRuleSetFileToInternalMaps(
                 VisualStudioProject,
                 () => VisualStudioProjectOptionsProcessor.EffectiveRuleSetFilePath);
 
@@ -102,20 +101,18 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.ProjectSystem.L
             // (e.g. through a <defaultnamespace> msbuild property)
             VisualStudioProject.DefaultNamespace = GetRootNamespacePropertyValue(hierarchy);
 
+            if (TryGetMaxLangVersionPropertyValue(hierarchy, out var maxLangVer))
+            {
+                VisualStudioProject.MaxLangVersion = maxLangVer;
+            }
+
             Hierarchy = hierarchy;
             ConnectHierarchyEvents();
             RefreshBinOutputPath();
 
-            // TODO: remove this terrible hack, which is working around shims throwing in not-good ways
-            try
-            {
-                _externalErrorReporter = new ProjectExternalErrorReporter(VisualStudioProject.Id, externalErrorReportingPrefix, Workspace, componentModel.GetService<ExternalErrorDiagnosticUpdateSource>());
-                _editAndContinueProject = new VsENCRebuildableProjectImpl(Workspace, VisualStudioProject, serviceProvider);
-            }
-            catch (Exception)
-            {
-            }
+            workspaceImpl.SubscribeExternalErrorDiagnosticUpdateSourceToSolutionBuildEvents();
 
+            _externalErrorReporter = new ProjectExternalErrorReporter(VisualStudioProject.Id, externalErrorReportingPrefix, workspaceImpl);
             _batchScopeCreator = componentModel.GetService<SolutionEventsBatchScopeCreator>();
             _batchScopeCreator.StartTrackingProject(VisualStudioProject, Hierarchy);
         }
@@ -207,8 +204,7 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.ProjectSystem.L
 
         protected void RefreshBinOutputPath()
         {
-            var storage = Hierarchy as IVsBuildPropertyStorage;
-            if (storage == null)
+            if (!(Hierarchy is IVsBuildPropertyStorage storage))
             {
                 return;
             }
@@ -305,32 +301,30 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.ProjectSystem.L
         {
             AssertIsForeground();
 
-            using (var pooledObject = SharedPools.Default<List<string>>().GetPooledObject())
+            using var pooledObject = SharedPools.Default<List<string>>().GetPooledObject();
+
+            var newFolderNames = pooledObject.Object;
+
+            if (!_folderNameMap.TryGetValue(folderItemID, out var folderNames))
             {
-                var newFolderNames = pooledObject.Object;
-                ImmutableArray<string> folderNames;
-
-                if (!_folderNameMap.TryGetValue(folderItemID, out folderNames))
-                {
-                    ComputeFolderNames(folderItemID, newFolderNames, Hierarchy);
-                    folderNames = newFolderNames.ToImmutableArray();
-                    _folderNameMap.Add(folderItemID, folderNames);
-                }
-                else
-                {
-                    // verify names, and change map if we get a different set.
-                    // this is necessary because we only get document adds/removes from the project system
-                    // when a document name or folder name changes.
-                    ComputeFolderNames(folderItemID, newFolderNames, Hierarchy);
-                    if (!Enumerable.SequenceEqual(folderNames, newFolderNames))
-                    {
-                        folderNames = newFolderNames.ToImmutableArray();
-                        _folderNameMap[folderItemID] = folderNames;
-                    }
-                }
-
-                return folderNames;
+                ComputeFolderNames(folderItemID, newFolderNames, Hierarchy);
+                folderNames = newFolderNames.ToImmutableArray();
+                _folderNameMap.Add(folderItemID, folderNames);
             }
+            else
+            {
+                // verify names, and change map if we get a different set.
+                // this is necessary because we only get document adds/removes from the project system
+                // when a document name or folder name changes.
+                ComputeFolderNames(folderItemID, newFolderNames, Hierarchy);
+                if (!Enumerable.SequenceEqual(folderNames, newFolderNames))
+                {
+                    folderNames = newFolderNames.ToImmutableArray();
+                    _folderNameMap[folderItemID] = folderNames;
+                }
+            }
+
+            return folderNames;
         }
 
         // Different hierarchies are inconsistent on whether they return ints or uints for VSItemIds.
@@ -391,7 +385,7 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.ProjectSystem.L
             // declared in the compilation.
             // 
             // Unfortunately, although being different concepts, default namespace and root namespace are almost
-            // used interchangebly in VS. For example, (1) the value is define in "rootnamespace" property in project 
+            // used interchangeably in VS. For example, (1) the value is define in "rootnamespace" property in project 
             // files and, (2) the property name we use to call into hierarchy below to retrieve the value is 
             // called "DefaultNamespace".
 
@@ -401,6 +395,17 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.ProjectSystem.L
             }
 
             return null;
+        }
+
+        private static bool TryGetMaxLangVersionPropertyValue(IVsHierarchy hierarchy, out string maxLangVer)
+        {
+            if (!(hierarchy is IVsBuildPropertyStorage storage))
+            {
+                maxLangVer = null;
+                return false;
+            }
+
+            return ErrorHandler.Succeeded(storage.GetPropertyValue("MaxSupportedLangVersion", null, (uint)_PersistStorageType.PST_PROJECT_FILE, out maxLangVer));
         }
     }
 }

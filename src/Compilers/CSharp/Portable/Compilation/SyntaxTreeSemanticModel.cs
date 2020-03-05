@@ -507,7 +507,7 @@ namespace Microsoft.CodeAnalysis.CSharp
             for (; expression != null && expression.Parent != null; expression = expression.Parent as TypeSyntax)
             {
                 var parent = expression.Parent;
-                if (parent is BaseTypeSyntax && parent.Parent != null && parent.Parent.Kind() == SyntaxKind.BaseList && ((BaseTypeSyntax)parent).Type == expression)
+                if (parent is BaseTypeSyntax baseType && parent.Parent != null && parent.Parent.Kind() == SyntaxKind.BaseList && baseType.Type == expression)
                 {
                     // we have a winner
                     var decl = (BaseTypeDeclarationSyntax)parent.Parent.Parent;
@@ -718,6 +718,34 @@ namespace Microsoft.CodeAnalysis.CSharp
             return false;
         }
 
+        internal override BoundExpression GetSpeculativelyBoundExpression(int position, ExpressionSyntax expression, SpeculativeBindingOption bindingOption, out Binder binder, out ImmutableArray<Symbol> crefSymbols)
+        {
+            if (expression == null)
+            {
+                throw new ArgumentNullException(nameof(expression));
+            }
+
+            // If the given position is in a member that we can get a semantic model for, we want to defer to that implementation
+            // of GetSpeculativelyBoundExpression so it can take nullability into account.
+            if (bindingOption == SpeculativeBindingOption.BindAsExpression)
+            {
+                position = CheckAndAdjustPosition(position);
+                var model = GetMemberModel(position);
+                if (model is object)
+                {
+                    return model.GetSpeculativelyBoundExpression(position, expression, bindingOption, out binder, out crefSymbols);
+                }
+            }
+
+            return GetSpeculativelyBoundExpressionWithoutNullability(position, expression, bindingOption, out binder, out crefSymbols);
+        }
+
+        internal AttributeSemanticModel CreateSpeculativeAttributeSemanticModel(int position, AttributeSyntax attribute, Binder binder, AliasSymbol aliasOpt, NamedTypeSymbol attributeType)
+        {
+            var memberModel = Compilation.NullableSemanticAnalysisEnabled ? GetMemberModel(position) : null;
+            return AttributeSemanticModel.CreateSpeculative(this, attribute, attributeType, aliasOpt, binder, memberModel?.GetRemappedSymbols(), position);
+        }
+
         private MemberSemanticModel GetMemberModel(int position)
         {
             AssertPositionAdjusted(position);
@@ -858,7 +886,14 @@ namespace Microsoft.CodeAnalysis.CSharp
                         return GetOrAddModelForAttribute((AttributeSyntax)memberDecl);
 
                     case SyntaxKind.Parameter:
-                        return GetOrAddModelForParameter((ParameterSyntax)memberDecl, span);
+                        if (node != memberDecl)
+                        {
+                            return GetOrAddModelForParameter((ParameterSyntax)memberDecl, span);
+                        }
+                        else
+                        {
+                            return GetMemberModel(memberDecl.Parent);
+                        }
                 }
             }
 
@@ -880,8 +915,8 @@ namespace Microsoft.CodeAnalysis.CSharp
             }
 
             return ImmutableInterlocked.GetOrAdd(ref _memberModels, attribute,
-                                                 (node, binder) => CreateModelForAttribute(binder, (AttributeSyntax)node),
-                                                 containing.GetEnclosingBinder(attribute.SpanStart));
+                                                 (node, binderAndModel) => CreateModelForAttribute(binderAndModel.binder, (AttributeSyntax)node, binderAndModel.model),
+                                                 (binder: containing.GetEnclosingBinder(attribute.SpanStart), model: containing));
         }
 
         private static bool IsInDocumentationComment(SyntaxNode node)
@@ -922,11 +957,12 @@ namespace Microsoft.CodeAnalysis.CSharp
                                                                 tuple.parameterSymbol,
                                                                 tuple.containing.GetEnclosingBinder(tuple.paramDecl.SpanStart).
                                                                     CreateBinderForParameterDefaultValue(tuple.parameterSymbol,
-                                                                                            (EqualsValueClauseSyntax)equalsValue)),
+                                                                                            (EqualsValueClauseSyntax)equalsValue),
+                                                                tuple.containing.GetRemappedSymbols()),
                                                          (compilation: this.Compilation,
-                                                          paramDecl: paramDecl,
-                                                          parameterSymbol: parameterSymbol,
-                                                          containing: containing)
+                                                          paramDecl,
+                                                          parameterSymbol,
+                                                          containing)
                                                          );
                 }
             }
@@ -992,7 +1028,7 @@ namespace Microsoft.CodeAnalysis.CSharp
                             return null;
                         }
 
-                        return MethodBodySemanticModel.Create(this, symbol, binder, memberDecl);
+                        return MethodBodySemanticModel.Create(this, symbol, new MethodBodySemanticModel.InitialState(memberDecl, binder: binder));
                     }
                 case SyntaxKind.GetAccessorDeclaration:
                 case SyntaxKind.SetAccessorDeclaration:
@@ -1008,7 +1044,7 @@ namespace Microsoft.CodeAnalysis.CSharp
                             return null;
                         }
 
-                        return MethodBodySemanticModel.Create(this, symbol, binder, accessorDecl);
+                        return MethodBodySemanticModel.Create(this, symbol, new MethodBodySemanticModel.InitialState(accessorDecl, binder: binder));
                     }
 
                 case SyntaxKind.Block:
@@ -1057,7 +1093,8 @@ namespace Microsoft.CodeAnalysis.CSharp
                                     this,
                                     parameterDecl,
                                     parameterSymbol,
-                                    defaultOuter().CreateBinderForParameterDefaultValue(parameterSymbol, (EqualsValueClauseSyntax)node));
+                                    defaultOuter().CreateBinderForParameterDefaultValue(parameterSymbol, (EqualsValueClauseSyntax)node),
+                                    parentRemappedSymbolsOpt: null);
                             }
 
                         case SyntaxKind.EnumMemberDeclaration:
@@ -1100,7 +1137,7 @@ namespace Microsoft.CodeAnalysis.CSharp
                             return null;
                         }
 
-                        return MethodBodySemanticModel.Create(this, symbol, binder, exprDecl);
+                        return MethodBodySemanticModel.Create(this, symbol, new MethodBodySemanticModel.InitialState(exprDecl, binder: binder));
                     }
 
                 case SyntaxKind.GlobalStatement:
@@ -1127,20 +1164,19 @@ namespace Microsoft.CodeAnalysis.CSharp
                             return MethodBodySemanticModel.Create(
                                 this,
                                 scriptInitializer,
-                                new ExecutableCodeBinder(node, scriptInitializer, new ScriptLocalScopeBinder(_globalStatementLabels, defaultOuter())),
-                                node);
+                                new MethodBodySemanticModel.InitialState(node, binder: new ExecutableCodeBinder(node, scriptInitializer, new ScriptLocalScopeBinder(_globalStatementLabels, defaultOuter()))));
                         }
                     }
                     break;
 
                 case SyntaxKind.Attribute:
-                    return CreateModelForAttribute(defaultOuter(), (AttributeSyntax)node);
+                    return CreateModelForAttribute(defaultOuter(), (AttributeSyntax)node, containingModel: null);
             }
 
             return null;
         }
 
-        private AttributeSemanticModel CreateModelForAttribute(Binder enclosingBinder, AttributeSyntax attribute)
+        private AttributeSemanticModel CreateModelForAttribute(Binder enclosingBinder, AttributeSyntax attribute, MemberSemanticModel containingModel)
         {
             AliasSymbol aliasOpt;
             DiagnosticBag discarded = DiagnosticBag.GetInstance();
@@ -1152,7 +1188,8 @@ namespace Microsoft.CodeAnalysis.CSharp
                 attribute,
                 attributeType,
                 aliasOpt,
-                enclosingBinder.WithAdditionalFlags(BinderFlags.AttributeArgument));
+                enclosingBinder.WithAdditionalFlags(BinderFlags.AttributeArgument),
+                containingModel?.GetRemappedSymbols());
         }
 
         private SourceMemberFieldSymbol GetDeclaredFieldSymbol(VariableDeclaratorSyntax variableDecl)
@@ -1748,6 +1785,12 @@ namespace Microsoft.CodeAnalysis.CSharp
             return binder?.LookupDeclaredField(declarationSyntax);
         }
 
+        internal override LocalSymbol GetAdjustedLocalSymbol(SourceLocalSymbol originalSymbol)
+        {
+            var position = originalSymbol.IdentifierToken.SpanStart;
+            return GetMemberModel(position)?.GetAdjustedLocalSymbol(originalSymbol) ?? originalSymbol;
+        }
+
         /// <summary>
         /// Given a labeled statement syntax, get the corresponding label symbol.
         /// </summary>
@@ -2202,6 +2245,18 @@ namespace Microsoft.CodeAnalysis.CSharp
         {
             MemberSemanticModel memberModel = GetMemberModel(node);
             return memberModel?.GetDeconstructionInfo(node) ?? default;
+        }
+
+        internal override Symbol RemapSymbolIfNecessaryCore(Symbol symbol)
+        {
+            if (!(symbol is LocalSymbol || symbol is ParameterSymbol || symbol is MethodSymbol)
+                || symbol.Locations.IsDefaultOrEmpty)
+            {
+                return symbol;
+            }
+
+            var memberModel = GetMemberModel(symbol.Locations[0].SourceSpan.Start);
+            return memberModel?.RemapSymbolIfNecessaryCore(symbol) ?? symbol;
         }
     }
 }

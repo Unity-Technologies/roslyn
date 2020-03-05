@@ -197,7 +197,7 @@ namespace Microsoft.CodeAnalysis.FlowAnalysis.SymbolUsageAnalysis
                     CancellationToken cancellationToken)
                 {
                     // Compute all descendant operations in basic block range.
-                    for (int i = firstBlockOrdinal; i <= lastBlockOrdinal; i++)
+                    for (var i = firstBlockOrdinal; i <= lastBlockOrdinal; i++)
                     {
                         cancellationToken.ThrowIfCancellationRequested();
                         foreach (var operation in cfg.Blocks[i].DescendantOperations())
@@ -382,7 +382,7 @@ namespace Microsoft.CodeAnalysis.FlowAnalysis.SymbolUsageAnalysis
                 public void SetBlockAnalysisDataFrom(BasicBlock basicBlock, BasicBlockAnalysisData data, CancellationToken cancellationToken)
                     => GetOrCreateBlockAnalysisData(basicBlock, cancellationToken).SetAnalysisDataFrom(data);
 
-                public void SetAnalysisDataOnExitBlockEnd()
+                public void SetAnalysisDataOnMethodExit()
                 {
                     if (SymbolsWriteBuilder.Count == 0)
                     {

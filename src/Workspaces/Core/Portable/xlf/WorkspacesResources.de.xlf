@@ -37,6 +37,11 @@
         <target state="translated">"DateTimeKind" muss UTC sein.</target>
         <note />
       </trans-unit>
+      <trans-unit id="Document_does_not_support_syntax_trees">
+        <source>Document does not support syntax trees</source>
+        <target state="translated">Das Dokument unterstützt keine Syntaxstrukturen.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="Expression_level_preferences">
         <source>Expression-level preferences</source>
         <target state="translated">Einstellungen für Ausdrucksebene</target>
@@ -184,7 +189,7 @@
       </trans-unit>
       <trans-unit id="Regex_any_character_group_long">
         <source>The period character (.) matches any character except \n (the newline character, \u000A).  If a regular expression pattern is modified by the RegexOptions.Singleline option, or if the portion of the pattern that contains the . character class is modified by the 's' option, . matches any character.</source>
-        <target state="translated">Der Punkt (.) stimmt mit einem beliebigen Zeichen außer "\n" überein (das Neue-Zeile-Zeichen, \u000A). Wenn ein Muster für einen regulären Ausdruck durch die Option "RegexOptions.Singleline" geändert wird oder wenn der Teil des Musters, der die Zeichenklasse "." enthält, durch die Option "s" verändert wird, stimmt "." mit jedem beliebigen Zeichen überein.</target>
+        <target state="translated">Der Punkt (.) stimmt mit einem beliebigen Zeichen außer "\n" überein (das Zeilenvorschubzeichen, \u000A). Wenn ein Muster für einen regulären Ausdruck durch die Option "RegexOptions.Singleline" geändert wird oder wenn der Teil des Musters, der die Zeichenklasse "." enthält, durch die Option "s" verändert wird, stimmt "." mit jedem beliebigen Zeichen überein.</target>
         <note />
       </trans-unit>
       <trans-unit id="Regex_any_character_group_short">
@@ -237,7 +242,7 @@ Die Ausgleichsgruppendefinition verwendet "name2" als Stapel. Das Anfangszeichen
       </trans-unit>
       <trans-unit id="Regex_carriage_return_character_long">
         <source>Matches a carriage-return character, \u000D.  Note that \r is not equivalent to the newline character, \n.</source>
-        <target state="translated">Entspricht einem Wagenrücklaufzeichen, \u000D. Beachten Sie, dass "\r" nicht dem Neue-Zeile-Zeichen "\n" entspricht.</target>
+        <target state="translated">Entspricht einem Wagenrücklaufzeichen, \u000D. Beachten Sie, dass "\r" nicht dem Zeilenvorschubzeichen "\n" entspricht.</target>
         <note />
       </trans-unit>
       <trans-unit id="Regex_carriage_return_character_short">
@@ -371,7 +376,7 @@ Der \Z-Anker entspricht "\n", stimmt jedoch nicht mit "\r\n" überein (CR/LF-Zei
 The $ anchor matches \n but does not match \r\n (the combination of carriage return and newline characters, or CR/LF). To match the CR/LF character combination, include \r?$ in the regular expression pattern.</source>
         <target state="translated">Der $-Anker gibt an, dass das vorangehende Muster am Ende der Eingabezeichenfolge oder vor "\n" am Ende der Eingabezeichenfolge vorliegen muss. Wenn Sie $ mit der Option "RegexOptions.Multiline" verwenden, kann die Übereinstimmung auch am Ende einer Zeile erfolgen.
 
-Der $-Anker stimmt mit "\n", aber nicht mit "\r\n" überein (Kombination aus Wagenrücklauf- und Neue-Zeile-Zeichen, auch CR/LF). Um der Kombination aus CR/LF-Zeichen zu entsprechen, schließen Sie "\r?$" in das Muster für reguläre Ausdrücke ein.</target>
+Der $-Anker stimmt mit "\n", aber nicht mit "\r\n" überein (Kombination aus Wagenrücklauf- und Zeilenvorschubzeichen, auch CR/LF). Um der Kombination aus CR/LF-Zeichen zu entsprechen, schließen Sie "\r?$" in das Muster für reguläre Ausdrücke ein.</target>
         <note />
       </trans-unit>
       <trans-unit id="Regex_end_of_string_or_line_short">
@@ -445,8 +450,8 @@ Der $-Anker stimmt mit "\n", aber nicht mit "\r\n" überein (Kombination aus Wag
         <note />
       </trans-unit>
       <trans-unit id="Regex_hexadecimal_escape_short">
-        <source>hexidecimal escape</source>
-        <target state="translated">Hexadezimale Escapesequenz</target>
+        <source>hexadecimal escape</source>
+        <target state="translated">Hexadezimale Escapezeichen</target>
         <note />
       </trans-unit>
       <trans-unit id="Regex_inline_comment_long">
@@ -703,7 +708,7 @@ If the RegexOptions parameter of a regular expression pattern matching method in
 
 "Name" ist ein gültiger Gruppenname, und "Teilausdruck" ist ein gültiges Muster für reguläre Ausdrücke. "Name" darf keine Satzzeichen enthalten und nicht mit einer Zahl beginnen.
 
-Wenn der RegexOptions-Parameter einer Methode zum Abgleich von Mustern für reguläre Ausdrücke das Flag "RegexOptions.ExplicitCapture" enthält oder wenn die Option "n" auf das diesen Teilausdruck angewendet wird, besteht die einzige Möglichkeit zum Erfassen eines Unterausdrucks darin, die Erfassungsgruppen explizit zu benennen.</target>
+Wenn der RegexOptions-Parameter einer Methode zum Abgleich von Mustern für reguläre Ausdrücke das Flag "RegexOptions.ExplicitCapture" enthält oder wenn die Option "n" auf diesen Teilausdruck angewendet wird, besteht die einzige Möglichkeit zum Erfassen eines Unterausdrucks darin, die Erfassungsgruppen explizit zu benennen.</target>
         <note />
       </trans-unit>
       <trans-unit id="Regex_named_matched_subexpression_short">
@@ -838,14 +843,14 @@ Wenn das ECMAScript-konforme Verhalten angegeben wird, ist "\W" gleichbedeutend 
         <source>This construct disables backtracking. The regular expression engine will match as many characters in the input string as it can. When no further match is possible, it will not backtrack to attempt alternate pattern matches. (That is, the subexpression matches only strings that would be matched by the subexpression alone; it does not attempt to match a string based on the subexpression and any subexpressions that follow it.)
 
 This option is recommended if you know that backtracking will not succeed. Preventing the regular expression engine from performing unnecessary searching improves performance.</source>
-        <target state="translated">Dieses Konstrukt deaktiviert die Rückverfolgung. Die Engine für reguläre Ausdrücke gleicht so viele Zeichen in der Eingabezeichenfolge wie möglich ab. Wenn kein weiterer Abgleich möglich ist, wird keine Rückverfolgung durchgeführt, um alternative Musterabgleiche zu versuchen. (Das heißt, der Teilausdruck stimmt mit nur mit Zeichenfolgen überein, die dem Teilausdruck allein entsprechen; es wird nicht versucht, eine Zeichenfolge basierend auf dem Teilausdruck und allen nachfolgenden Teilausdrücken abzugleichen.)
+        <target state="translated">Dieses Konstrukt deaktiviert die Rückverfolgung. Die Engine für reguläre Ausdrücke gleicht so viele Zeichen in der Eingabezeichenfolge wie möglich ab. Wenn kein weiterer Abgleich möglich ist, wird keine Rückverfolgung durchgeführt, um alternative Musterabgleiche zu versuchen. (Das heißt, der Teilausdruck stimmt nur mit Zeichenfolgen überein, die dem Teilausdruck allein entsprechen; es wird nicht versucht, eine Zeichenfolge basierend auf dem Teilausdruck und allen nachfolgenden Teilausdrücken abzugleichen.)
 
 Diese Option empfiehlt sich, wenn Sie wissen, dass die Rückverfolgung nicht zum Erfolg führt. Indem Sie die Ausführung unnötiger Suchvorgänge durch die Engine für reguläre Ausdrücke verhindern, erzielen Sie eine verbesserte Leistung.</target>
         <note />
       </trans-unit>
       <trans-unit id="Regex_nonbacktracking_subexpression_short">
         <source>nonbacktracking subexpression</source>
-        <target state="translated">Nicht zurückverfolgender Teilausdruck</target>
+        <target state="translated">Teilausdruck ohne Rückverfolgung</target>
         <note />
       </trans-unit>
       <trans-unit id="Regex_noncapturing_group_long">
@@ -1095,7 +1100,7 @@ If ECMAScript-compliant behavior is specified, \s is equivalent to [ \f\n\r\t\v]
         <target state="translated">"\s" stimmt mit einem beliebigen Leerraumzeichen überein. Entspricht den folgenden Escapesequenzen und Unicode-Kategorien:
 
     \f	Das Seitenvorschubzeichen, \u000C
-    \n	Das Neue-Zeile-Zeichen, \u000A
+    \n	Das Zeilenvorschubzeichen, \u000A
     \r	Das Wagenrücklaufzeichen, \u000D
     \t	Das Tabstoppzeichen, \u0009
     \v	Das vertikale Tabstoppzeichen, \u000B
@@ -1307,49 +1312,14 @@ Positive Lookbehindassertionen mit Nullbreite werden normalerweise am Anfang reg
         <target state="translated">Symbolspezifikationen</target>
         <note />
       </trans-unit>
-      <trans-unit id="TypeOrNamespaceUsageInfo_BaseType">
-        <source>Base Type</source>
-        <target state="translated">Basistyp</target>
-        <note>See xml doc comments on 'TypeOrNamespaceUsageInfo' enum for context</note>
-      </trans-unit>
-      <trans-unit id="TypeOrNamespaceUsageInfo_Construct">
-        <source>Construct</source>
-        <target state="translated">Konstrukt</target>
-        <note>See xml doc comments on 'TypeOrNamespaceUsageInfo' enum for context</note>
-      </trans-unit>
-      <trans-unit id="TypeOrNamespaceUsageInfo_Declare">
-        <source>Declare</source>
-        <target state="translated">Deklarieren</target>
-        <note>See xml doc comments on 'TypeOrNamespaceUsageInfo' enum for context</note>
-      </trans-unit>
-      <trans-unit id="TypeOrNamespaceUsageInfo_Import">
-        <source>Import</source>
-        <target state="translated">Importieren</target>
-        <note>See xml doc comments on 'TypeOrNamespaceUsageInfo' enum for context</note>
-      </trans-unit>
-      <trans-unit id="TypeOrNamespaceUsageInfo_Qualify">
-        <source>Qualify</source>
-        <target state="translated">Qualifizieren</target>
-        <note>See xml doc comments on 'TypeOrNamespaceUsageInfo' enum for context</note>
-      </trans-unit>
-      <trans-unit id="TypeOrNamespaceUsageInfo_TypeArgument">
-        <source>Type Argument</source>
-        <target state="translated">Typargument</target>
-        <note>See xml doc comments on 'TypeOrNamespaceUsageInfo' enum for context</note>
-      </trans-unit>
-      <trans-unit id="TypeOrNamespaceUsageInfo_TypeConstraint">
-        <source>Type Constraint</source>
-        <target state="translated">Typeinschränkung</target>
-        <note>See xml doc comments on 'TypeOrNamespaceUsageInfo' enum for context</note>
-      </trans-unit>
-      <trans-unit id="ValueUsageInfo_Name">
-        <source>Name</source>
-        <target state="translated">Name</target>
-        <note>See xml doc comments on 'ValueUsageInfo' enum for context</note>
-      </trans-unit>
       <trans-unit id="Visual_Basic_files">
         <source>Visual Basic files</source>
         <target state="translated">Visual Basic-Dateien</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Warning_adding_imports_will_bring_an_extension_method_into_scope_with_the_same_name_as_member_access">
+        <source>Adding imports will bring an extension method into scope with the same name as '{0}'</source>
+        <target state="translated">Durch das Hinzufügen von Importen wird eine Erweiterungsmethode mit dem gleichen Namen wie "{0}" in den Bereich eingeführt.</target>
         <note />
       </trans-unit>
       <trans-unit id="Workspace_is_not_empty">
@@ -2241,21 +2211,6 @@ Positive Lookbehindassertionen mit Nullbreite werden normalerweise am Anfang reg
         <source>Regex issue: {0}</source>
         <target state="translated">RegEx-Fehler: {0}</target>
         <note>This is an error message shown to the user when they write an invalid Regular Expression. {0} will be the actual text of one of the above Regular Expression errors.</note>
-      </trans-unit>
-      <trans-unit id="ValueUsageInfo_Read">
-        <source>Read</source>
-        <target state="translated">Lesen</target>
-        <note>See xml doc comments on 'ValueUsageInfo' enum for context</note>
-      </trans-unit>
-      <trans-unit id="ValueUsageInfo_Reference">
-        <source>Reference</source>
-        <target state="translated">Verweis</target>
-        <note>See xml doc comments on 'ValueUsageInfo' enum for context</note>
-      </trans-unit>
-      <trans-unit id="ValueUsageInfo_Write">
-        <source>Write</source>
-        <target state="translated">Schreiben</target>
-        <note>See xml doc comments on 'ValueUsageInfo' enum for context</note>
       </trans-unit>
       <trans-unit id="Parameter_preferences">
         <source>Parameter preferences</source>

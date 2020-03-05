@@ -181,6 +181,10 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
 
         public override FlowAnalysisAnnotations ReturnTypeFlowAnalysisAnnotations => FlowAnalysisAnnotations.None;
 
+        public override ImmutableHashSet<string> ReturnNotNullIfParameterNotNull => ImmutableHashSet<string>.Empty;
+
+        public override FlowAnalysisAnnotations FlowAnalysisAnnotations => FlowAnalysisAnnotations.None;
+
         // In error recovery and type inference scenarios we do not know the return type
         // until after the body is bound, but the symbol is created before the body
         // is bound.  Fill in the return type post hoc in these scenarios; the
@@ -188,7 +192,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
         internal void SetInferredReturnType(RefKind refKind, TypeWithAnnotations inferredReturnType)
         {
             Debug.Assert(inferredReturnType.HasType);
-            Debug.Assert((object)_returnType.Type == ReturnTypeIsBeingInferred);
+            Debug.Assert(_returnType.Type.IsErrorType());
             _refKind = refKind;
             _returnType = inferredReturnType;
         }
@@ -367,17 +371,17 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
             return result;
         }
 
-        public sealed override bool Equals(object symbol)
+        public sealed override bool Equals(Symbol symbol, TypeCompareKind compareKind)
         {
             if ((object)this == symbol) return true;
 
-            var lambda = symbol as LambdaSymbol;
-            return (object)lambda != null
+            return symbol is LambdaSymbol lambda
                 && lambda._syntax == _syntax
                 && lambda._refKind == _refKind
-                && TypeSymbol.Equals(lambda.ReturnType, this.ReturnType, TypeCompareKind.ConsiderEverything2)
-                && System.Linq.ImmutableArrayExtensions.SequenceEqual(lambda.ParameterTypesWithAnnotations, this.ParameterTypesWithAnnotations, (p1, p2) => p1.Type.Equals(p2.Type))
-                && Equals(lambda.ContainingSymbol, this.ContainingSymbol);
+                && TypeSymbol.Equals(lambda.ReturnType, this.ReturnType, compareKind)
+                && ParameterTypesWithAnnotations.SequenceEqual(lambda.ParameterTypesWithAnnotations, compareKind,
+                                                               (p1, p2, compareKind) => p1.Equals(p2, compareKind))
+                && lambda.ContainingSymbol.Equals(ContainingSymbol, compareKind);
         }
 
         public override int GetHashCode()

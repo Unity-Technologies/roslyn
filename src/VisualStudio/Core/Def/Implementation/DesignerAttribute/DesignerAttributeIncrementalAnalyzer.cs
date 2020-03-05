@@ -204,8 +204,7 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.DesignerAttribu
                 return;
             }
 
-            var workspace = document.Project.Solution.Workspace as VisualStudioWorkspaceImpl;
-            if (workspace == null)
+            if (!(document.Project.Solution.Workspace is VisualStudioWorkspaceImpl workspace))
             {
                 return;
             }
@@ -227,7 +226,7 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.DesignerAttribu
                         return;
                     }
 
-                    uint itemId = hierarchy.TryGetItemId(document.FilePath);
+                    var itemId = hierarchy.TryGetItemId(document.FilePath);
 
                     if (itemId == VSConstants.VSITEMID_NIL)
                     {

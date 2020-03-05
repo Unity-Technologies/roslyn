@@ -18,6 +18,8 @@ namespace Microsoft.CodeAnalysis.CSharp.Diagnostics.AddBraces
     {
         public CSharpAddBracesDiagnosticAnalyzer()
             : base(IDEDiagnosticIds.AddBracesDiagnosticId,
+                   CSharpCodeStyleOptions.PreferBraces,
+                   LanguageNames.CSharp,
                    new LocalizableResourceString(nameof(FeaturesResources.Add_braces), FeaturesResources.ResourceManager, typeof(FeaturesResources)),
                    new LocalizableResourceString(nameof(WorkspacesResources.Add_braces_to_0_statement), WorkspacesResources.ResourceManager, typeof(WorkspacesResources)))
         {
@@ -94,7 +96,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Diagnostics.AddBraces
 
             if (option.Value == PreferBracesPreference.WhenMultiline
                 && !IsConsideredMultiLine(statement, embeddedStatement)
-                && !RequiresBracesToMatchContext(statement, embeddedStatement))
+                && !RequiresBracesToMatchContext(statement))
             {
                 return;
             }
@@ -228,11 +230,11 @@ namespace Microsoft.CodeAnalysis.CSharp.Diagnostics.AddBraces
         }
 
         /// <summary>
-        /// Determines whether <paramref name="embeddedStatement"/> should use braces under a
+        /// Determines whether <paramref name="statement"/> should use braces under a
         /// <see cref="PreferBracesPreference.WhenMultiline"/> preference due to the presence of braces on one or more
         /// sibling statements (the "context").
         /// </summary>
-        private static bool RequiresBracesToMatchContext(SyntaxNode statement, StatementSyntax embeddedStatement)
+        private static bool RequiresBracesToMatchContext(SyntaxNode statement)
         {
             if (!statement.IsKind(SyntaxKind.IfStatement, SyntaxKind.ElseClause))
             {
@@ -255,7 +257,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Diagnostics.AddBraces
         /// part of the <c>if</c>/<c>else if</c>/<c>else</c> sequence.
         /// </summary>
         /// <remarks>
-        /// <para>For the purpose of brace usage analysis, the embedded statments of an <c>if</c>/<c>else if</c>/<c>else</c>
+        /// <para>For the purpose of brace usage analysis, the embedded statements of an <c>if</c>/<c>else if</c>/<c>else</c>
         /// sequence are considered sibling statements, even though they don't appear as immediate siblings in the
         /// syntax tree. This method walks up the syntax tree to find the <c>if</c> statement that starts the
         /// sequence.</para>

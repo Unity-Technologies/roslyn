@@ -15,19 +15,17 @@ using Microsoft.VisualStudio.Commanding;
 using Microsoft.VisualStudio.Text;
 using Microsoft.VisualStudio.Text.Editor.Commanding.Commands;
 using Microsoft.VisualStudio.Text.Operations;
-using Microsoft.VisualStudio.Utilities;
 using Roslyn.Utilities;
-using VSCommanding = Microsoft.VisualStudio.Commanding;
 
 namespace Microsoft.CodeAnalysis.Editor.Implementation.CommentSelection
 {
-    [Export(typeof(VSCommanding.ICommandHandler))]
-    [ContentType(ContentTypeNames.RoslynContentType)]
-    [Name(PredefinedCommandHandlerNames.CommentSelection)]
+    [Export(typeof(ICommandHandler))]
+    [VisualStudio.Utilities.ContentType(ContentTypeNames.RoslynContentType)]
+    [VisualStudio.Utilities.Name(PredefinedCommandHandlerNames.CommentSelection)]
     internal class CommentUncommentSelectionCommandHandler :
         AbstractCommentSelectionBase<Operation>,
-        VSCommanding.ICommandHandler<CommentSelectionCommandArgs>,
-        VSCommanding.ICommandHandler<UncommentSelectionCommandArgs>
+        ICommandHandler<CommentSelectionCommandArgs>,
+        ICommandHandler<UncommentSelectionCommandArgs>
     {
         [ImportingConstructor]
         public CommentUncommentSelectionCommandHandler(
@@ -37,7 +35,7 @@ namespace Microsoft.CodeAnalysis.Editor.Implementation.CommentSelection
         {
         }
 
-        public VSCommanding.CommandState GetCommandState(CommentSelectionCommandArgs args)
+        public CommandState GetCommandState(CommentSelectionCommandArgs args)
         {
             return GetCommandState(args.SubjectBuffer);
         }
@@ -50,7 +48,7 @@ namespace Microsoft.CodeAnalysis.Editor.Implementation.CommentSelection
             return this.ExecuteCommand(args.TextView, args.SubjectBuffer, Operation.Comment, context);
         }
 
-        public VSCommanding.CommandState GetCommandState(UncommentSelectionCommandArgs args)
+        public CommandState GetCommandState(UncommentSelectionCommandArgs args)
         {
             return GetCommandState(args.SubjectBuffer);
         }
@@ -264,7 +262,7 @@ namespace Microsoft.CodeAnalysis.Editor.Implementation.CommentSelection
         }
 
         private void UncommentPosition(CommentSelectionInfo info, SnapshotSpan span, ArrayBuilder<TextChange> textChanges,
-            ArrayBuilder<CommentTrackingSpan> spansToSelect,int positionOfStart, int positionOfEnd)
+            ArrayBuilder<CommentTrackingSpan> spansToSelect, int positionOfStart, int positionOfEnd)
         {
             if (positionOfStart < 0 || positionOfEnd < 0)
             {
@@ -344,10 +342,10 @@ namespace Microsoft.CodeAnalysis.Editor.Implementation.CommentSelection
         /// </summary>
         private static bool SpanIncludesAllTextOnIncludedLines(SnapshotSpan span)
         {
-            var firstAndLastLine = DetermineFirstAndLastLine(span);
+            var (firstLine, lastLine) = DetermineFirstAndLastLine(span);
 
-            var firstNonWhitespacePosition = firstAndLastLine.firstLine.GetFirstNonWhitespacePosition();
-            var lastNonWhitespacePosition = firstAndLastLine.lastLine.GetLastNonWhitespacePosition();
+            var firstNonWhitespacePosition = firstLine.GetFirstNonWhitespacePosition();
+            var lastNonWhitespacePosition = lastLine.GetLastNonWhitespacePosition();
 
             var allOnFirst = !firstNonWhitespacePosition.HasValue ||
                               span.Start.Position <= firstNonWhitespacePosition.Value;

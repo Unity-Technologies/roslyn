@@ -168,9 +168,9 @@ namespace Microsoft.CodeAnalysis.CSharp
         internal override BoundStatement BindForEachDeconstruction(DiagnosticBag diagnostics, Binder originalBinder)
         {
             // Use the right binder to avoid seeing iteration variable
-            BoundExpression collectionExpr = originalBinder.GetBinder(_syntax.Expression).BindValue(_syntax.Expression, diagnostics, BindValueKind.RValue);
+            BoundExpression collectionExpr = originalBinder.GetBinder(_syntax.Expression).BindRValueWithoutTargetType(_syntax.Expression, diagnostics);
 
-            ForEachEnumeratorInfo.Builder builder = new ForEachEnumeratorInfo.Builder();
+            var builder = new ForEachEnumeratorInfo.Builder();
             TypeWithAnnotations inferredType;
             bool hasErrors = !GetEnumeratorInfoAndInferCollectionElementType(ref builder, ref collectionExpr, diagnostics, out inferredType);
 
@@ -196,16 +196,16 @@ namespace Microsoft.CodeAnalysis.CSharp
         private BoundForEachStatement BindForEachPartsWorker(DiagnosticBag diagnostics, Binder originalBinder)
         {
             // Use the right binder to avoid seeing iteration variable
-            BoundExpression collectionExpr = originalBinder.GetBinder(_syntax.Expression).BindValue(_syntax.Expression, diagnostics, BindValueKind.RValue);
+            BoundExpression collectionExpr = originalBinder.GetBinder(_syntax.Expression).BindRValueWithoutTargetType(_syntax.Expression, diagnostics);
 
-            ForEachEnumeratorInfo.Builder builder = new ForEachEnumeratorInfo.Builder();
+            var builder = new ForEachEnumeratorInfo.Builder();
             TypeWithAnnotations inferredType;
             bool hasErrors = !GetEnumeratorInfoAndInferCollectionElementType(ref builder, ref collectionExpr, diagnostics, out inferredType);
 
             // These occur when special types are missing or malformed, or the patterns are incompletely implemented.
             hasErrors |= builder.IsIncomplete;
 
-            AwaitableInfo awaitInfo = null;
+            BoundAwaitableInfo awaitInfo = null;
             MethodSymbol getEnumeratorMethod = builder.GetEnumeratorMethod;
             if (getEnumeratorMethod != null)
             {
@@ -213,12 +213,14 @@ namespace Microsoft.CodeAnalysis.CSharp
             }
             if (IsAsync)
             {
-                var placeholder = new BoundAwaitableValuePlaceholder(_syntax.Expression, builder.MoveNextMethod?.ReturnType ?? CreateErrorType());
-                awaitInfo = BindAwaitInfo(placeholder, _syntax.Expression, _syntax.AwaitKeyword.GetLocation(), diagnostics, ref hasErrors);
+                var expr = _syntax.Expression;
+                ReportBadAwaitDiagnostics(expr, _syntax.AwaitKeyword.GetLocation(), diagnostics, ref hasErrors);
+                var placeholder = new BoundAwaitableValuePlaceholder(expr, valEscape: this.LocalScopeDepth, builder.MoveNextMethod?.ReturnType ?? CreateErrorType());
+                awaitInfo = BindAwaitInfo(placeholder, expr, diagnostics, ref hasErrors);
 
                 if (!hasErrors && awaitInfo.GetResult?.ReturnType.SpecialType != SpecialType.System_Boolean)
                 {
-                    diagnostics.Add(ErrorCode.ERR_BadGetAsyncEnumerator, _syntax.Expression.Location, getEnumeratorMethod.ReturnTypeWithAnnotations, getEnumeratorMethod);
+                    diagnostics.Add(ErrorCode.ERR_BadGetAsyncEnumerator, expr.Location, getEnumeratorMethod.ReturnTypeWithAnnotations, getEnumeratorMethod);
                     hasErrors = true;
                 }
             }
@@ -521,10 +523,12 @@ namespace Microsoft.CodeAnalysis.CSharp
                 ? this.GetWellKnownType(WellKnownType.System_Threading_Tasks_ValueTask, diagnostics, this._syntax)
                 : builder.DisposeMethod.ReturnType;
 
-            var placeholder = new BoundAwaitableValuePlaceholder(_syntax.Expression, awaitableType);
-
             bool hasErrors = false;
-            builder.DisposeAwaitableInfo = BindAwaitInfo(placeholder, _syntax.Expression, _syntax.AwaitKeyword.GetLocation(), diagnostics, ref hasErrors);
+            var expr = _syntax.Expression;
+            ReportBadAwaitDiagnostics(expr, _syntax.AwaitKeyword.GetLocation(), diagnostics, ref hasErrors);
+
+            var placeholder = new BoundAwaitableValuePlaceholder(expr, valEscape: this.LocalScopeDepth, awaitableType);
+            builder.DisposeAwaitableInfo = BindAwaitInfo(placeholder, expr, diagnostics, ref hasErrors);
             return hasErrors;
         }
 
@@ -533,7 +537,7 @@ namespace Microsoft.CodeAnalysis.CSharp
             // Use the right binder to avoid seeing iteration variable
             BoundExpression collectionExpr = this.GetBinder(collectionSyntax).BindValue(collectionSyntax, diagnostics, BindValueKind.RValue);
 
-            ForEachEnumeratorInfo.Builder builder = new ForEachEnumeratorInfo.Builder();
+            var builder = new ForEachEnumeratorInfo.Builder();
             GetEnumeratorInfoAndInferCollectionElementType(ref builder, ref collectionExpr, diagnostics, out TypeWithAnnotations inferredType);
             return inferredType;
         }
@@ -626,6 +630,8 @@ namespace Microsoft.CodeAnalysis.CSharp
         private bool GetEnumeratorInfo(ref ForEachEnumeratorInfo.Builder builder, BoundExpression collectionExpr, DiagnosticBag diagnostics)
         {
             bool isAsync = IsAsync;
+            builder.IsAsync = isAsync;
+
             EnumeratorResult found = GetEnumeratorInfo(ref builder, collectionExpr, isAsync, diagnostics);
             switch (found)
             {
@@ -682,18 +688,11 @@ namespace Microsoft.CodeAnalysis.CSharp
                 }
             }
 
-            if ((object)collectionExprType == null) // There's no way to enumerate something without a type.
+            if (collectionExprType is null) // There's no way to enumerate something without a type.
             {
-                if (collectionExpr.Kind == BoundKind.DefaultExpression)
-                {
-                    diagnostics.Add(ErrorCode.ERR_DefaultLiteralNotValid, _syntax.Expression.Location);
-                }
-                else
-                {
-                    // The null and default literals were caught above, so anything else with a null type is a method group or anonymous function
-                    diagnostics.Add(ErrorCode.ERR_AnonMethGrpInForEach, _syntax.Expression.Location, collectionExpr.Display);
-                    // CONSIDER: dev10 also reports ERR_ForEachMissingMember (i.e. failed pattern match).
-                }
+                // The null and default literals were caught earlier (binding the collection without target-type in BindForEachPartsWorker), so anything else with a null type is a method group or anonymous function
+                diagnostics.Add(ErrorCode.ERR_AnonMethGrpInForEach, _syntax.Expression.Location, collectionExpr.Display);
+                // CONSIDER: dev10 also reports ERR_ForEachMissingMember (i.e. failed pattern match).
                 return EnumeratorResult.FailedAndReported;
             }
 
@@ -868,7 +867,7 @@ namespace Microsoft.CodeAnalysis.CSharp
                 var patternDisposeDiags = new DiagnosticBag();
                 var receiver = new BoundDisposableValuePlaceholder(_syntax, enumeratorType);
                 MethodSymbol disposeMethod = TryFindDisposePatternMethod(receiver, _syntax, isAsync, patternDisposeDiags);
-                if (!(disposeMethod is null))
+                if (disposeMethod is object)
                 {
                     builder.NeedsDisposal = true;
                     builder.DisposeMethod = disposeMethod;
@@ -1299,8 +1298,9 @@ namespace Microsoft.CodeAnalysis.CSharp
             if (type.TypeKind == TypeKind.TypeParameter)
             {
                 var typeParameter = (TypeParameterSymbol)type;
-                GetIEnumerableOfT(typeParameter.EffectiveBaseClass(ref useSiteDiagnostics).AllInterfacesWithDefinitionUseSiteDiagnostics(ref useSiteDiagnostics), isAsync, compilation, ref @implementedIEnumerable, ref foundMultiple);
-                GetIEnumerableOfT(typeParameter.AllEffectiveInterfacesWithDefinitionUseSiteDiagnostics(ref useSiteDiagnostics), isAsync, compilation, ref @implementedIEnumerable, ref foundMultiple);
+                var allInterfaces = typeParameter.EffectiveBaseClass(ref useSiteDiagnostics).AllInterfacesWithDefinitionUseSiteDiagnostics(ref useSiteDiagnostics)
+                    .Concat(typeParameter.AllEffectiveInterfacesWithDefinitionUseSiteDiagnostics(ref useSiteDiagnostics));
+                GetIEnumerableOfT(allInterfaces, isAsync, compilation, ref @implementedIEnumerable, ref foundMultiple);
             }
             else
             {
@@ -1316,12 +1316,15 @@ namespace Microsoft.CodeAnalysis.CSharp
             {
                 return;
             }
+
+            interfaces = MethodTypeInferrer.ModuloReferenceTypeNullabilityDifferences(interfaces, VarianceKind.In);
+
             foreach (NamedTypeSymbol @interface in interfaces)
             {
                 if (IsIEnumerableT(@interface.OriginalDefinition, isAsync, compilation))
                 {
                     if ((object)result == null ||
-                        TypeSymbol.Equals(@interface, result, TypeCompareKind.IgnoreTupleNames | TypeCompareKind.IgnoreNullableModifiersForReferenceTypes))
+                        TypeSymbol.Equals(@interface, result, TypeCompareKind.IgnoreTupleNames))
                     {
                         result = @interface;
                     }

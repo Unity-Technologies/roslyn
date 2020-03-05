@@ -8,13 +8,13 @@
         <note>Used anywhere the string is needed (that is, everywhere.)</note>
       </trans-unit>
       <trans-unit id="1012">
-        <source>Microsoft Visual Basic Code Page Editor</source>
-        <target state="translated">Éditeur de page de codes Microsoft Visual Basic</target>
+        <source>Visual Basic Editor with Encoding</source>
+        <target state="translated">Visual Basic Editor avec encodage</target>
         <note />
       </trans-unit>
       <trans-unit id="1013">
-        <source>Microsoft Visual Basic Editor</source>
-        <target state="translated">Microsoft Visual Basic Editor</target>
+        <source>Visual Basic Editor</source>
+        <target state="translated">Visual Basic Editor</target>
         <note />
       </trans-unit>
       <trans-unit id="10160">
@@ -74,7 +74,7 @@
       </trans-unit>
       <trans-unit id="10162">
         <source>Naming Style;Name Styles;Naming Rule;Naming Conventions</source>
-        <target state="translated">Style d'affectation de noms;Styles de nom;Règle d'affectation de noms;Conventions d'affectation de noms</target>
+        <target state="translated">Style de nommage;Styles de nom;Règle de nommage;Conventions de nommage</target>
         <note>Naming Style options page keywords</note>
       </trans-unit>
       <trans-unit id="111">

@@ -1,4 +1,4 @@
-// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
+﻿// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
 
 namespace Microsoft.CodeAnalysis.Internal.Log
 {
@@ -407,7 +407,7 @@ namespace Microsoft.CodeAnalysis.Internal.Log
         CompilationService_GetCompilationAsync,
         SolutionCreator_AssetDifferences,
         Extension_InfoBar,
-        Experiment_ABTesting,
+        FxCopAnalyzersInstall,
         AssetStorage_ForceGC,
         RemoteHost_Bitness,
         Intellisense_Completion,
@@ -460,5 +460,14 @@ namespace Microsoft.CodeAnalysis.Internal.Log
         Intellisense_CompletionProviders_Data,
         SnapshotService_IsExperimentEnabledAsync,
         PartialLoad_FullyLoaded,
+        Liveshare_UnknownCodeAction,
+        Liveshare_LexicalClassifications,
+        Liveshare_SyntacticClassifications,
+        Liveshare_SyntacticTagger,
+
+        CommandHandler_GoToBase,
+
+        DiagnosticAnalyzerService_GetDiagnosticsForSpanAsync,
+        CodeFixes_GetCodeFixesAsync,
     }
 }

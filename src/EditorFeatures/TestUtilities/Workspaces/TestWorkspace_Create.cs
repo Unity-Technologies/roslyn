@@ -8,6 +8,8 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Xml.Linq;
 using Microsoft.VisualStudio.Composition;
+using Microsoft.VisualStudio.Text;
+using Microsoft.VisualStudio.Utilities;
 using Roslyn.Utilities;
 
 namespace Microsoft.CodeAnalysis.Editor.UnitTests.Workspaces
@@ -64,6 +66,7 @@ namespace Microsoft.CodeAnalysis.Editor.UnitTests.Workspaces
         private const string CheckOverflowAttributeName = "CheckOverflow";
         private const string AllowUnsafeAttributeName = "AllowUnsafe";
         private const string OutputKindName = "OutputKind";
+        private const string NullableAttributeName = "Nullable";
 
         /// <summary>
         /// Creates a single buffer in a workspace.
@@ -141,7 +144,7 @@ namespace Microsoft.CodeAnalysis.Editor.UnitTests.Workspaces
             string workspaceKind = null,
             string extension = null,
             bool commonReferences = true,
-            bool openDocuments = true)
+            bool openDocuments = false)
         {
             var documentElements = new List<XElement>();
             var index = 0;
@@ -183,7 +186,7 @@ namespace Microsoft.CodeAnalysis.Editor.UnitTests.Workspaces
             var index = 0;
             var extension = "";
 
-            for (int i = 0; i < files.Length; i++)
+            for (var i = 0; i < files.Length; i++)
             {
                 if (language == LanguageNames.CSharp)
                 {
@@ -219,7 +222,7 @@ namespace Microsoft.CodeAnalysis.Editor.UnitTests.Workspaces
             CompilationOptions compilationOptions = null,
             ExportProvider exportProvider = null,
             string[] metadataReferences = null,
-            bool openDocuments = true)
+            bool openDocuments = false)
         {
             return CreateCSharp(new[] { file }, parseOptions, compilationOptions, exportProvider, metadataReferences, openDocuments);
         }
@@ -230,7 +233,7 @@ namespace Microsoft.CodeAnalysis.Editor.UnitTests.Workspaces
             CompilationOptions compilationOptions = null,
             ExportProvider exportProvider = null,
             string[] metadataReferences = null,
-            bool openDocuments = true)
+            bool openDocuments = false)
         {
             return Create(LanguageNames.CSharp, compilationOptions, parseOptions, files, exportProvider, metadataReferences, openDocuments: openDocuments);
         }
@@ -254,7 +257,7 @@ namespace Microsoft.CodeAnalysis.Editor.UnitTests.Workspaces
             CompilationOptions compilationOptions = null,
             ExportProvider exportProvider = null,
             string[] metadataReferences = null,
-            bool openDocuments = true)
+            bool openDocuments = false)
         {
             return CreateVisualBasic(new[] { file }, parseOptions, compilationOptions, exportProvider, metadataReferences, openDocuments);
         }
@@ -265,7 +268,7 @@ namespace Microsoft.CodeAnalysis.Editor.UnitTests.Workspaces
             CompilationOptions compilationOptions = null,
             ExportProvider exportProvider = null,
             string[] metadataReferences = null,
-            bool openDocuments = true)
+            bool openDocuments = false)
         {
             return Create(LanguageNames.VisualBasic, compilationOptions, parseOptions, files, exportProvider, metadataReferences, openDocuments: openDocuments);
         }

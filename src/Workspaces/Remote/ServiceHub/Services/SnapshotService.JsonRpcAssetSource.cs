@@ -44,7 +44,7 @@ namespace Microsoft.CodeAnalysis.Remote
                                 (s, c) => ReadAssets(s, scopeId, checksums, serializerService, c), cancellationToken);
                         }, cancellationToken).ConfigureAwait(false);
                     }
-                    catch (Exception ex) when (ReportUnlessCanceled(ex, cancellationToken))
+                    catch (Exception ex) when (ReportUnlessCanceled(ex))
                     {
                         throw ExceptionUtilities.Unreachable;
                     }
@@ -63,9 +63,10 @@ namespace Microsoft.CodeAnalysis.Remote
                 }
             }
 
-            private bool ReportUnlessCanceled(Exception ex, CancellationToken cancellationToken)
+            private bool ReportUnlessCanceled(Exception ex)
             {
-                if (!cancellationToken.IsCancellationRequested && _owner.IsDisposed)
+                // TODO: check !cancellationToken.IsCancellationRequeste instead (https://github.com/dotnet/roslyn/issues/39723)
+                if (!(ex is OperationCanceledException) && !(ex is TaskCanceledException) && _owner.IsDisposed)
                 {
                     // kill OOP if snapshot service got disconnected due to this exception.
                     FailFast.OnFatalException(ex);
@@ -83,33 +84,32 @@ namespace Microsoft.CodeAnalysis.Remote
             {
                 var results = new List<(Checksum, object)>();
 
-                using (var reader = ObjectReader.TryGetReader(stream, cancellationToken))
-                {
-                    Debug.Assert(reader != null,
+                using var reader = ObjectReader.TryGetReader(stream, cancellationToken);
+
+                Debug.Assert(reader != null,
 @"We only ge a reader for data transmitted between live processes.
 This data should always be correct as we're never persisting the data between sessions.");
 
-                    var responseScopeId = reader.ReadInt32();
-                    Contract.ThrowIfFalse(scopeId == responseScopeId);
+                var responseScopeId = reader.ReadInt32();
+                Contract.ThrowIfFalse(scopeId == responseScopeId);
 
-                    var count = reader.ReadInt32();
-                    Contract.ThrowIfFalse(count == checksums.Count);
+                var count = reader.ReadInt32();
+                Contract.ThrowIfFalse(count == checksums.Count);
 
-                    for (var i = 0; i < count; i++)
-                    {
-                        var responseChecksum = Checksum.ReadFrom(reader);
-                        Contract.ThrowIfFalse(checksums.Contains(responseChecksum));
+                for (var i = 0; i < count; i++)
+                {
+                    var responseChecksum = Checksum.ReadFrom(reader);
+                    Contract.ThrowIfFalse(checksums.Contains(responseChecksum));
 
-                        var kind = (WellKnownSynchronizationKind)reader.ReadInt32();
+                    var kind = (WellKnownSynchronizationKind)reader.ReadInt32();
 
-                        // in service hub, cancellation means simply closed stream
-                        var @object = serializerService.Deserialize<object>(kind, reader, cancellationToken);
+                    // in service hub, cancellation means simply closed stream
+                    var @object = serializerService.Deserialize<object>(kind, reader, cancellationToken);
 
-                        results.Add((responseChecksum, @object));
-                    }
-
-                    return results;
+                    results.Add((responseChecksum, @object));
                 }
+
+                return results;
             }
 
             private static string GetRequestLogInfo(int serviceId, IEnumerable<Checksum> checksums)

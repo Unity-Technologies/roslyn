@@ -174,6 +174,26 @@ $@"class MyClass
 }");
         }
 
+        [Theory, Trait(Traits.Feature, Traits.Features.CodeActionsMakeFieldReadonly)]
+        [InlineData("")]
+        [InlineData("\r\n")]
+        [InlineData("\r\n\r\n")]
+        public async Task MultipleFieldsAssignedInline_LeadingCommentAndWhitespace(string leadingTrvia)
+        {
+            await TestInRegularAndScriptAsync(
+$@"class MyClass
+{{
+    //Comment{leadingTrvia}
+    private int _goo = 0, [|_bar|] = 0;
+}}",
+$@"class MyClass
+{{
+    //Comment{leadingTrvia}
+    private int _goo = 0;
+    private readonly int _bar = 0;
+}}");
+        }
+
         [Fact, Trait(Traits.Feature, Traits.Features.CodeActionsMakeFieldReadonly)]
         public async Task FieldAssignedInCtor()
         {
@@ -1115,6 +1135,50 @@ class MyClass
 @"unsafe struct S
 {
     [|private fixed byte b[8];|]
+}");
+        }
+
+        [WorkItem(38995, "https://github.com/dotnet/roslyn/issues/38995")]
+        [Fact, Trait(Traits.Feature, Traits.Features.CodeActionsMakeFieldReadonly)]
+        public async Task FieldAssignedToLocalRef()
+        {
+            await TestMissingAsync(
+@"
+class Program
+{
+    [|int i;|]
+
+    void M()
+    {
+        ref var value = ref i;
+        value += 1;
+    }
+}");
+        }
+
+        [Fact, Trait(Traits.Feature, Traits.Features.CodeActionsMakeFieldReadonly)]
+        public async Task FieldAssignedToLocalReadOnlyRef()
+        {
+            await TestInRegularAndScriptAsync(
+@"
+class Program
+{
+    [|int i;|]
+
+    void M()
+    {
+        ref readonly var value = ref i;
+    }
+}",
+@"
+class Program
+{
+    [|readonly int i;|]
+
+    void M()
+    {
+        ref readonly var value = ref i;
+    }
 }");
         }
     }

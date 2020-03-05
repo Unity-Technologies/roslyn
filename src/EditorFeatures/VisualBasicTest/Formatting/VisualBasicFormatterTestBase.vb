@@ -2,6 +2,7 @@
 
 Imports System.Threading
 Imports Microsoft.CodeAnalysis
+Imports Microsoft.CodeAnalysis.Editor.UnitTests.Formatting
 Imports Microsoft.CodeAnalysis.Editor.UnitTests.Workspaces
 Imports Microsoft.CodeAnalysis.Formatting
 Imports Microsoft.CodeAnalysis.Formatting.Rules
@@ -9,10 +10,6 @@ Imports Microsoft.CodeAnalysis.Text
 Imports Microsoft.CodeAnalysis.Text.Shared.Extensions
 Imports Microsoft.VisualStudio.Text
 Imports Roslyn.Test.EditorUtilities
-Imports Microsoft.CodeAnalysis.Editor.UnitTests.Formatting
-Imports Microsoft.CodeAnalysis.Editor.Implementation.Formatting.Indentation
-Imports Microsoft.VisualStudio.Text.Operations
-Imports Microsoft.CodeAnalysis.Editor.VisualBasic.Formatting.Indentation
 
 Namespace Microsoft.CodeAnalysis.Editor.VisualBasic.UnitTests.Formatting
     <[UseExportProvider]>
@@ -23,10 +20,6 @@ Namespace Microsoft.CodeAnalysis.Editor.VisualBasic.UnitTests.Formatting
             Return LanguageNames.VisualBasic
         End Function
 
-        Friend Overrides Function CreateSmartTokenFormatterCommandHandler(registry As ITextUndoHistoryRegistry, operations As IEditorOperationsFactoryService) As AbstractSmartTokenFormatterCommandHandler
-            Return New SmartTokenFormatterCommandHandler(registry, operations)
-        End Function
-
         Protected Async Function AssertFormatSpanAsync(content As String, expected As String, Optional baseIndentation As Integer? = Nothing, Optional span As TextSpan = Nothing) As Tasks.Task
             Using workspace = TestWorkspace.CreateVisualBasic(content)
                 Dim hostdoc = workspace.Documents.First()
@@ -35,7 +28,7 @@ Namespace Microsoft.CodeAnalysis.Editor.VisualBasic.UnitTests.Formatting
                 Dim buffer = workspace.Documents.First().GetTextBuffer()
 
                 ' create new buffer with cloned content
-                Dim clonedBuffer = EditorFactory.CreateBuffer(buffer.ContentType.TypeName, workspace.ExportProvider, buffer.CurrentSnapshot.GetText())
+                Dim clonedBuffer = EditorFactory.CreateBuffer(workspace.ExportProvider, buffer.ContentType, buffer.CurrentSnapshot.GetText())
 
                 Dim document = workspace.CurrentSolution.GetDocument(hostdoc.Id)
                 Dim syntaxTree = Await document.GetSyntaxTreeAsync()

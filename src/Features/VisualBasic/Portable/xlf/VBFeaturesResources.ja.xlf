@@ -97,11 +97,6 @@
         <target state="translated">不要なインポートの削除</target>
         <note />
       </trans-unit>
-      <trans-unit id="Sort_Imports">
-        <source>&amp;Sort Imports</source>
-        <target state="translated">インポートの並べ替え(&amp;S)</target>
-        <note />
-      </trans-unit>
       <trans-unit id="Type_a_name_here_to_declare_a_new_field">
         <source>Type a name here to declare a new field.</source>
         <target state="translated">新しいフィールドを宣言するには、ここに名前を入力します。</target>
@@ -234,7 +229,7 @@
       </trans-unit>
       <trans-unit id="Not_all_code_paths_return">
         <source>Not all code paths return</source>
-        <target state="translated">返されないコードのパスがあります</target>
+        <target state="translated">返されないコード パスがあります</target>
         <note />
       </trans-unit>
       <trans-unit id="contains_invalid_selection">
@@ -284,7 +279,7 @@
       </trans-unit>
       <trans-unit id="next_statement_control_variable_doesn_t_have_matching_declaration_statement">
         <source>next statement control variable doesn't have matching declaration statement</source>
-        <target state="translated">次のステートメントのコントロール変数に一致する宣言ステートメントがありません</target>
+        <target state="translated">次のステートメントの制御変数に一致する宣言ステートメントがありません</target>
         <note />
       </trans-unit>
       <trans-unit id="Selection_doesn_t_contain_any_valid_node">
@@ -340,11 +335,6 @@
       <trans-unit id="new_variable">
         <source>&lt;new variable&gt;</source>
         <target state="translated">&lt;新しい変数&gt;</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="Remove_and_Sort_Imports">
-        <source>R&amp;emove and Sort Imports</source>
-        <target state="translated">インポートの削除と並べ替え(&amp;E)</target>
         <note />
       </trans-unit>
       <trans-unit id="Creates_a_delegate_procedure_instance_that_references_the_specified_procedure_AddressOf_procedureName">
@@ -1357,7 +1347,7 @@ Return -or- Return &lt;expression&gt;</target>
       <trans-unit id="When_set_to_On_restricts_implicit_data_type_conversions_to_only_widening_conversions_Option_Strict_On_Off">
         <source>When set to On, restricts implicit data type conversions to only widening conversions.
 Option Strict {On | Off}</source>
-        <target state="translated">On に設定されている場合は、 暗黙的なデータ型の変換を上位変換のみに制限します。
+        <target state="translated">On に設定されている場合は、 暗黙的なデータ型の変換を拡大変換のみに制限します。
 Option Strict {On | Off}</target>
         <note />
       </trans-unit>

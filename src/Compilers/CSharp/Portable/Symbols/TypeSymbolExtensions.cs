@@ -667,13 +667,13 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
 
                 switch (current.TypeKind)
                 {
-                    case TypeKind.Error:
                     case TypeKind.Dynamic:
                     case TypeKind.TypeParameter:
                     case TypeKind.Submission:
                     case TypeKind.Enum:
                         return null;
 
+                    case TypeKind.Error:
                     case TypeKind.Class:
                     case TypeKind.Struct:
                     case TypeKind.Interface:
@@ -1229,7 +1229,9 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
 
                     for (int i = 0; i < typeArguments.Length; i++)
                     {
-                        if (!typeParameters[i].Equals(typeArguments[i].Type.OriginalDefinition))
+                        if (!typeParameters[i].Equals(
+                                 typeArguments[i].Type.OriginalDefinition,
+                                 SymbolEqualityComparer.ConsiderEverything.CompareKind))
                         {
                             return false;
                         }

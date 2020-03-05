@@ -64,7 +64,7 @@
       </trans-unit>
       <trans-unit id="Conflict_s_detected">
         <source>Conflict(s) detected.</source>
-        <target state="translated">Sono stati rilevati conflitti</target>
+        <target state="translated">Sono stati rilevati conflitti.</target>
         <note />
       </trans-unit>
       <trans-unit id="Introduce_Using_statement">
@@ -95,11 +95,6 @@
       <trans-unit id="Remove_Unnecessary_Imports">
         <source>Remove Unnecessary Imports</source>
         <target state="translated">Rimuovi Import non necessari</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="Sort_Imports">
-        <source>&amp;Sort Imports</source>
-        <target state="translated">Or&amp;dina import</target>
         <note />
       </trans-unit>
       <trans-unit id="Type_a_name_here_to_declare_a_new_field">
@@ -340,11 +335,6 @@
       <trans-unit id="new_variable">
         <source>&lt;new variable&gt;</source>
         <target state="translated">&lt;nuova variabile&gt;</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="Remove_and_Sort_Imports">
-        <source>R&amp;emove and Sort Imports</source>
-        <target state="translated">Ri&amp;muovi e ordina Import</target>
         <note />
       </trans-unit>
       <trans-unit id="Creates_a_delegate_procedure_instance_that_references_the_specified_procedure_AddressOf_procedureName">
@@ -1357,7 +1347,7 @@ Return -oppure- Return &lt;espressione&gt;</target>
       <trans-unit id="When_set_to_On_restricts_implicit_data_type_conversions_to_only_widening_conversions_Option_Strict_On_Off">
         <source>When set to On, restricts implicit data type conversions to only widening conversions.
 Option Strict {On | Off}</source>
-        <target state="translated">Se impostata su On, limita le conversioni dei tipi di dati impliciti alle sole conversioni verso un tipo di dati più grande.
+        <target state="translated">Se impostata su On, limita le conversioni dei tipi di dati impliciti alle sole conversioni che supportano un maggior numero di dati.
 Option Strict {On | Off}</target>
         <note />
       </trans-unit>
@@ -1514,12 +1504,12 @@ Sub(&lt;elencoParametri&gt;) &lt;istruzione&gt;</target>
       </trans-unit>
       <trans-unit id="Generate_narrowing_conversion_in_0">
         <source>Generate narrowing conversion in '{0}'</source>
-        <target state="translated">Genera la conversione verso un tipo di dati più piccolo in '{0}'</target>
+        <target state="translated">Genera la conversione che supporta un minor numero di dati in '{0}'</target>
         <note />
       </trans-unit>
       <trans-unit id="Generate_widening_conversion_in_0">
         <source>Generate widening conversion in '{0}'</source>
-        <target state="translated">Genera la conversione verso un tipo di dati più grande in '{0}'</target>
+        <target state="translated">Genera la conversione che supporta un maggior numero di dati in '{0}'</target>
         <note />
       </trans-unit>
       <trans-unit id="Do_not_change_this_code_Put_cleanup_code_in_Dispose_disposing_As_Boolean_above">

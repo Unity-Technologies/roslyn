@@ -1,6 +1,9 @@
 ﻿// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
 
+#nullable enable
+
 using System;
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
 
 namespace Microsoft.CodeAnalysis
@@ -18,6 +21,7 @@ namespace Microsoft.CodeAnalysis
         ///     The available stack space is insufficient to execute
         ///     the average function.
         /// </exception>
+        [DebuggerStepThrough]
         public static void EnsureSufficientExecutionStack(int recursionDepth)
         {
             if (recursionDepth > MaxUncheckedRecursionDepth)

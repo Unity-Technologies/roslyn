@@ -1,5 +1,7 @@
 ﻿// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
 
+#nullable enable
+
 namespace Microsoft.CodeAnalysis
 {
     // members of special types
@@ -122,6 +124,7 @@ namespace Microsoft.CodeAnalysis
 
         System_Object__GetHashCode,
         System_Object__Equals,
+        System_Object__EqualsObjectObject,
         System_Object__ToString,
         System_Object__ReferenceEquals,
 

@@ -1,5 +1,7 @@
 ﻿// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
 
+#nullable enable
+
 namespace Microsoft.CodeAnalysis
 {
     // Members of well known types
@@ -67,6 +69,8 @@ namespace Microsoft.CodeAnalysis
         System_Reflection_Missing__Value,
 
         System_IEquatable_T__Equals,
+
+        System_Collections_Generic_IEqualityComparer_T__Equals,
 
         System_Collections_Generic_EqualityComparer_T__Equals,
         System_Collections_Generic_EqualityComparer_T__GetHashCode,
@@ -157,6 +161,7 @@ namespace Microsoft.CodeAnalysis
         System_Activator__CreateInstance,
         System_Activator__CreateInstance_T,
 
+        System_Threading_Interlocked__CompareExchange,
         System_Threading_Interlocked__CompareExchange_T,
 
         System_Threading_Monitor__Enter, //Monitor.Enter(object)

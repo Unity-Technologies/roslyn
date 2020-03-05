@@ -2,6 +2,11 @@
 <xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
   <file datatype="xml" source-language="en" target-language="ja" original="../ServicesVSResources.resx">
     <body>
+      <trans-unit id="A_new_editorconfig_file_was_detected_at_the_root_of_your_solution_Would_you_like_to_make_it_a_solution_item">
+        <source>A new .editorconfig file was detected at the root of your solution. Would you like to make it a solution item?</source>
+        <target state="translated">新しい .editorconfig ファイルがソリューションのルートで検出されました。ソリューション項目にしますか?</target>
+        <note />
+      </trans-unit>
       <trans-unit id="A_new_namespace_will_be_created">
         <source>A new namespace will be created</source>
         <target state="translated">新しい名前空間が作成されます</target>
@@ -49,12 +54,17 @@
       </trans-unit>
       <trans-unit id="Avoid_unused_value_assignments">
         <source>Avoid unused value assignments</source>
-        <target state="translated">使用されない値割り当てを指定しないでください</target>
+        <target state="translated">使用されない値の代入を指定しないでください</target>
         <note />
       </trans-unit>
       <trans-unit id="Back">
         <source>Back</source>
         <target state="translated">戻る</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Build_plus_live_analysis_NuGet_package">
+        <source>Build + live analysis (NuGet package)</source>
+        <target state="translated">ビルド + ライブ分析 (NuGet パッケージ)</target>
         <note />
       </trans-unit>
       <trans-unit id="Calculating_dependents">
@@ -72,6 +82,16 @@
         <target state="translated">正規表現をカラー化</target>
         <note />
       </trans-unit>
+      <trans-unit id="Containing_member">
+        <source>Containing Member</source>
+        <target state="translated">含んでいるメンバー</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Containing_type">
+        <source>Containing Type</source>
+        <target state="translated">含んでいる型</target>
+        <note />
+      </trans-unit>
       <trans-unit id="Element_is_not_valid">
         <source>Element is not valid.</source>
         <target state="translated">要素が有効ではありません。</target>
@@ -80,6 +100,11 @@
       <trans-unit id="Enable_nullable_reference_analysis_IDE_features">
         <source>Enable nullable reference analysis IDE features</source>
         <target state="translated">NULL 許容参照分析の IDE 機能を有効にします</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Evaluating_0_tasks_in_queue">
+        <source>Evaluating ({0} tasks in queue)</source>
+        <target state="translated">評価中 ({0} 個のタスクがキューにあります)</target>
         <note />
       </trans-unit>
       <trans-unit id="Finish">
@@ -102,6 +127,11 @@
         <target state="translated">その他の演算子内で</target>
         <note />
       </trans-unit>
+      <trans-unit id="Install_Microsoft_recommended_Roslyn_analyzers_which_provide_additional_diagnostics_and_fixes_for_common_API_design_security_performance_and_reliability_issues">
+        <source>Install Microsoft-recommended Roslyn analyzers, which provide additional diagnostics and fixes for common API design, security, performance, and reliability issues</source>
+        <target state="translated">Microsoft で推奨されている Roslyn アナライザーをインストールします。これにより、一般的な API の設計、セキュリティ、パフォーマンス、信頼性の問題に対する追加の診断と修正が提供されます</target>
+        <note />
+      </trans-unit>
       <trans-unit id="Interface_cannot_have_field">
         <source>Interface cannot have field.</source>
         <target state="translated">インターフェイスにフィールドを含めることはできません。</target>
@@ -117,9 +147,9 @@
         <target state="translated">種類</target>
         <note />
       </trans-unit>
-      <trans-unit id="Live_analysis">
-        <source>Live analysis</source>
-        <target state="translated">ライブ分析</target>
+      <trans-unit id="Live_analysis_VSIX_extension">
+        <source>Live analysis (VSIX extension)</source>
+        <target state="translated">ライブ分析 (VSIX 拡張機能)</target>
         <note />
       </trans-unit>
       <trans-unit id="Make_0_abstract">
@@ -297,6 +327,11 @@
         <target state="translated">型パラメーター</target>
         <note>This string can be found under "Tools | Options | Text Editor | Basic | Code Style | Naming | Manage Specifications | + | Symbol kinds". All of the "NamingSpecification_VisualBasic_*" strings represent language constructs, and some of them are also actual keywords (NOT this one). Refers to the Visual Basic language concept of a "type parameter".</note>
       </trans-unit>
+      <trans-unit id="Naming_rules">
+        <source>Naming rules</source>
+        <target state="translated">名前付けルール</target>
+        <note />
+      </trans-unit>
       <trans-unit id="Never_if_unnecessary">
         <source>Never if unnecessary</source>
         <target state="translated">不必要なら保持しない</target>
@@ -317,9 +352,14 @@
         <target state="translated">かっこの優先順位:</target>
         <note />
       </trans-unit>
+      <trans-unit id="Paused_0_tasks_in_queue">
+        <source>Paused ({0} tasks in queue)</source>
+        <target state="translated">一時停止中 ({0} 個のタスクがキューにあります)</target>
+        <note />
+      </trans-unit>
       <trans-unit id="Prefer_compound_assignments">
         <source>Prefer compound assignments</source>
-        <target state="translated">複合割り当てを優先</target>
+        <target state="translated">複合代入を優先</target>
         <note />
       </trans-unit>
       <trans-unit id="Prefer_index_operator">
@@ -375,6 +415,11 @@
       <trans-unit id="Review_Changes">
         <source>Review Changes</source>
         <target state="translated">変更のプレビュー</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Running_low_priority_background_processes">
+        <source>Running low priority background processes</source>
+        <target state="translated">優先度の低いバックグラウンド プロセスを実行しています</target>
         <note />
       </trans-unit>
       <trans-unit id="Save_dot_editorconfig_file">
@@ -440,6 +485,16 @@
       <trans-unit id="Unused_value_is_explicitly_assigned_to_discard">
         <source>Unused value is explicitly assigned to discard</source>
         <target state="translated">未使用の値が discard に明示的に割り当てられます</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Updating_severity">
+        <source>Updating severity</source>
+        <target state="translated">重要度を更新しています</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Use_editorconfig_compatibility_mode">
+        <source>Use .editorconfig compatibility mode (requires restart)</source>
+        <target state="translated">.editorconfig 互換性モードを使用する (再起動が必要)</target>
         <note />
       </trans-unit>
       <trans-unit id="Use_enhanced_colors_for_C_and_Basic">
@@ -1064,31 +1119,6 @@ Use the dropdown to view and switch to other projects this file may belong to.</
         <target state="translated">アナライザー アセンブリ '{0}' は '{1}' に依存しますが、見つかりませんでした。欠落しているアセンブリがアナライザー参照として追加されない限り、アナライザーを正常に実行できない可能性があります。</target>
         <note />
       </trans-unit>
-      <trans-unit id="Suppression_State">
-        <source>Suppression State</source>
-        <target state="translated">抑制状態</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="Active">
-        <source>Active</source>
-        <target state="translated">アクティブ</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="Suppressed">
-        <source>Suppressed</source>
-        <target state="translated">抑制済み</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="NotApplicable">
-        <source>N/A</source>
-        <target state="translated">該当なし</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="SuppressionNotSupportedToolTip">
-        <source>Suppression state is supported only for intellisense diagnostics, which are for the current solution snapshot. Switch to 'Intellisense' diagnostics for suppression.</source>
-        <target state="translated">抑制状態は IntelliSense 診断でのみサポートされています。この診断は現在のソリューションのスナップショットを対象にしています。抑制用の 'Intellisense' 診断に切り替えます。</target>
-        <note />
-      </trans-unit>
       <trans-unit id="Suppress_diagnostics">
         <source>Suppress diagnostics</source>
         <target state="translated">診断を抑制する</target>
@@ -1181,7 +1211,7 @@ Use the dropdown to view and switch to other projects this file may belong to.</
       </trans-unit>
       <trans-unit id="Enter_a_title_for_this_Naming_Rule">
         <source>Enter a title for this Naming Rule.</source>
-        <target state="translated">この名前付け規則のタイトルを入力してください。</target>
+        <target state="translated">この名前付けルールのタイトルを入力してください。</target>
         <note />
       </trans-unit>
       <trans-unit id="Enter_a_title_for_this_Naming_Style">
@@ -1246,7 +1276,7 @@ Use the dropdown to view and switch to other projects this file may belong to.</
       </trans-unit>
       <trans-unit id="Naming_Rule">
         <source>Naming Rule</source>
-        <target state="translated">名前付け規則</target>
+        <target state="translated">名前付けルール</target>
         <note />
       </trans-unit>
       <trans-unit id="Naming_Style">
@@ -1261,12 +1291,12 @@ Use the dropdown to view and switch to other projects this file may belong to.</
       </trans-unit>
       <trans-unit id="Naming_Rules_allow_you_to_define_how_particular_sets_of_symbols_should_be_named_and_how_incorrectly_named_symbols_should_be_handled">
         <source>Naming Rules allow you to define how particular sets of symbols should be named and how incorrectly-named symbols should be handled.</source>
-        <target state="translated">名前付け規則を使用すると、特定のシンボル セットの名前付け方法と、正しく名前付けされていないシンボルの処理方法を定義できます。</target>
+        <target state="translated">名前付けルールを使用すると、特定のシンボル セットの名前付け方法と、正しく名前付けされていないシンボルの処理方法を定義できます。</target>
         <note />
       </trans-unit>
       <trans-unit id="The_first_matching_top_level_Naming_Rule_is_used_by_default_when_naming_a_symbol_while_any_special_cases_are_handled_by_a_matching_child_rule">
         <source>The first matching top-level Naming Rule is used by default when naming a symbol, while any special cases are handled by a matching child rule.</source>
-        <target state="translated">シンボルに名前を付けるときには、最初に一致するトップレベルの名前付け規則が既定で使用されますが、特殊なケースの場合は一致する子規則によって処理されます。</target>
+        <target state="translated">シンボルに名前を付けるときには、最初に一致するトップレベルの名前付けルールが既定で使用されますが、特殊なケースの場合は一致する子ルールによって処理されます。</target>
         <note />
       </trans-unit>
       <trans-unit id="Naming_Style_Title_colon">
@@ -1575,7 +1605,7 @@ Additional information: {1}</source>
       </trans-unit>
       <trans-unit id="Some_naming_rules_are_incomplete_Please_complete_or_remove_them">
         <source>Some naming rules are incomplete. Please complete or remove them.</source>
-        <target state="translated">一部の名前付け規則が不完全です。不完全な規則を完成させるか削除してください。</target>
+        <target state="translated">一部の名前付けルールが不完全です。不完全なルールを完成させるか削除してください。</target>
         <note />
       </trans-unit>
       <trans-unit id="Manage_specifications">
@@ -1605,7 +1635,7 @@ Additional information: {1}</source>
       </trans-unit>
       <trans-unit id="This_item_cannot_be_deleted_because_it_is_used_by_an_existing_Naming_Rule">
         <source>This item cannot be deleted because it is used by an existing Naming Rule.</source>
-        <target state="translated">このアイテムは既存の名前付け規則で使用されているため、削除できませんでした。</target>
+        <target state="translated">このアイテムは既存の名前付けルールで使用されているため、削除できませんでした。</target>
         <note />
       </trans-unit>
       <trans-unit id="Prefer_collection_initializer">
@@ -1765,12 +1795,12 @@ Additional information: {1}</source>
       </trans-unit>
       <trans-unit id="Add_a_naming_rule">
         <source>Add a naming rule</source>
-        <target state="translated">名前付け規則の追加</target>
+        <target state="translated">名前付けルールの追加</target>
         <note />
       </trans-unit>
       <trans-unit id="Remove_naming_rule">
         <source>Remove naming rule</source>
-        <target state="translated">名前付け規則の削除</target>
+        <target state="translated">名前付けルールの削除</target>
         <note />
       </trans-unit>
       <trans-unit id="VisualStudioWorkspace_TryApplyChanges_cannot_be_called_from_a_background_thread">
@@ -1791,11 +1821,6 @@ Additional information: {1}</source>
       <trans-unit id="Options">
         <source>Options</source>
         <target state="translated">オプション</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="Try_the_preview_version_of_our_live_code_analysis_extension_which_provides_more_fixes_for_common_API_design_naming_performance_and_reliability_issues">
-        <source>Try the preview version of our live code analysis extension, which provides more fixes for common API design, naming, performance, and reliability issues</source>
-        <target state="translated">ライブ コード分析拡張機能のプレビュー バージョンをお試しください。共通 API の設計、名前付け、パフォーマンス、信頼性の問題について多数の修正を提供しています</target>
         <note />
       </trans-unit>
       <trans-unit id="Never_show_this_again">
@@ -1843,30 +1868,6 @@ Additional information: {1}</source>
         <target state="translated">フェード</target>
         <note />
       </trans-unit>
-      <trans-unit id="ChangesNotAllowedIFAssemblyHasNotBeenLoaded">
-        <source>Changes are not allowed if the assembly has not been loaded.</source>
-        <target state="translated">アセンブリが読み込まれていない場合、変更は許可されません。</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="ChangesNotAllowedIfProjectWasntBuildWhenDebuggingStarted">
-        <source>Changes are not allowed if the project wasn't built when debugging started.</source>
-        <target state="translated">デバッグを開始したときにプロジェクトがビルドされていない場合、変更は許可されません。</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="ChangesNotAllowedIfProjectWasntLoadedWhileDebugging">
-        <source>Changes are not allowed if the project wasn't loaded and built when debugging started.
-
-'Lightweight solution load' is enabled for the current solution. Disable it to ensure that all projects are loaded when debugging starts.</source>
-        <target state="translated">デバッグを開始したときにプロジェクトが読み込みおよびビルドされていない場合、変更は許可されません。
-
-現在のソリューションで 'ライトウェイト ソリューション ロード' が有効になっています。無効にして、デバッグの開始時にすべてのプロジェクトが読み込まれていることを確認します。</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="ChangesNotAllowedWhileCodeIsRunning">
-        <source>Changes are not allowed while code is running.</source>
-        <target state="translated">コードの実行中は変更が許可されません。</target>
-        <note />
-      </trans-unit>
       <trans-unit id="Prefer_local_function_over_anonymous_function">
         <source>Prefer local function over anonymous function</source>
         <target state="translated">匿名関数よりローカル関数を優先します</target>
@@ -1902,19 +1903,9 @@ Additional information: {1}</source>
         <target state="translated">自動プロパティを優先する</target>
         <note />
       </trans-unit>
-      <trans-unit id="ErrorReadingFile">
-        <source>Error while reading file '{0}': {1}</source>
-        <target state="translated">ファイル {0}' の読み取り中にエラーが発生しました: {1}</target>
-        <note />
-      </trans-unit>
       <trans-unit id="ModuleHasBeenUnloaded">
         <source>Module has been unloaded.</source>
         <target state="translated">モジュールがアンロードされました。</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="CantApplyChangesModuleHasBeenUnloaded">
-        <source>Can't apply changes -- module '{0}' has been unloaded.</source>
-        <target state="translated">変更を適用できません -- モジュール '{0}' がアンロードされています。</target>
         <note />
       </trans-unit>
       <trans-unit id="Enable_navigation_to_decompiled_sources">
@@ -1958,11 +1949,6 @@ I agree to all of the foregoing:</source>
         <target state="translated">クラス ビューの同期</target>
         <note />
       </trans-unit>
-      <trans-unit id="CantApplyChangesUnexpectedError">
-        <source>Can't apply changes -- unexpected error: '{0}'</source>
-        <target state="translated">変更を適用できません。予期しないエラー: '{0}'</target>
-        <note />
-      </trans-unit>
       <trans-unit id="Analyzing_0">
         <source>Analyzing '{0}'</source>
         <target state="translated">'{0}' の分析</target>
@@ -1975,7 +1961,7 @@ I agree to all of the foregoing:</source>
       </trans-unit>
       <trans-unit id="Prefer_conditional_expression_over_if_with_assignments">
         <source>Prefer conditional expression over 'if' with assignments</source>
-        <target state="translated">割り当てのある 'if' より条件式を優先する</target>
+        <target state="translated">代入のある 'if' より条件式を優先する</target>
         <note />
       </trans-unit>
       <trans-unit id="Prefer_conditional_expression_over_if_with_returns">

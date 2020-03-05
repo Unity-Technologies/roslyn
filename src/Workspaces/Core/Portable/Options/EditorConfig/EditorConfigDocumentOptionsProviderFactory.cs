@@ -1,5 +1,7 @@
 ﻿// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
 
+#nullable enable
+
 using System;
 using System.Collections.Immutable;
 using System.Composition;
@@ -7,11 +9,11 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.CodeAnalysis.ErrorLogger;
-using Microsoft.CodeAnalysis.Experiments;
 
 namespace Microsoft.CodeAnalysis.Options.EditorConfig
 {
     [Export(typeof(IDocumentOptionsProviderFactory)), Shared]
+    [ExportMetadata("Name", PredefinedDocumentOptionsProviderNames.EditorConfig)]
     internal sealed class EditorConfigDocumentOptionsProviderFactory : IDocumentOptionsProviderFactory
     {
         [ImportingConstructor]
@@ -19,7 +21,7 @@ namespace Microsoft.CodeAnalysis.Options.EditorConfig
         {
         }
 
-        public IDocumentOptionsProvider TryCreate(Workspace workspace)
+        public IDocumentOptionsProvider? TryCreate(Workspace workspace)
         {
             if (!ShouldUseNativeEditorConfigSupport(workspace))
             {
@@ -27,13 +29,18 @@ namespace Microsoft.CodeAnalysis.Options.EditorConfig
                 return null;
             }
 
-            return new EditorConfigDocumentOptionsProvider(workspace.Services.GetService<IErrorLoggerService>());
+            return new EditorConfigDocumentOptionsProvider(workspace.Services.GetRequiredService<IErrorLoggerService>());
         }
+
+        private const string LocalRegistryPath = @"Roslyn\Internal\OnOff\Features\";
+
+        public static readonly Option<bool> UseLegacyEditorConfigSupport =
+            new Option<bool>(nameof(EditorConfigDocumentOptionsProviderFactory), nameof(UseLegacyEditorConfigSupport), defaultValue: false,
+                storageLocations: new LocalUserProfileStorageLocation(LocalRegistryPath + "UseLegacySupport"));
 
         public static bool ShouldUseNativeEditorConfigSupport(Workspace workspace)
         {
-            var experimentationService = workspace.Services.GetService<IExperimentationService>();
-            return experimentationService.IsExperimentEnabled(WellKnownExperimentNames.NativeEditorConfigSupport);
+            return !workspace.Options.GetOption(UseLegacyEditorConfigSupport);
         }
 
         private class EditorConfigDocumentOptionsProvider : IDocumentOptionsProvider
@@ -45,7 +52,7 @@ namespace Microsoft.CodeAnalysis.Options.EditorConfig
                 _errorLogger = errorLogger;
             }
 
-            public async Task<IDocumentOptions> GetOptionsForDocumentAsync(Document document, CancellationToken cancellationToken)
+            public async Task<IDocumentOptions?> GetOptionsForDocumentAsync(Document document, CancellationToken cancellationToken)
             {
                 var options = await document.GetAnalyzerOptionsAsync(cancellationToken).ConfigureAwait(false);
 
@@ -63,7 +70,7 @@ namespace Microsoft.CodeAnalysis.Options.EditorConfig
                     _errorLogger = errorLogger;
                 }
 
-                public bool TryGetDocumentOption(OptionKey option, out object value)
+                public bool TryGetDocumentOption(OptionKey option, out object? value)
                 {
                     var editorConfigPersistence = option.Option.StorageLocations.OfType<IEditorConfigStorageLocation>().SingleOrDefault();
                     if (editorConfigPersistence == null)

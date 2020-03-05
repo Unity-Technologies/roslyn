@@ -40,7 +40,7 @@ namespace Microsoft.CodeAnalysis.Editor.UnitTests.KeywordHighlighting
                 var expectedHighlightSpans = testDocument.SelectedSpans ?? new List<TextSpan>();
                 expectedHighlightSpans = Sort(expectedHighlightSpans);
                 var cursorSpan = testDocument.AnnotatedSpans["Cursor"].Single();
-                var textSnapshot = testDocument.TextBuffer.CurrentSnapshot;
+                var textSnapshot = testDocument.GetTextBuffer().CurrentSnapshot;
                 var document = workspace.CurrentSolution.GetDocument(testDocument.Id);
 
                 // If the position being tested is immediately following the keyword, 
@@ -50,7 +50,7 @@ namespace Microsoft.CodeAnalysis.Editor.UnitTests.KeywordHighlighting
 
                 var root = await document.GetSyntaxRootAsync();
 
-                for (int i = 0; i <= cursorSpan.Length; i++)
+                for (var i = 0; i <= cursorSpan.Length; i++)
                 {
                     var position = cursorSpan.Start + i;
                     var highlightSpans = highlighter.GetHighlights(root, position, CancellationToken.None).ToList();
@@ -63,7 +63,7 @@ namespace Microsoft.CodeAnalysis.Editor.UnitTests.KeywordHighlighting
 
         private static void CheckSpans(SyntaxTree tree, IList<TextSpan> expectedHighlightSpans, List<TextSpan> highlightSpans)
         {
-            for (int j = 0; j < Math.Max(highlightSpans.Count, expectedHighlightSpans.Count); j++)
+            for (var j = 0; j < Math.Max(highlightSpans.Count, expectedHighlightSpans.Count); j++)
             {
                 if (j >= expectedHighlightSpans.Count)
                 {

@@ -2,6 +2,11 @@
 <xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
   <file datatype="xml" source-language="en" target-language="ru" original="../ServicesVSResources.resx">
     <body>
+      <trans-unit id="A_new_editorconfig_file_was_detected_at_the_root_of_your_solution_Would_you_like_to_make_it_a_solution_item">
+        <source>A new .editorconfig file was detected at the root of your solution. Would you like to make it a solution item?</source>
+        <target state="translated">В корневом узле вашего решения обнаружен новый файл EDITORCONFIG. Вы хотите сделать его элементом решения?</target>
+        <note />
+      </trans-unit>
       <trans-unit id="A_new_namespace_will_be_created">
         <source>A new namespace will be created</source>
         <target state="translated">Будет создано пространство имен</target>
@@ -57,6 +62,11 @@
         <target state="translated">Назад</target>
         <note />
       </trans-unit>
+      <trans-unit id="Build_plus_live_analysis_NuGet_package">
+        <source>Build + live analysis (NuGet package)</source>
+        <target state="translated">Сборка и динамический анализ (пакет NuGet)</target>
+        <note />
+      </trans-unit>
       <trans-unit id="Calculating_dependents">
         <source>Calculating dependents...</source>
         <target state="translated">Вычисление зависимостей…</target>
@@ -72,6 +82,16 @@
         <target state="translated">Выделить регулярные выражения цветом</target>
         <note />
       </trans-unit>
+      <trans-unit id="Containing_member">
+        <source>Containing Member</source>
+        <target state="translated">Содержащий член</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Containing_type">
+        <source>Containing Type</source>
+        <target state="translated">Содержащий тип</target>
+        <note />
+      </trans-unit>
       <trans-unit id="Element_is_not_valid">
         <source>Element is not valid.</source>
         <target state="translated">Элемент недопустим.</target>
@@ -80,6 +100,11 @@
       <trans-unit id="Enable_nullable_reference_analysis_IDE_features">
         <source>Enable nullable reference analysis IDE features</source>
         <target state="translated">Включить функции IDE для анализа ссылок, допускающих значение NULL</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Evaluating_0_tasks_in_queue">
+        <source>Evaluating ({0} tasks in queue)</source>
+        <target state="translated">Оценка (задач в очереди: {0})</target>
         <note />
       </trans-unit>
       <trans-unit id="Finish">
@@ -102,6 +127,11 @@
         <target state="translated">В других операторах</target>
         <note />
       </trans-unit>
+      <trans-unit id="Install_Microsoft_recommended_Roslyn_analyzers_which_provide_additional_diagnostics_and_fixes_for_common_API_design_security_performance_and_reliability_issues">
+        <source>Install Microsoft-recommended Roslyn analyzers, which provide additional diagnostics and fixes for common API design, security, performance, and reliability issues</source>
+        <target state="translated">Установите рекомендуемые корпорацией Майкрософт анализаторы Roslyn, которые предоставляют дополнительные средства диагностики и исправления для распространенных проблем, связанных с разработкой, безопасностью, производительностью и надежностью API.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="Interface_cannot_have_field">
         <source>Interface cannot have field.</source>
         <target state="translated">Интерфейс не может содержать поле.</target>
@@ -117,9 +147,9 @@
         <target state="translated">Вид</target>
         <note />
       </trans-unit>
-      <trans-unit id="Live_analysis">
-        <source>Live analysis</source>
-        <target state="translated">Динамический анализ кода</target>
+      <trans-unit id="Live_analysis_VSIX_extension">
+        <source>Live analysis (VSIX extension)</source>
+        <target state="translated">Динамический анализ (расширение VSIX)</target>
         <note />
       </trans-unit>
       <trans-unit id="Make_0_abstract">
@@ -297,6 +327,11 @@
         <target state="translated">Параметр типа</target>
         <note>This string can be found under "Tools | Options | Text Editor | Basic | Code Style | Naming | Manage Specifications | + | Symbol kinds". All of the "NamingSpecification_VisualBasic_*" strings represent language constructs, and some of them are also actual keywords (NOT this one). Refers to the Visual Basic language concept of a "type parameter".</note>
       </trans-unit>
+      <trans-unit id="Naming_rules">
+        <source>Naming rules</source>
+        <target state="translated">Правила именования</target>
+        <note />
+      </trans-unit>
       <trans-unit id="Never_if_unnecessary">
         <source>Never if unnecessary</source>
         <target state="translated">Никогда, если не требуется</target>
@@ -317,9 +352,14 @@
         <target state="translated">Параметры круглых скобок:</target>
         <note />
       </trans-unit>
+      <trans-unit id="Paused_0_tasks_in_queue">
+        <source>Paused ({0} tasks in queue)</source>
+        <target state="translated">Приостановлено (задач в очереди: {0})</target>
+        <note />
+      </trans-unit>
       <trans-unit id="Prefer_compound_assignments">
         <source>Prefer compound assignments</source>
-        <target state="translated">Предпочитать составные присваивания</target>
+        <target state="translated">Предпочитать составные назначения</target>
         <note />
       </trans-unit>
       <trans-unit id="Prefer_index_operator">
@@ -375,6 +415,11 @@
       <trans-unit id="Review_Changes">
         <source>Review Changes</source>
         <target state="translated">Проверить изменения</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Running_low_priority_background_processes">
+        <source>Running low priority background processes</source>
+        <target state="translated">Запуск фоновых процессов с низким приоритетом</target>
         <note />
       </trans-unit>
       <trans-unit id="Save_dot_editorconfig_file">
@@ -440,6 +485,16 @@
       <trans-unit id="Unused_value_is_explicitly_assigned_to_discard">
         <source>Unused value is explicitly assigned to discard</source>
         <target state="translated">Неиспользуемое значение явным образом задано пустой переменной.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Updating_severity">
+        <source>Updating severity</source>
+        <target state="translated">Обновление уровня серьезности</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Use_editorconfig_compatibility_mode">
+        <source>Use .editorconfig compatibility mode (requires restart)</source>
+        <target state="translated">Использовать режим совместимости с .editorconfig (требуется перезапуск)</target>
         <note />
       </trans-unit>
       <trans-unit id="Use_enhanced_colors_for_C_and_Basic">
@@ -1064,31 +1119,6 @@ Use the dropdown to view and switch to other projects this file may belong to.</
         <target state="translated">Сборка анализатора "{0}" зависит от "{1}", но последняя не найдена. Анализаторы могут работать неправильно, если не добавить отсутствующую сборку в качестве ссылки анализатора.</target>
         <note />
       </trans-unit>
-      <trans-unit id="Suppression_State">
-        <source>Suppression State</source>
-        <target state="translated">Состояние подавления</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="Active">
-        <source>Active</source>
-        <target state="translated">Активный</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="Suppressed">
-        <source>Suppressed</source>
-        <target state="translated">Подавлено</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="NotApplicable">
-        <source>N/A</source>
-        <target state="translated">Н/Д</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="SuppressionNotSupportedToolTip">
-        <source>Suppression state is supported only for intellisense diagnostics, which are for the current solution snapshot. Switch to 'Intellisense' diagnostics for suppression.</source>
-        <target state="translated">Состояние подавления поддерживается только для диагностики IntelliSense, которая предназначена для создания моментального снимка текущего решения. Для подавления переключитесь на диагностику "IntelliSense".</target>
-        <note />
-      </trans-unit>
       <trans-unit id="Suppress_diagnostics">
         <source>Suppress diagnostics</source>
         <target state="translated">Подавление диагностики</target>
@@ -1700,7 +1730,7 @@ Additional information: {1}</source>
       </trans-unit>
       <trans-unit id="type_is_apparent_from_assignment_expression">
         <source>type is apparent from assignment expression</source>
-        <target state="translated">тип предполагается из выражения присваивания</target>
+        <target state="translated">тип предполагается из выражения назначения</target>
         <note />
       </trans-unit>
       <trans-unit id="Get_help_for_0">
@@ -1793,11 +1823,6 @@ Additional information: {1}</source>
         <target state="translated">Параметры</target>
         <note />
       </trans-unit>
-      <trans-unit id="Try_the_preview_version_of_our_live_code_analysis_extension_which_provides_more_fixes_for_common_API_design_naming_performance_and_reliability_issues">
-        <source>Try the preview version of our live code analysis extension, which provides more fixes for common API design, naming, performance, and reliability issues</source>
-        <target state="translated">Оцените предварительную версию нашего расширения для динамического анализа кода, которое исправляет многие проблемы с именованием, производительностью, надежностью и структурой распространенных API</target>
-        <note />
-      </trans-unit>
       <trans-unit id="Never_show_this_again">
         <source>Never show this again</source>
         <target state="translated">Больше не показывать</target>
@@ -1843,30 +1868,6 @@ Additional information: {1}</source>
         <target state="translated">Исчезание</target>
         <note />
       </trans-unit>
-      <trans-unit id="ChangesNotAllowedIFAssemblyHasNotBeenLoaded">
-        <source>Changes are not allowed if the assembly has not been loaded.</source>
-        <target state="translated">Изменения не разрешены, если сборка не загружена.</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="ChangesNotAllowedIfProjectWasntBuildWhenDebuggingStarted">
-        <source>Changes are not allowed if the project wasn't built when debugging started.</source>
-        <target state="translated">Изменения не разрешены, если проект не был построен при запуске отладки.</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="ChangesNotAllowedIfProjectWasntLoadedWhileDebugging">
-        <source>Changes are not allowed if the project wasn't loaded and built when debugging started.
-
-'Lightweight solution load' is enabled for the current solution. Disable it to ensure that all projects are loaded when debugging starts.</source>
-        <target state="translated">Изменения не разрешены, если проект не был загружен и построен при запуске отладки.
-
-"Упрощенная загрузка решения" включена для текущего решения. Отключите ее, чтобы гарантировать загрузку всех проектов при запуске отладки.</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="ChangesNotAllowedWhileCodeIsRunning">
-        <source>Changes are not allowed while code is running.</source>
-        <target state="translated">Изменения не разрешены во время выполнения кода.</target>
-        <note />
-      </trans-unit>
       <trans-unit id="Prefer_local_function_over_anonymous_function">
         <source>Prefer local function over anonymous function</source>
         <target state="translated">Предпочитать локальную функцию анонимной функции</target>
@@ -1902,19 +1903,9 @@ Additional information: {1}</source>
         <target state="translated">предпочитать автосвойства</target>
         <note />
       </trans-unit>
-      <trans-unit id="ErrorReadingFile">
-        <source>Error while reading file '{0}': {1}</source>
-        <target state="translated">Ошибка при чтении файла "{0}": {1}</target>
-        <note />
-      </trans-unit>
       <trans-unit id="ModuleHasBeenUnloaded">
         <source>Module has been unloaded.</source>
         <target state="translated">Модуль был выгружен.</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="CantApplyChangesModuleHasBeenUnloaded">
-        <source>Can't apply changes -- module '{0}' has been unloaded.</source>
-        <target state="translated">Не удается применить изменения — модуль "{0}" был выгружен.</target>
         <note />
       </trans-unit>
       <trans-unit id="Enable_navigation_to_decompiled_sources">
@@ -1958,11 +1949,6 @@ I agree to all of the foregoing:</source>
         <target state="translated">Синхронизировать представление классов</target>
         <note />
       </trans-unit>
-      <trans-unit id="CantApplyChangesUnexpectedError">
-        <source>Can't apply changes -- unexpected error: '{0}'</source>
-        <target state="translated">Не удается применить изменения, так как возникла непредвиденная ошибка: "{0}"</target>
-        <note />
-      </trans-unit>
       <trans-unit id="Analyzing_0">
         <source>Analyzing '{0}'</source>
         <target state="translated">Выполняется анализ "{0}"</target>
@@ -1975,7 +1961,7 @@ I agree to all of the foregoing:</source>
       </trans-unit>
       <trans-unit id="Prefer_conditional_expression_over_if_with_assignments">
         <source>Prefer conditional expression over 'if' with assignments</source>
-        <target state="translated">Предпочитать условное выражение оператору if в присваиваниях</target>
+        <target state="translated">Предпочитать условное выражение оператору if в назначениях</target>
         <note />
       </trans-unit>
       <trans-unit id="Prefer_conditional_expression_over_if_with_returns">

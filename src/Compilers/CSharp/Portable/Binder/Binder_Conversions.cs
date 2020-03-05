@@ -1,8 +1,6 @@
 ﻿// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
 
-using System;
 using System.Collections.Generic;
-using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Linq;
 using Microsoft.CodeAnalysis.CSharp.Symbols;
@@ -55,7 +53,8 @@ namespace Microsoft.CodeAnalysis.CSharp
             ConversionGroup conversionGroupOpt,
             bool wasCompilerGenerated,
             TypeSymbol destination,
-            DiagnosticBag diagnostics)
+            DiagnosticBag diagnostics,
+            bool hasErrors = false)
         {
             Debug.Assert(source != null);
             Debug.Assert((object)destination != null);
@@ -63,20 +62,14 @@ namespace Microsoft.CodeAnalysis.CSharp
 
             if (conversion.IsIdentity)
             {
-                // identity tuple conversions result in a converted tuple
-                // to indicate that tuple conversions are no longer applicable.
-                // nothing else changes
-                if (source.Kind == BoundKind.TupleLiteral)
+                if (source is BoundTupleLiteral sourceTuple)
                 {
-                    var sourceTuple = (BoundTupleLiteral)source;
                     TupleTypeSymbol.ReportNamesMismatchesIfAny(destination, sourceTuple, diagnostics);
-                    source = new BoundConvertedTupleLiteral(
-                        sourceTuple.Syntax,
-                        sourceTuple,
-                        sourceTuple.Arguments,
-                        sourceTuple.Type, // same type to keep original element names 
-                        sourceTuple.HasErrors).WithSuppression(sourceTuple.IsSuppressed);
                 }
+
+                // identity tuple and switch conversions result in a converted expression
+                // to indicate that such conversions are no longer applicable.
+                source = BindToNaturalType(source, diagnostics);
 
                 // We need to preserve any conversion that changes the type (even identity conversions, like object->dynamic),
                 // or that was explicitly written in code (so that GetSemanticInfo can find the syntax in the bound tree).
@@ -109,40 +102,93 @@ namespace Microsoft.CodeAnalysis.CSharp
                 return CreateTupleLiteralConversion(syntax, (BoundTupleLiteral)source, conversion, isCast: isCast, conversionGroupOpt, destination, diagnostics);
             }
 
+            if (conversion.Kind == ConversionKind.SwitchExpression)
+            {
+                return ConvertSwitchExpression((BoundUnconvertedSwitchExpression)source, destination, targetTyped: true, diagnostics);
+            }
+
+            if (source.Kind == BoundKind.UnconvertedSwitchExpression)
+            {
+                TypeSymbol type = source.Type;
+                if (type is null)
+                {
+                    Debug.Assert(!conversion.Exists);
+                    type = CreateErrorType();
+                    hasErrors = true;
+                }
+
+                source = ConvertSwitchExpression((BoundUnconvertedSwitchExpression)source, type, targetTyped: false, diagnostics, hasErrors);
+                if (destination.Equals(type, TypeCompareKind.ConsiderEverything) && wasCompilerGenerated)
+                {
+                    return source;
+                }
+            }
+
             if (conversion.IsUserDefined)
             {
                 // User-defined conversions are likely to be represented as multiple
                 // BoundConversion instances so a ConversionGroup is necessary.
-                return CreateUserDefinedConversion(syntax, source, conversion, isCast: isCast, conversionGroupOpt ?? new ConversionGroup(conversion), destination, diagnostics);
+                return CreateUserDefinedConversion(syntax, source, conversion, isCast: isCast, conversionGroupOpt ?? new ConversionGroup(conversion), destination, diagnostics, hasErrors);
             }
 
             ConstantValue constantValue = this.FoldConstantConversion(syntax, source, conversion, destination, diagnostics);
-            if (conversion.Kind == ConversionKind.DefaultOrNullLiteral && source.Kind == BoundKind.DefaultExpression)
+            if (conversion.Kind == ConversionKind.DefaultLiteral)
             {
-                var defaultExpression = (BoundDefaultExpression)source;
-                Debug.Assert(defaultExpression.TargetType == null);
-                source = defaultExpression.Update(targetType: null, constantValue, destination);
+                source = new BoundDefaultExpression(source.Syntax, targetType: null, constantValue, type: destination)
+                    .WithSuppression(source.IsSuppressed);
             }
 
             return new BoundConversion(
                 syntax,
-                source,
+                BindToNaturalType(source, diagnostics),
                 conversion,
                 @checked: CheckOverflowAtRuntime,
                 explicitCastInCode: isCast && !wasCompilerGenerated,
                 conversionGroupOpt,
                 constantValueOpt: constantValue,
-                type: destination)
+                type: destination,
+                hasErrors: hasErrors)
             { WasCompilerGenerated = wasCompilerGenerated };
         }
 
-        private BoundExpression CreateUserDefinedConversion(SyntaxNode syntax, BoundExpression source, Conversion conversion, bool isCast, ConversionGroup conversionGroup, TypeSymbol destination, DiagnosticBag diagnostics)
+        /// <summary>
+        /// Rewrite the expressions in the switch expression arms to add a conversion to the destination type.
+        /// </summary>
+        private BoundExpression ConvertSwitchExpression(BoundUnconvertedSwitchExpression source, TypeSymbol destination, bool targetTyped, DiagnosticBag diagnostics, bool hasErrors = false)
+        {
+            Debug.Assert(targetTyped || destination.IsErrorType() || destination.Equals(source.Type, TypeCompareKind.ConsiderEverything));
+            var builder = ArrayBuilder<BoundSwitchExpressionArm>.GetInstance(source.SwitchArms.Length);
+            foreach (var oldCase in source.SwitchArms)
+            {
+                var oldValue = oldCase.Value;
+                var newValue = GenerateConversionForAssignment(destination, oldValue, diagnostics);
+                var newCase = (oldValue == newValue) ? oldCase :
+                    new BoundSwitchExpressionArm(oldCase.Syntax, oldCase.Locals, oldCase.Pattern, oldCase.WhenClause, newValue, oldCase.Label, oldCase.HasErrors);
+                builder.Add(newCase);
+            }
+
+            var newSwitchArms = builder.ToImmutableAndFree();
+            return new BoundConvertedSwitchExpression(
+                source.Syntax, source.Type, targetTyped, source.Expression, newSwitchArms, source.DecisionDag,
+                source.DefaultLabel, source.ReportedNotExhaustive, destination, hasErrors || source.HasErrors);
+        }
+
+        private BoundExpression CreateUserDefinedConversion(
+            SyntaxNode syntax,
+            BoundExpression source,
+            Conversion conversion,
+            bool isCast,
+            ConversionGroup conversionGroup,
+            TypeSymbol destination,
+            DiagnosticBag diagnostics,
+            bool hasErrors)
         {
             Debug.Assert(conversionGroup != null);
 
             if (!conversion.IsValid)
             {
-                GenerateImplicitConversionError(diagnostics, syntax, conversion, source, destination);
+                if (!hasErrors)
+                    GenerateImplicitConversionError(diagnostics, syntax, conversion, source, destination);
 
                 return new BoundConversion(
                     syntax,
@@ -190,7 +236,7 @@ namespace Microsoft.CodeAnalysis.CSharp
                 source: source,
                 conversion: conversion.UserDefinedFromConversion,
                 isCast: false,
-                conversionGroup,
+                conversionGroupOpt: conversionGroup,
                 wasCompilerGenerated: false,
                 destination: conversion.BestUserDefinedConversionAnalysis.FromType,
                 diagnostics: diagnostics);
@@ -207,7 +253,7 @@ namespace Microsoft.CodeAnalysis.CSharp
                     source: convertedOperand,
                     conversion: Conversions.ClassifyStandardConversion(null, convertedOperand.Type, conversionParameterType, ref useSiteDiagnostics),
                     isCast: false,
-                    conversionGroup,
+                    conversionGroupOpt: conversionGroup,
                     wasCompilerGenerated: true,
                     destination: conversionParameterType,
                     diagnostics: diagnostics);
@@ -251,7 +297,7 @@ namespace Microsoft.CodeAnalysis.CSharp
                         source: userDefinedConversion,
                         conversion: Conversions.ClassifyStandardConversion(null, conversionReturnType, conversionToType, ref useSiteDiagnostics),
                         isCast: false,
-                        conversionGroup,
+                        conversionGroupOpt: conversionGroup,
                         wasCompilerGenerated: true,
                         destination: conversionToType,
                         diagnostics: diagnostics);
@@ -281,7 +327,7 @@ namespace Microsoft.CodeAnalysis.CSharp
                 source: userDefinedConversion,
                 conversion: toConversion,
                 isCast: false,
-                conversionGroup,
+                conversionGroupOpt: conversionGroup,
                 wasCompilerGenerated: true, // NOTE: doesn't necessarily set flag on resulting bound expression.
                 destination: destination,
                 diagnostics: diagnostics);
@@ -430,7 +476,10 @@ namespace Microsoft.CodeAnalysis.CSharp
             BoundExpression result = new BoundConvertedTupleLiteral(
                 sourceTuple.Syntax,
                 sourceTuple,
+                wasTargetTyped: true,
                 convertedArguments.ToImmutableAndFree(),
+                sourceTuple.ArgumentNamesOpt,
+                sourceTuple.InferredNamesOpt,
                 targetType).WithSuppression(sourceTuple.IsSuppressed);
 
             if (!TypeSymbol.Equals(sourceTuple.Type, destination, TypeCompareKind.ConsiderEverything2))
@@ -485,7 +534,7 @@ namespace Microsoft.CodeAnalysis.CSharp
             BoundExpression receiverOpt = group.ReceiverOpt;
             Debug.Assert(receiverOpt != null);
             Debug.Assert((object)conversion.Method != null);
-            receiverOpt = ReplaceTypeOrValueReceiver(receiverOpt, conversion.Method.IsStatic && !conversion.IsExtensionMethod, diagnostics);
+            receiverOpt = ReplaceTypeOrValueReceiver(receiverOpt, !conversion.Method.RequiresInstanceReceiver && !conversion.IsExtensionMethod, diagnostics);
             return group.Update(
                 group.TypeArgumentsOpt,
                 group.Name,
@@ -599,7 +648,7 @@ namespace Microsoft.CodeAnalysis.CSharp
                 // None of the checks below apply if the receiver can't be classified as a type or value. 
                 Debug.Assert(!invokedAsExtensionMethod);
             }
-            else if (memberSymbol.IsStatic)
+            else if (!memberSymbol.RequiresInstanceReceiver())
             {
                 Debug.Assert(!invokedAsExtensionMethod || (receiverOpt != null));
 
@@ -938,15 +987,10 @@ namespace Microsoft.CodeAnalysis.CSharp
             // TODO: Some conversions can produce errors or warnings depending on checked/unchecked.
             // TODO: Fold conversions on enums and strings too.
 
-            if (source.HasAnyErrors)
-            {
-                return null;
-            }
-
             var sourceConstantValue = source.ConstantValue;
             if (sourceConstantValue == null)
             {
-                if (conversion.Kind == ConversionKind.DefaultOrNullLiteral && source.Kind == BoundKind.DefaultExpression)
+                if (conversion.Kind == ConversionKind.DefaultLiteral)
                 {
                     return destination.GetDefaultValue();
                 }
@@ -958,6 +1002,11 @@ namespace Microsoft.CodeAnalysis.CSharp
             else if (sourceConstantValue.IsBad)
             {
                 return sourceConstantValue;
+            }
+
+            if (source.HasAnyErrors)
+            {
+                return null;
             }
 
             switch (conversion.Kind)
@@ -976,8 +1025,7 @@ namespace Microsoft.CodeAnalysis.CSharp
                             return sourceConstantValue;
                     }
 
-                case ConversionKind.DefaultOrNullLiteral:
-                    // 'default' case is handled above, 'null' is handled here
+                case ConversionKind.NullLiteral:
                     return sourceConstantValue;
 
                 case ConversionKind.ImplicitConstant:
@@ -1260,14 +1308,10 @@ namespace Microsoft.CodeAnalysis.CSharp
                         }
                     case ConstantValueTypeDiscriminator.Single:
                     case ConstantValueTypeDiscriminator.Double:
-                        // This code used to invoke CheckConstantBounds and return constant zero if the value is not within the target type.
-                        // The C# spec says that in this case the result of the conversion is an unspecified value of the destination type.
-                        // Zero is a perfectly valid unspecified value, so that behavior was formally correct.
-                        // But it did not agree with the behavior of the native C# compiler, that apparently returned a value that
-                        // would resulted from a runtime conversion with normal CLR overflow behavior.
-                        // To avoid breaking programs that might accidentally rely on that unspecified behavior
-                        // we now removed that check and just allow conversion to overflow.
-                        double doubleValue = value.DoubleValue;
+                        // When converting from a floating-point type to an integral type, if the checked conversion would
+                        // throw an overflow exception, then the unchecked conversion is undefined.  So that we have
+                        // identical behavior on every host platform, we yield a result of zero in that case.
+                        double doubleValue = CheckConstantBounds(destinationType, value.DoubleValue) ? value.DoubleValue : 0D;
                         switch (destinationType)
                         {
                             case SpecialType.System_Byte: return (byte)doubleValue;

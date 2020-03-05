@@ -95,8 +95,7 @@ namespace Microsoft.CodeAnalysis.CSharp.AddImport
                         return false;
                     }
 
-                    var method = parent.Expression as MemberAccessExpressionSyntax;
-                    if (method != null)
+                    if (parent.Expression is MemberAccessExpressionSyntax method)
                     {
                         node = method.Name;
                     }
@@ -178,8 +177,7 @@ namespace Microsoft.CodeAnalysis.CSharp.AddImport
 
                 case CS1574:
                 case CS1584:
-                    var cref = node as QualifiedCrefSyntax;
-                    if (cref != null)
+                    if (node is QualifiedCrefSyntax cref)
                     {
                         node = cref.Container;
                     }
@@ -378,7 +376,7 @@ namespace Microsoft.CodeAnalysis.CSharp.AddImport
 
                 var addImportService = document.GetLanguageService<IAddImportsService>();
                 var newRoot = addImportService.AddImports(
-                    semanticModel.Compilation, root, contextNode, newImports, placeSystemNamespaceFirst);
+                    semanticModel.Compilation, root, contextNode, newImports, placeSystemNamespaceFirst, cancellationToken);
                 return (CompilationUnitSyntax)newRoot;
             }
             finally
@@ -399,7 +397,7 @@ namespace Microsoft.CodeAnalysis.CSharp.AddImport
             var compilation = await document.Project.GetCompilationAsync(cancellationToken).ConfigureAwait(false);
             var service = document.GetLanguageService<IAddImportsService>();
             var newRoot = service.AddImport(
-                compilation, root, contextNode, usingDirective, placeSystemNamespaceFirst);
+                compilation, root, contextNode, usingDirective, placeSystemNamespaceFirst, cancellationToken);
 
             return document.WithSyntaxRoot(newRoot);
         }
@@ -532,7 +530,7 @@ namespace Microsoft.CodeAnalysis.CSharp.AddImport
                 }
             }
 
-            // Didn't conflict with anything.  We shoudl remove the global:: alias.
+            // Didn't conflict with anything.  We should remove the global:: alias.
             return false;
         }
 
