@@ -50,7 +50,11 @@ namespace RoslynBuilder
 			commandLineArgs.Add("/p:OfficialBuild=true");
 			commandLineArgs.Add("/p:UsingToolIbcOptimization=false");
 			commandLineArgs.Add("/p:UsingToolVisualStudioIbcTraining=false");
-			commandLineArgs.Add("/p:PublishReadyToRun=true");
+			commandLineArgs.Add("/p:UseAppHost=true");
+
+			// Only AOT binaries on Windows
+			if (runtime == "win-x64")
+				commandLineArgs.Add("/p:PublishReadyToRun=true");
 			// turn off source link since it assumes Roslyn is checked out from a github repo
 			commandLineArgs.Add("/p:EnableSourceLink=false");
 
