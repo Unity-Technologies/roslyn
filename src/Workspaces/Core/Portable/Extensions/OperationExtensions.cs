@@ -1,4 +1,6 @@
-﻿// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+// See the LICENSE file in the project root for more information.
 
 using System;
 using System.Collections.Immutable;
@@ -73,11 +75,29 @@ namespace Microsoft.CodeAnalysis
                         //
                         return ValueUsageInfo.Write;
 
+                    case ISwitchExpressionArmOperation _:
+                        // A declaration pattern within a switch expression arm is a
+                        // write for the declared local.
+                        // For example, 'x' is defined and assigned the value from 'obj' below:
+                        //      obj switch
+                        //      {
+                        //          X x => ...
+                        //
+                        return ValueUsageInfo.Write;
+
                     case IIsPatternOperation _:
                         // A declaration pattern within an is pattern is a
                         // write for the declared local.
                         // For example, 'x' is defined and assigned the value from 'obj' below:
                         //      if (obj is X x)
+                        //
+                        return ValueUsageInfo.Write;
+
+                    case IPropertySubpatternOperation _:
+                        // A declaration pattern within a property sub-pattern is a
+                        // write for the declared local.
+                        // For example, 'x' is defined and assigned the value from 'obj.Property' below:
+                        //      if (obj is { Property : int x })
                         //
                         return ValueUsageInfo.Write;
 

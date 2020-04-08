@@ -1,4 +1,6 @@
-﻿// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+// See the LICENSE file in the project root for more information.
 
 using System;
 using System.Collections.Immutable;
@@ -37,15 +39,11 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
             _name = name;
         }
 
-        public override TypeWithAnnotations TypeWithAnnotations
-        {
-            get { return _type; }
-        }
+        public override TypeWithAnnotations TypeWithAnnotations => _type;
 
-        public override RefKind RefKind
-        {
-            get { return _refKind; }
-        }
+        public override RefKind RefKind => _refKind;
+
+        public sealed override bool IsDiscard => false;
 
         internal override bool IsMetadataIn => RefKind == RefKind.In;
 

@@ -1,4 +1,6 @@
-﻿// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+// See the LICENSE file in the project root for more information.
 
 using System;
 using System.Collections.Generic;
@@ -66,9 +68,9 @@ namespace Microsoft.CodeAnalysis.CSharp.Extensions
 
                 while (underlyingType is IArrayTypeSymbol innerArray)
                 {
-                    underlyingType = innerArray.GetElementTypeWithAnnotatedNullability();
+                    underlyingType = innerArray.ElementType;
 
-                    if (underlyingType.GetNullability() == NullableAnnotation.Annotated)
+                    if (underlyingType.NullableAnnotation == NullableAnnotation.Annotated)
                     {
                         // If the inner array we just moved to is also nullable, then
                         // we must terminate the digging now so we produce the syntax for that,
@@ -97,12 +99,12 @@ namespace Microsoft.CodeAnalysis.CSharp.Extensions
                     ranks.Add(SyntaxFactory.ArrayRankSpecifier(
                         SyntaxFactory.SeparatedList(Enumerable.Repeat<ExpressionSyntax>(SyntaxFactory.OmittedArraySizeExpression(), arrayType.Rank))));
 
-                    arrayType = arrayType.GetElementTypeWithAnnotatedNullability() as IArrayTypeSymbol;
+                    arrayType = arrayType.ElementType as IArrayTypeSymbol;
                 }
 
                 TypeSyntax arrayTypeSyntax = SyntaxFactory.ArrayType(elementTypeSyntax, ranks.ToSyntaxList());
 
-                if (symbol.GetNullability() == NullableAnnotation.Annotated)
+                if (symbol.NullableAnnotation == NullableAnnotation.Annotated)
                 {
                     arrayTypeSyntax = SyntaxFactory.NullableType(arrayTypeSyntax);
                 }
@@ -149,7 +151,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Extensions
 
                 var typeArguments = symbol.IsUnboundGenericType
                     ? Enumerable.Repeat((TypeSyntax)SyntaxFactory.OmittedTypeArgument(), symbol.TypeArguments.Length)
-                    : symbol.TypeArguments.ZipAsArray(symbol.TypeArgumentNullableAnnotations, (t, n) => t.WithNullability(n).GenerateTypeSyntax());
+                    : symbol.TypeArguments.SelectAsArray(t => t.GenerateTypeSyntax());
 
                 return SyntaxFactory.GenericName(
                     symbol.Name.ToIdentifierToken(),
@@ -203,7 +205,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Extensions
                 foreach (var element in symbol.TupleElements)
                 {
                     var name = element.IsImplicitlyDeclared ? default : SyntaxFactory.Identifier(element.Name);
-                    list = list.Add(SyntaxFactory.TupleElement(element.GetTypeWithAnnotatedNullability().GenerateTypeSyntax(), name));
+                    list = list.Add(SyntaxFactory.TupleElement(element.Type.GenerateTypeSyntax(), name));
                 }
 
                 return AddInformationTo(SyntaxFactory.TupleType(list), symbol);
@@ -253,7 +255,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Extensions
                     }
                 }
 
-                if (symbol.GetNullability() == NullableAnnotation.Annotated)
+                if (symbol.NullableAnnotation == NullableAnnotation.Annotated)
                 {
                     typeSyntax = AddInformationTo(SyntaxFactory.NullableType(typeSyntax), symbol);
                 }

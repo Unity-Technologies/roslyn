@@ -22,6 +22,11 @@
         <target state="translated">Para usar "@$" en lugar de "$@" para una cadena textual interpolada, use la versión "{0}" del lenguaje o una posterior.</target>
         <note />
       </trans-unit>
+      <trans-unit id="ERR_AmbigBinaryOpsOnUnconstrainedDefault">
+        <source>Operator '{0}' cannot be applied to 'default' and operand of type '{1}' because it is a type parameter that is not known to be a reference type</source>
+        <target state="translated">No se puede aplicar el operador "{0}" a "Predeterminado" y a un operando de tipo "{1}", ya que es un parámetro de tipo del que no se conoce que sea un tipo de referencia.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ERR_AnnotationDisallowedInObjectCreation">
         <source>Cannot use a nullable reference type in object creation.</source>
         <target state="translated">No se puede usar un tipo de referencia que acepte valores NULL en la creación de objetos.</target>
@@ -154,7 +159,7 @@
       </trans-unit>
       <trans-unit id="ERR_ExprCannotBeFixed">
         <source>The given expression cannot be used in a fixed statement</source>
-        <target state="translated">La expresión proporcionada no se puede utilizar en una declaración fija</target>
+        <target state="translated">La expresión proporcionada no se puede utilizar en una instrucción "fixed"</target>
         <note />
       </trans-unit>
       <trans-unit id="ERR_ExpressionTreeCantContainNullCoalescingAssignment">
@@ -175,6 +180,11 @@
       <trans-unit id="ERR_ExpressionTreeContainsTupleBinOp">
         <source>An expression tree may not contain a tuple == or != operator</source>
         <target state="translated">Un árbol de expresión no puede contener un operador de tupla == o !=.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ERR_ExternEventInitializer">
+        <source>'{0}': extern event cannot have initializer</source>
+        <target state="translated">"{0}": un evento externo no puede tener un inicializador</target>
         <note />
       </trans-unit>
       <trans-unit id="ERR_FeatureInPreview">
@@ -220,6 +230,16 @@
       <trans-unit id="ERR_IllegalSuppression">
         <source>The suppression operator is not allowed in this context</source>
         <target state="translated">No se permite el operador de supresión en este contexto.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ERR_ImplicitIndexIndexerWithName">
+        <source>Invocation of implicit Index Indexer cannot name the argument.</source>
+        <target state="translated">La invocación del indizador de índices implícito no puede nombrar el argumento.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ERR_ImplicitRangeIndexerWithName">
+        <source>Invocation of implicit Range Indexer cannot name the argument.</source>
+        <target state="translated">La invocación del indizador de rangos implícito no puede nombrar el argumento.</target>
         <note />
       </trans-unit>
       <trans-unit id="ERR_InDynamicMethodArg">
@@ -294,12 +314,12 @@
       </trans-unit>
       <trans-unit id="ERR_NoConvToIAsyncDispWrongAsync">
         <source>'{0}': type used in an asynchronous using statement must be implicitly convertible to 'System.IAsyncDisposable' or implement a suitable 'DisposeAsync' method. Did you mean 'using' rather than 'await using'?</source>
-        <target state="translated">"{0}": el tipo usado en una instrucción using asincrónica debe poder convertirse de forma implícita en "System.IAsyncDisposable" o implemente un método "DisposeAsync" adecuado. ¿Quiso decir "using" en lugar de "await using"?</target>
+        <target state="translated">"{0}": el tipo usado en una instrucción using asincrónica debe poder convertirse de forma implícita en "System.IAsyncDisposable" o implementar un método "DisposeAsync" adecuado. ¿Quiso decir "using" en lugar de "await using"?</target>
         <note />
       </trans-unit>
       <trans-unit id="ERR_NoConvToIDispWrongAsync">
-        <source>'{0}': type used in a using statement must be implicitly convertible to 'System.IDisposable' or implement a suitable 'Dispose' method. Did you mean 'await using' rather than 'using'?</source>
-        <target state="translated">"{0}": el tipo usado en una instrucción using debe poder convertirse de forma implícita en "System.IDisposable" o implemente un método "Dispose" adecuado. ¿Quiso decir "await using" en lugar de "using"?</target>
+        <source>'{0}': type used in a using statement must be implicitly convertible to 'System.IDisposable'. Did you mean 'await using' rather than 'using'?</source>
+        <target state="translated">"{0}": el tipo usado en una instrucción using debe poder convertirse implícitamente en "System.IDisposable". ¿Quiso decir "await using" en lugar de "using"?</target>
         <note />
       </trans-unit>
       <trans-unit id="ERR_NotNullConstraintMustBeFirst">
@@ -470,6 +490,11 @@
       <trans-unit id="ERR_VarMayNotBindToType">
         <source>The syntax 'var' for a pattern is not permitted to refer to a type, but '{0}' is in scope here.</source>
         <target state="translated">La sintaxis "var" de un patrón no puede hacer referencia a un tipo, pero "{0}" está dentro del ámbito aquí.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ERR_VarianceInterfaceNesting">
+        <source>Enums, classes, and structures cannot be declared in an interface that has an 'in' or 'out' type parameter.</source>
+        <target state="translated">Las enumeraciones, las clases y las estructuras no se pueden declarar en una interfaz que tenga un parámetro de tipo "in" o "out".</target>
         <note />
       </trans-unit>
       <trans-unit id="ERR_WrongNumberOfSubpatterns">
@@ -829,7 +854,7 @@
       </trans-unit>
       <trans-unit id="IDS_FeatureExtensibleFixedStatement">
         <source>extensible fixed statement</source>
-        <target state="translated">declaración fija extensible</target>
+        <target state="translated">instrucción "fixed" extensible</target>
         <note />
       </trans-unit>
       <trans-unit id="IDS_FeatureIndexOperator">
@@ -840,6 +865,11 @@
       <trans-unit id="IDS_FeatureIndexingMovableFixedBuffers">
         <source>indexing movable fixed buffers</source>
         <target state="translated">indexando búferes fijos movibles</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="IDS_FeatureLambdaDiscardParameters">
+        <source>lambda discard parameters</source>
+        <target state="translated">parámetros de descarte de lambda</target>
         <note />
       </trans-unit>
       <trans-unit id="IDS_FeatureNameShadowingInNestedFunctions">
@@ -1332,16 +1362,6 @@
         <target state="translated">SyntaxTree no forma parte de la compilación, así que no se puede quitar</target>
         <note />
       </trans-unit>
-      <trans-unit id="WRN_AsOperatorMayReturnNull">
-        <source>The 'as' operator may produce a null value when '{0}' is a non-nullable reference type.</source>
-        <target state="translated">El operador "as" puede producir un valor NULL cuando "{0}" es un tipo de referencia que no acepta valores NULL.</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="WRN_AsOperatorMayReturnNull_Title">
-        <source>The 'as' operator may produce a null value for a type parameter.</source>
-        <target state="translated">El operador "as" puede generar un valor NULL para un parámetro de tipo.</target>
-        <note />
-      </trans-unit>
       <trans-unit id="WRN_CaseConstantNamedUnderscore">
         <source>The name '_' refers to the constant, not the discard pattern. Use 'var _' to discard the value, or '@_' to refer to a constant by that name.</source>
         <target state="translated">El nombre "_" hace referencia a la constante, no al patrón de descarte. Use "var _" para descartar el valor o "@_" para hacer referencia a una constante con ese nombre.</target>
@@ -1350,16 +1370,6 @@
       <trans-unit id="WRN_CaseConstantNamedUnderscore_Title">
         <source>Do not use '_' for a case constant.</source>
         <target state="translated">No use "_" para una constante de caso.</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="WRN_ConditionalAccessMayReturnNull">
-        <source>Conditional access may produce a null value when '{0}' is a non-nullable reference type.</source>
-        <target state="translated">El acceso condicional puede producir un valor NULL cuando "{0}" es un tipo de referencia que no acepta valores NULL.</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="WRN_ConditionalAccessMayReturnNull_Title">
-        <source>Conditional access may produce a null value for a type parameter.</source>
-        <target state="translated">El acceso condicional puede generar un valor NULL para un parámetro de tipo.</target>
         <note />
       </trans-unit>
       <trans-unit id="WRN_ConvertingNullableToNonNullable">
@@ -1372,24 +1382,14 @@
         <target state="translated">Se va a convertir un literal nulo o un posible valor nulo en un tipo que no acepta valores NULL</target>
         <note />
       </trans-unit>
-      <trans-unit id="WRN_DefaultExpressionMayIntroduceNullT">
-        <source>A default expression introduces a null value when '{0}' is a non-nullable reference type.</source>
-        <target state="translated">Una expresión predeterminada introduce un valor NULL cuando "{0}" es un tipo de referencia que no acepta valores NULL.</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="WRN_DefaultExpressionMayIntroduceNullT_Title">
-        <source>A default expression introduces a null value for a type parameter.</source>
-        <target state="translated">Una expresión predeterminada introduce un valor NULL para un parámetro de tipo.</target>
-        <note />
-      </trans-unit>
       <trans-unit id="WRN_DisallowNullAttributeForbidsMaybeNullAssignment">
-        <source>A possible null value may not be assigned to a target marked with the [DisallowNull] attribute</source>
-        <target state="translated">No se puede asignar un posible valor NULL a un destino marcado con el atributo [DisallowNull]</target>
+        <source>A possible null value may not be used for a type marked with [NotNull] or [DisallowNull]</source>
+        <target state="translated">No se puede usar un posible valor null para un tipo marcado con [NotNull] o [DisallowNull]</target>
         <note />
       </trans-unit>
       <trans-unit id="WRN_DisallowNullAttributeForbidsMaybeNullAssignment_Title">
-        <source>A possible null value may not be assigned to a target marked with the [DisallowNull] attribute</source>
-        <target state="translated">No se puede asignar un posible valor NULL a un destino marcado con el atributo [DisallowNull]</target>
+        <source>A possible null value may not be used for a type marked with [NotNull] or [DisallowNull]</source>
+        <target state="translated">No se puede usar un posible valor null para un tipo marcado con [NotNull] o [DisallowNull]</target>
         <note />
       </trans-unit>
       <trans-unit id="WRN_DuplicateInterfaceWithNullabilityMismatchInBaseList">
@@ -1400,16 +1400,6 @@
       <trans-unit id="WRN_DuplicateInterfaceWithNullabilityMismatchInBaseList_Title">
         <source>Interface is already listed in the interface list with different nullability of reference types.</source>
         <target state="translated">La interfaz ya está en la lista de interfaces con una nulabilidad diferente de los tipos de referencia.</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="WRN_ExpressionMayIntroduceNullT">
-        <source>A member returning a [MaybeNull] value introduces a null value when '{0}' is a non-nullable reference type.</source>
-        <target state="translated">Un miembro que devuelve un valor [MaybeNull] introduce un valor NULL cuando "{0}" es un tipo de referencia que no acepta valores NULL.</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="WRN_ExpressionMayIntroduceNullT_Title">
-        <source>A member returning a [MaybeNull] value introduces a null value for a type parameter.</source>
-        <target state="translated">Un miembro que devuelve un valor [MaybeNull] introduce un valor NULL para un parámetro de tipo.</target>
         <note />
       </trans-unit>
       <trans-unit id="WRN_GivenExpressionAlwaysMatchesConstant">
@@ -1482,16 +1472,6 @@
         <target state="translated">No se puede convertir un literal NULL en un tipo de referencia que no acepta valores NULL.</target>
         <note />
       </trans-unit>
-      <trans-unit id="WRN_NullLiteralMayIntroduceNullT">
-        <source>A null literal introduces a null value when '{0}' is a non-nullable reference type.</source>
-        <target state="translated">Un literal NULL introduce un valor NULL cuando "{0}" es un tipo de referencia que no acepta valores NULL.</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="WRN_NullLiteralMayIntroduceNullT_Title">
-        <source>A null literal introduces a null value for a type parameter.</source>
-        <target state="translated">Un literal NULL introduce un valor NULL para un parámetro de tipo.</target>
-        <note />
-      </trans-unit>
       <trans-unit id="WRN_NullReferenceArgument">
         <source>Possible null reference argument for parameter '{0}' in '{1}'.</source>
         <target state="translated">Posible argumento de referencia nulo para el parámetro "{0}" en "{1}".</target>
@@ -1520,16 +1500,6 @@
       <trans-unit id="WRN_NullReferenceInitializer_Title">
         <source>Object or collection initializer implicitly dereferences possibly null member.</source>
         <target state="translated">El inicializador de objeto o colección desreferencia el miembro posiblemente NULL de forma implícita.</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="WRN_NullReferenceIterationVariable">
-        <source>Possible null reference assignment to iteration variable</source>
-        <target state="translated">Posible asignación de referencia de tipo NULL a variable de iteración</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="WRN_NullReferenceIterationVariable_Title">
-        <source>Possible null reference assignment to iteration variable</source>
-        <target state="translated">Posible asignación de referencia de tipo NULL a variable de iteración</target>
         <note />
       </trans-unit>
       <trans-unit id="WRN_NullReferenceReceiver">
@@ -1780,6 +1750,26 @@
       <trans-unit id="WRN_NullableValueTypeMayBeNull_Title">
         <source>Nullable value type may be null.</source>
         <target state="translated">Un tipo que acepta valores NULL puede ser nulo.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WRN_ParameterConditionallyDisallowsNull">
+        <source>Parameter '{0}' may not have a null value when exiting with '{1}'.</source>
+        <target state="translated">El parámetro "{0}" no puede tener un valor NULL al salir con "{1}".</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WRN_ParameterConditionallyDisallowsNull_Title">
+        <source>Parameter may not have a null value when exiting in some condition.</source>
+        <target state="translated">El parámetro no puede tener un valor NULL al salir en alguna condición.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WRN_ShouldNotReturn">
+        <source>A method marked [DoesNotReturn] should not return.</source>
+        <target state="translated">Un método marcado [DoesNotReturn] no debe devolver.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WRN_ShouldNotReturn_Title">
+        <source>A method marked [DoesNotReturn] should not return.</source>
+        <target state="translated">Un método marcado [DoesNotReturn] no debe devolver.</target>
         <note />
       </trans-unit>
       <trans-unit id="WRN_SwitchExpressionNotExhaustive">
@@ -2824,7 +2814,7 @@
       </trans-unit>
       <trans-unit id="ERR_BadFixedInitType">
         <source>The type of a local declared in a fixed statement must be a pointer type</source>
-        <target state="translated">El tipo de una variable local declarado en una instrucción fixed debe ser un tipo de puntero</target>
+        <target state="translated">El tipo de una variable local declarado en una instrucción "fixed" debe ser un tipo de puntero</target>
         <note />
       </trans-unit>
       <trans-unit id="ERR_FixedMustInit">
@@ -2839,12 +2829,12 @@
       </trans-unit>
       <trans-unit id="ERR_FixedNeeded">
         <source>You can only take the address of an unfixed expression inside of a fixed statement initializer</source>
-        <target state="translated">Solo se puede adquirir la dirección de una expresión de tipo unfixed de un inicializador de instrucción fixed</target>
+        <target state="translated">Solo se puede adquirir la dirección de una expresión de tipo unfixed de un inicializador de instrucción "fixed"</target>
         <note />
       </trans-unit>
       <trans-unit id="ERR_FixedNotNeeded">
         <source>You cannot use the fixed statement to take the address of an already fixed expression</source>
-        <target state="translated">No se puede usar la instrucción fixed para adquirir la dirección de una expresión de tipo fixed</target>
+        <target state="translated">No se puede usar la instrucción "fixed" para adquirir la dirección de una expresión de tipo fixed</target>
         <note />
       </trans-unit>
       <trans-unit id="ERR_UnsafeNeeded">
@@ -3029,7 +3019,7 @@
       </trans-unit>
       <trans-unit id="ERR_BadCastInFixed">
         <source>The right hand side of a fixed statement assignment may not be a cast expression</source>
-        <target state="translated">El lado derecho de una asignación de instrucción fixed puede no ser una expresión de conversión</target>
+        <target state="translated">El lado derecho de una asignación de instrucción "fixed" no puede ser una expresión de conversión</target>
         <note />
       </trans-unit>
       <trans-unit id="ERR_StackallocInCatchFinally">
@@ -5602,7 +5592,7 @@ Un bloque catch() después de un bloque catch (System.Exception e) puede abarcar
       </trans-unit>
       <trans-unit id="ERR_MissingPPFile">
         <source>Quoted file name, single-line comment or end-of-line expected</source>
-        <target state="translated">Se esperaba un nombre de archivo entre comillas, un comentario de una línea o un final de línea</target>
+        <target state="translated">Se esperaba un nombre de archivo entre comillas, un comentario de una línea o un fin de línea</target>
         <note />
       </trans-unit>
       <trans-unit id="ERR_ExpectedPPFile">
@@ -5971,8 +5961,8 @@ Un bloque catch() después de un bloque catch (System.Exception e) puede abarcar
         <note />
       </trans-unit>
       <trans-unit id="ERR_AssgReadonly">
-        <source>A readonly field cannot be assigned to (except in a constructor or a variable initializer)</source>
-        <target state="translated">No se puede asignar un campo de solo lectura (excepto en un constructor o inicializador de variable)</target>
+        <source>A readonly field cannot be assigned to (except in a constructor of the class in which the field is defined or a variable initializer))</source>
+        <target state="translated">No se puede asignar un campo de solo lectura (excepto en un constructor de la clase en la que se define el campo o en un inicializador de variable)</target>
         <note />
       </trans-unit>
       <trans-unit id="ERR_AssgReadonly2">
@@ -6097,7 +6087,7 @@ Un bloque catch() después de un bloque catch (System.Exception e) puede abarcar
       </trans-unit>
       <trans-unit id="ERR_FixedBufferNotFixed">
         <source>You cannot use fixed size buffers contained in unfixed expressions. Try using the fixed statement.</source>
-        <target state="translated">No puede utilizar los búferes de tamaño fijo contenidos en expresiones de tipo unfixed. Pruebe a usar la instrucción fixed.</target>
+        <target state="translated">No puede utilizar los búferes de tamaño fijo contenidos en expresiones de tipo unfixed. Pruebe a usar la instrucción "fixed".</target>
         <note />
       </trans-unit>
       <trans-unit id="ERR_AttributeNotOnAccessor">
@@ -6141,8 +6131,8 @@ Un bloque catch() después de un bloque catch (System.Exception e) puede abarcar
         <note />
       </trans-unit>
       <trans-unit id="ERR_NoConvToIDisp">
-        <source>'{0}': type used in a using statement must be implicitly convertible to 'System.IDisposable' or implement a suitable 'Dispose' method.</source>
-        <target state="translated">"{0}": el tipo usado en una instrucción using debe poder convertirse de forma implícita en "System.IDisposable" o implemente un método "Dispose" adecuado.</target>
+        <source>'{0}': type used in a using statement must be implicitly convertible to 'System.IDisposable'.</source>
+        <target state="translated">"{0}": el tipo usado en una instrucción using debe poder convertirse implícitamente en "System.IDisposable".</target>
         <note />
       </trans-unit>
       <trans-unit id="ERR_BadParamRef">
@@ -6292,7 +6282,7 @@ Un bloque catch() después de un bloque catch (System.Exception e) puede abarcar
       </trans-unit>
       <trans-unit id="WRN_EndOfPPLineExpected_Title">
         <source>Single-line comment or end-of-line expected after #pragma directive</source>
-        <target state="translated">Se esperaba un comentario de una línea o un final de línea después de la directiva #pragma</target>
+        <target state="translated">Se esperaba un comentario de una línea o un fin de línea después de la directiva #pragma</target>
         <note />
       </trans-unit>
       <trans-unit id="WRN_ConflictingChecksum">
@@ -7821,8 +7811,8 @@ Considere la posibilidad de suprimir la advertencia solo si tiene la seguridad d
         <note />
       </trans-unit>
       <trans-unit id="ERR_ModuleEmitFailure">
-        <source>Failed to emit module '{0}'.</source>
-        <target state="translated">No se pudo emitir el módulo '{0}'.</target>
+        <source>Failed to emit module '{0}': {1}</source>
+        <target state="translated">No se pudo emitir el módulo "{0}": {1}</target>
         <note />
       </trans-unit>
       <trans-unit id="ERR_FixedLocalInLambda">
@@ -9735,7 +9725,7 @@ Para eliminar la advertencia puede usar /reference (establezca la propiedad Embe
       </trans-unit>
       <trans-unit id="ERR_NoConvToIAsyncDisp">
         <source>'{0}': type used in an asynchronous using statement must be implicitly convertible to 'System.IAsyncDisposable' or implement a suitable 'DisposeAsync' method.</source>
-        <target state="translated">"{0}": el tipo usado en una instrucción using asincrónica debe poder convertirse de forma implícita en "System.IAsyncDisposable" o implemente un método "DisposeAsync" adecuado.</target>
+        <target state="translated">"{0}": el tipo usado en una instrucción using asincrónica debe poder convertirse de forma implícita en "System.IAsyncDisposable" o implementar un método "DisposeAsync" adecuado.</target>
         <note />
       </trans-unit>
       <trans-unit id="ERR_BadGetAsyncEnumerator">

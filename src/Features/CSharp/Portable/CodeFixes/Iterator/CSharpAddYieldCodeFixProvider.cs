@@ -1,4 +1,6 @@
-﻿// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+// See the LICENSE file in the project root for more information.
 
 using System.Collections;
 using System.Collections.Generic;
@@ -115,8 +117,8 @@ namespace Microsoft.CodeAnalysis.CSharp.CodeFixes.Iterator
                 return false;
             }
 
-            ienumerableGenericSymbol = ienumerableGenericSymbol.ConstructWithNullability(typeArgument);
-            ienumeratorGenericSymbol = ienumeratorGenericSymbol.ConstructWithNullability(typeArgument);
+            ienumerableGenericSymbol = ienumerableGenericSymbol.Construct(typeArgument);
+            ienumeratorGenericSymbol = ienumeratorGenericSymbol.Construct(typeArgument);
 
             if (!CanConvertTypes(typeArgument, returnExpressionType, model))
             {
@@ -137,7 +139,7 @@ namespace Microsoft.CodeAnalysis.CSharp.CodeFixes.Iterator
         private bool CanConvertTypes(ITypeSymbol typeArgument, ITypeSymbol returnExpressionType, SemanticModel model)
         {
             // return false if there is no conversion for the top level type
-            if (!model.Compilation.ClassifyConversion(typeArgument.WithoutNullability(), returnExpressionType.WithoutNullability()).Exists)
+            if (!model.Compilation.ClassifyConversion(typeArgument, returnExpressionType).Exists)
             {
                 return false;
             }

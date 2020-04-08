@@ -1,13 +1,16 @@
-﻿// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+// See the LICENSE file in the project root for more information.
 
 #nullable enable
 
+using System;
 using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using Microsoft.CodeAnalysis.Text;
+using Microsoft.CodeAnalysis.Options;
 using Roslyn.Utilities;
 
 namespace Microsoft.CodeAnalysis.Shared.Extensions
@@ -122,5 +125,19 @@ namespace Microsoft.CodeAnalysis.Shared.Extensions
             var newSolution = project.Solution.AddAnalyzerConfigDocuments(ImmutableArray.Create(documentInfo));
             return newSolution.GetProject(project.Id)?.GetAnalyzerConfigDocument(id);
         }
+
+        public static async Task<Compilation> GetRequiredCompilationAsync(this Project project, CancellationToken cancellationToken)
+        {
+            var compilation = await project.GetCompilationAsync(cancellationToken).ConfigureAwait(false);
+            if (compilation == null)
+            {
+                throw new InvalidOperationException(string.Format(WorkspacesResources.Compilation_is_required_to_accomplish_the_task_but_is_not_supported_by_project_0, project.Name));
+            }
+
+            return compilation;
+        }
+
+        internal static Project WithSolutionOptions(this Project project, OptionSet options)
+            => project.Solution.WithOptions(options).GetProject(project.Id)!;
     }
 }

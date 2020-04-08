@@ -1,4 +1,6 @@
-﻿// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+// See the LICENSE file in the project root for more information.
 
 using System.Collections.Generic;
 using Xunit;
@@ -3897,7 +3899,7 @@ public class C
             var model = compilation.GetSemanticModel(tree, ignoreAccessibility: true);
 
             var left = ((ElementAccessExpressionSyntax)assignment.Left).Expression;
-            Assert.Equal(SpecialType.System_Int32, ((ArrayTypeSymbol)model.GetTypeInfo(left).Type).ElementType.SpecialType);
+            Assert.Equal(SpecialType.System_Int32, ((IArrayTypeSymbol)model.GetTypeInfo(left).Type).ElementType.SpecialType);
 
             var right = ((RefExpressionSyntax)assignment.Right).Expression;
             Assert.Equal(SpecialType.System_Int32, model.GetTypeInfo(right).Type.SpecialType);
@@ -3925,7 +3927,7 @@ public unsafe class C
             var model = compilation.GetSemanticModel(tree, ignoreAccessibility: true);
 
             var left = ((PrefixUnaryExpressionSyntax)assignment.Left).Operand;
-            Assert.Equal(SpecialType.System_Int32, ((PointerTypeSymbol)model.GetTypeInfo(left).Type).PointedAtType.SpecialType);
+            Assert.Equal(SpecialType.System_Int32, ((IPointerTypeSymbol)model.GetTypeInfo(left).Type).PointedAtType.SpecialType);
 
             var right = ((RefExpressionSyntax)assignment.Right).Expression;
             Assert.Equal(SpecialType.System_Int32, model.GetTypeInfo(right).Type.SpecialType);
@@ -3953,7 +3955,7 @@ public unsafe class C
             var model = compilation.GetSemanticModel(tree, ignoreAccessibility: true);
 
             var left = ((ElementAccessExpressionSyntax)assignment.Left).Expression;
-            Assert.Equal(SpecialType.System_Int32, ((PointerTypeSymbol)model.GetTypeInfo(left).Type).PointedAtType.SpecialType);
+            Assert.Equal(SpecialType.System_Int32, ((IPointerTypeSymbol)model.GetTypeInfo(left).Type).PointedAtType.SpecialType);
 
             var right = ((RefExpressionSyntax)assignment.Right).Expression;
             Assert.Equal(SpecialType.System_Int32, model.GetTypeInfo(right).Type.SpecialType);

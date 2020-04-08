@@ -1,4 +1,6 @@
-﻿// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+// See the LICENSE file in the project root for more information.
 
 #nullable enable
 
@@ -15,6 +17,7 @@ using Microsoft.CodeAnalysis.FindSymbols;
 using Microsoft.CodeAnalysis.GeneratedCodeRecognition;
 using Microsoft.CodeAnalysis.Host;
 using Microsoft.CodeAnalysis.LanguageServices;
+using Microsoft.CodeAnalysis.Options;
 using Microsoft.CodeAnalysis.SemanticModelWorkspaceService;
 using Microsoft.CodeAnalysis.Text;
 using Roslyn.Utilities;
@@ -26,6 +29,28 @@ namespace Microsoft.CodeAnalysis.Shared.Extensions
         // ⚠ Verify IVTs do not use this method before removing it.
         public static TLanguageService? GetLanguageService<TLanguageService>(this Document? document) where TLanguageService : class, ILanguageService
             => document?.Project?.LanguageServices?.GetService<TLanguageService>();
+
+        public static TLanguageService GetRequiredLanguageService<TLanguageService>(this Document document) where TLanguageService : class, ILanguageService
+            => document.Project.LanguageServices.GetRequiredService<TLanguageService>();
+
+        public static async Task<SemanticModel> GetRequiredSemanticModelAsync(this Document document, CancellationToken cancellationToken)
+        {
+            var semanticModel = await document.GetSemanticModelAsync(cancellationToken).ConfigureAwait(false);
+            return semanticModel ?? throw new InvalidOperationException(string.Format(WorkspacesResources.SyntaxTree_is_required_to_accomplish_the_task_but_is_not_supported_by_document_0, document.Name));
+        }
+
+        public static async Task<SyntaxTree> GetRequiredSyntaxTreeAsync(this Document document, CancellationToken cancellationToken)
+        {
+            var syntaxTree = await document.GetSyntaxTreeAsync(cancellationToken).ConfigureAwait(false);
+            return syntaxTree ?? throw new InvalidOperationException(string.Format(WorkspacesResources.SyntaxTree_is_required_to_accomplish_the_task_but_is_not_supported_by_document_0, document.Name));
+        }
+
+        public static async Task<SyntaxNode> GetRequiredSyntaxRootAsync(this Document document, CancellationToken cancellationToken)
+        {
+            var root = await document.GetSyntaxRootAsync(cancellationToken).ConfigureAwait(false);
+            return root ?? throw new InvalidOperationException(string.Format(WorkspacesResources.SyntaxTree_is_required_to_accomplish_the_task_but_is_not_supported_by_document_0, document.Name));
+        }
+
 
         public static bool IsOpen(this Document document)
         {
@@ -170,7 +195,10 @@ namespace Microsoft.CodeAnalysis.Shared.Extensions
         }
 
         public static Task<SyntaxTreeIndex> GetSyntaxTreeIndexAsync(this Document document, CancellationToken cancellationToken)
-            => SyntaxTreeIndex.GetIndexAsync(document, cancellationToken);
+            => SyntaxTreeIndex.GetIndexAsync(document, loadOnly: false, cancellationToken);
+
+        public static Task<SyntaxTreeIndex> GetSyntaxTreeIndexAsync(this Document document, bool loadOnly, CancellationToken cancellationToken)
+            => SyntaxTreeIndex.GetIndexAsync(document, loadOnly, cancellationToken);
 
         /// <summary>
         /// Returns the semantic model for this document that may be produced from partial semantics. The semantic model
@@ -199,5 +227,14 @@ namespace Microsoft.CodeAnalysis.Shared.Extensions
             var generatedCodeRecognitionService = document.GetLanguageService<IGeneratedCodeRecognitionService>();
             return generatedCodeRecognitionService?.IsGeneratedCode(document, cancellationToken) == true;
         }
+
+        public static async Task<SemanticModel> RequireSemanticModelAsync(this Document document, CancellationToken cancellationToken)
+        {
+            var model = await document.GetSemanticModelAsync(cancellationToken).ConfigureAwait(false);
+            return model ?? throw new InvalidOperationException();
+        }
+
+        internal static Document WithSolutionOptions(this Document document, OptionSet options)
+            => document.Project.Solution.WithOptions(options).GetDocument(document.Id)!;
     }
 }

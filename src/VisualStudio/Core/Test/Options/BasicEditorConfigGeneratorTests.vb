@@ -1,4 +1,6 @@
-﻿' Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
+﻿' Licensed to the .NET Foundation under one or more agreements.
+' The .NET Foundation licenses this file to you under the MIT license.
+' See the LICENSE file in the project root for more information.
 
 Imports System.Text
 Imports Microsoft.CodeAnalysis
@@ -71,6 +73,7 @@ dotnet_style_prefer_conditional_expression_over_return = true:silent
 dotnet_style_prefer_inferred_anonymous_type_member_names = true:suggestion
 dotnet_style_prefer_inferred_tuple_names = true:suggestion
 dotnet_style_prefer_is_null_check_over_reference_equality_method = true:suggestion
+dotnet_style_prefer_simplified_interpolation = true:suggestion
 
 # Field preferences
 dotnet_style_readonly_field = true:suggestion
@@ -81,7 +84,7 @@ dotnet_code_quality_unused_parameters = all:suggestion
 #### VB Coding Conventions ####
 
 # Modifier preferences
-visual_basic_preferred_modifier_order = partial,default,private,protected,public,friend,notoverridable,overridable,mustoverride,overloads,overrides,mustinherit,notinheritable,static,shared,shadows,readonly,writeonly,dim,const,withevents,widening,narrowing,custom,async,iterator
+visual_basic_preferred_modifier_order = partial,default,private,protected,public,friend,notoverridable,overridable,mustoverride,overloads,overrides,mustinherit,notinheritable,static,shared,shadows,readonly,writeonly,dim,const,withevents,widening,narrowing,custom,async,iterator:silent
 
 # Expression-level preferences
 visual_basic_style_unused_value_assignment_preference = unused_local_variable:suggestion
@@ -195,6 +198,7 @@ dotnet_style_prefer_conditional_expression_over_return = true:silent
 dotnet_style_prefer_inferred_anonymous_type_member_names = true:suggestion
 dotnet_style_prefer_inferred_tuple_names = true:suggestion
 dotnet_style_prefer_is_null_check_over_reference_equality_method = true:suggestion
+dotnet_style_prefer_simplified_interpolation = true:suggestion
 
 # Field preferences
 dotnet_style_readonly_field = true:suggestion
@@ -205,7 +209,7 @@ dotnet_code_quality_unused_parameters = all:suggestion
 #### VB Coding Conventions ####
 
 # Modifier preferences
-visual_basic_preferred_modifier_order = partial,default,private,protected,public,friend,notoverridable,overridable,mustoverride,overloads,overrides,mustinherit,notinheritable,static,shared,shadows,readonly,writeonly,dim,const,withevents,widening,narrowing,custom,async,iterator
+visual_basic_preferred_modifier_order = partial,default,private,protected,public,friend,notoverridable,overridable,mustoverride,overloads,overrides,mustinherit,notinheritable,static,shared,shadows,readonly,writeonly,dim,const,withevents,widening,narrowing,custom,async,iterator:silent
 
 # Expression-level preferences
 visual_basic_style_unused_value_assignment_preference = unused_local_variable:suggestion

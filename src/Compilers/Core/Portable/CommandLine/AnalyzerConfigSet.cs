@@ -1,4 +1,6 @@
-﻿// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+// See the LICENSE file in the project root for more information.
 
 using System;
 using System.Collections.Concurrent;
@@ -258,46 +260,18 @@ namespace Microsoft.CodeAnalysis
                             diagId = diagIdCache.GetOrAdd(diagId.AsMemory(), diagId);
                         }
 
-                        ReportDiagnostic? severity;
-                        var comparer = StringComparer.OrdinalIgnoreCase;
-                        if (comparer.Equals(value, "default"))
+                        if (TryParseSeverity(value, out ReportDiagnostic severity))
                         {
-                            severity = ReportDiagnostic.Default;
-                        }
-                        else if (comparer.Equals(value, "error"))
-                        {
-                            severity = ReportDiagnostic.Error;
-                        }
-                        else if (comparer.Equals(value, "warning"))
-                        {
-                            severity = ReportDiagnostic.Warn;
-                        }
-                        else if (comparer.Equals(value, "suggestion"))
-                        {
-                            severity = ReportDiagnostic.Info;
-                        }
-                        else if (comparer.Equals(value, "silent") || comparer.Equals(value, "refactoring"))
-                        {
-                            severity = ReportDiagnostic.Hidden;
-                        }
-                        else if (comparer.Equals(value, "none"))
-                        {
-                            severity = ReportDiagnostic.Suppress;
+                            treeBuilder[diagId] = severity;
                         }
                         else
                         {
-                            severity = null;
                             diagnosticBuilder.Add(Diagnostic.Create(
                                 InvalidAnalyzerConfigSeverityDescriptor,
                                 Location.None,
                                 diagId,
                                 value,
                                 analyzerConfigPath));
-                        }
-
-                        if (severity.HasValue)
-                        {
-                            treeBuilder[diagId] = severity.GetValueOrDefault();
                         }
                     }
                     else
@@ -306,6 +280,44 @@ namespace Microsoft.CodeAnalysis
                     }
                 }
             }
+        }
+
+        internal static bool TryParseSeverity(string value, out ReportDiagnostic severity)
+        {
+            var comparer = StringComparer.OrdinalIgnoreCase;
+            if (comparer.Equals(value, "default"))
+            {
+                severity = ReportDiagnostic.Default;
+                return true;
+            }
+            else if (comparer.Equals(value, "error"))
+            {
+                severity = ReportDiagnostic.Error;
+                return true;
+            }
+            else if (comparer.Equals(value, "warning"))
+            {
+                severity = ReportDiagnostic.Warn;
+                return true;
+            }
+            else if (comparer.Equals(value, "suggestion"))
+            {
+                severity = ReportDiagnostic.Info;
+                return true;
+            }
+            else if (comparer.Equals(value, "silent") || comparer.Equals(value, "refactoring"))
+            {
+                severity = ReportDiagnostic.Hidden;
+                return true;
+            }
+            else if (comparer.Equals(value, "none"))
+            {
+                severity = ReportDiagnostic.Suppress;
+                return true;
+            }
+
+            severity = default;
+            return false;
         }
     }
 }

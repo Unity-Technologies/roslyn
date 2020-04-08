@@ -1,4 +1,6 @@
-﻿// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+// See the LICENSE file in the project root for more information.
 
 using Microsoft.CodeAnalysis.CSharp.Symbols;
 using Microsoft.CodeAnalysis.CSharp.Test.Utilities;
@@ -605,13 +607,13 @@ class C
                 // (6,9): error CS0518: Predefined type 'System.IDisposable' is not defined or imported
                 //         using (new C())
                 Diagnostic(ErrorCode.ERR_PredefinedTypeNotFound, "using").WithArguments("System.IDisposable").WithLocation(6, 9),
-                // (6,16): error CS1674: 'C': type used in a using statement must be implicitly convertible to 'System.IDisposable' or implement a suitable 'Dispose' method.
+                // (6,16): error CS1674: 'C': type used in a using statement must be implicitly convertible to 'System.IDisposable'.
                 //         using (new C())
                 Diagnostic(ErrorCode.ERR_NoConvToIDisp, "new C()").WithArguments("C").WithLocation(6, 16),
                 // (9,9): error CS0518: Predefined type 'System.IDisposable' is not defined or imported
                 //         using (var x = new C())
                 Diagnostic(ErrorCode.ERR_PredefinedTypeNotFound, "using").WithArguments("System.IDisposable").WithLocation(9, 9),
-                // (9,16): error CS1674: 'C': type used in a using statement must be implicitly convertible to 'System.IDisposable' or implement a suitable 'Dispose' method.
+                // (9,16): error CS1674: 'C': type used in a using statement must be implicitly convertible to 'System.IDisposable'.
                 //         using (var x = new C())
                 Diagnostic(ErrorCode.ERR_NoConvToIDisp, "var x = new C()").WithArguments("C").WithLocation(9, 16)
                 );
@@ -1642,12 +1644,12 @@ public class D
             var getAwaiter1 = (MethodSymbol)comp.GetMember("C.GetAwaiter");
             var isCompleted1 = (PropertySymbol)comp.GetMember("C.IsCompleted");
             var getResult1 = (MethodSymbol)comp.GetMember("C.GetResult");
-            var first = new AwaitExpressionInfo(getAwaiter1, isCompleted1, getResult1, false);
+            var first = new AwaitExpressionInfo(getAwaiter1.GetPublicSymbol(), isCompleted1.GetPublicSymbol(), getResult1.GetPublicSymbol(), false);
 
-            var nulls1 = new AwaitExpressionInfo(null, isCompleted1, getResult1, false);
-            var nulls2 = new AwaitExpressionInfo(getAwaiter1, null, getResult1, false);
-            var nulls3 = new AwaitExpressionInfo(getAwaiter1, isCompleted1, null, false);
-            var nulls4 = new AwaitExpressionInfo(getAwaiter1, isCompleted1, null, true);
+            var nulls1 = new AwaitExpressionInfo(null, isCompleted1.GetPublicSymbol(), getResult1.GetPublicSymbol(), false);
+            var nulls2 = new AwaitExpressionInfo(getAwaiter1.GetPublicSymbol(), null, getResult1.GetPublicSymbol(), false);
+            var nulls3 = new AwaitExpressionInfo(getAwaiter1.GetPublicSymbol(), isCompleted1.GetPublicSymbol(), null, false);
+            var nulls4 = new AwaitExpressionInfo(getAwaiter1.GetPublicSymbol(), isCompleted1.GetPublicSymbol(), null, true);
 
             Assert.False(first.Equals(nulls1));
             Assert.False(first.Equals(nulls2));
@@ -1670,10 +1672,10 @@ public class D
             var getAwaiter2 = (MethodSymbol)comp.GetMember("D.GetAwaiter");
             var isCompleted2 = (PropertySymbol)comp.GetMember("D.IsCompleted");
             var getResult2 = (MethodSymbol)comp.GetMember("D.GetResult");
-            var second1 = new AwaitExpressionInfo(getAwaiter2, isCompleted1, getResult1, false);
-            var second2 = new AwaitExpressionInfo(getAwaiter1, isCompleted2, getResult1, false);
-            var second3 = new AwaitExpressionInfo(getAwaiter1, isCompleted1, getResult2, false);
-            var second4 = new AwaitExpressionInfo(getAwaiter2, isCompleted2, getResult2, false);
+            var second1 = new AwaitExpressionInfo(getAwaiter2.GetPublicSymbol(), isCompleted1.GetPublicSymbol(), getResult1.GetPublicSymbol(), false);
+            var second2 = new AwaitExpressionInfo(getAwaiter1.GetPublicSymbol(), isCompleted2.GetPublicSymbol(), getResult1.GetPublicSymbol(), false);
+            var second3 = new AwaitExpressionInfo(getAwaiter1.GetPublicSymbol(), isCompleted1.GetPublicSymbol(), getResult2.GetPublicSymbol(), false);
+            var second4 = new AwaitExpressionInfo(getAwaiter2.GetPublicSymbol(), isCompleted2.GetPublicSymbol(), getResult2.GetPublicSymbol(), false);
 
             Assert.False(first.Equals(second1));
             Assert.False(first.Equals(second2));
@@ -1688,7 +1690,7 @@ public class D
             Assert.True(first.Equals(first));
             Assert.True(first.Equals((object)first));
 
-            var another = new AwaitExpressionInfo(getAwaiter1, isCompleted1, getResult1, false);
+            var another = new AwaitExpressionInfo(getAwaiter1.GetPublicSymbol(), isCompleted1.GetPublicSymbol(), getResult1.GetPublicSymbol(), false);
             Assert.True(first.GetHashCode() == another.GetHashCode());
         }
 

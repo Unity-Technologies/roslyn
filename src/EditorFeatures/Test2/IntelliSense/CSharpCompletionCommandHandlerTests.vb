@@ -1,4 +1,6 @@
-﻿' Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
+﻿' Licensed to the .NET Foundation under one or more agreements.
+' The .NET Foundation licenses this file to you under the MIT license.
+' See the LICENSE file in the project root for more information.
 
 Imports System.Collections.Immutable
 Imports System.Globalization
@@ -8,7 +10,6 @@ Imports Microsoft.CodeAnalysis.CSharp
 Imports Microsoft.CodeAnalysis.Editor.CSharp.Formatting
 Imports Microsoft.CodeAnalysis.Editor.Implementation.IntelliSense.AsyncCompletion
 Imports Microsoft.CodeAnalysis.Editor.UnitTests.Extensions
-Imports Microsoft.CodeAnalysis.Experiments
 Imports Microsoft.CodeAnalysis.Options
 Imports Microsoft.CodeAnalysis.PooledObjects
 Imports Microsoft.CodeAnalysis.Tags
@@ -70,8 +71,9 @@ class C
 
                               </Document>)
 
-                state.Workspace.Options = state.Workspace.Options.WithChangedOption(
-                    CompletionOptions.TriggerOnDeletion, LanguageNames.CSharp, True)
+                Dim workspace = state.Workspace
+                workspace.TryApplyChanges(workspace.CurrentSolution.WithOptions(workspace.Options.WithChangedOption(
+                    CompletionOptions.TriggerOnDeletion, LanguageNames.CSharp, True)))
 
                 state.SendTypeChars("repl")
                 state.SendTab()
@@ -304,8 +306,10 @@ class Class1
     }
 }</Document>)
 
-                state.Workspace.Options = state.Workspace.Options.WithChangedOption(
-                    CompletionOptions.EnterKeyBehavior, LanguageNames.CSharp, EnterKeyRule.AfterFullyTypedWord)
+                Dim workspace = state.Workspace
+                workspace.TryApplyChanges(workspace.CurrentSolution.WithOptions(workspace.Options _
+                    .WithChangedOption(CompletionOptions.EnterKeyBehavior, LanguageNames.CSharp, EnterKeyRule.AfterFullyTypedWord)))
+
                 state.SendTypeChars("System.TimeSpan.FromMin")
                 state.SendReturn()
                 Assert.Equal(<text>
@@ -330,9 +334,9 @@ class Class1
         $$
     }
 }</Document>)
-
-                state.Workspace.Options = state.Workspace.Options.WithChangedOption(
-                    CompletionOptions.EnterKeyBehavior, LanguageNames.CSharp, EnterKeyRule.AfterFullyTypedWord)
+                Dim workspace = state.Workspace
+                workspace.TryApplyChanges(workspace.CurrentSolution.WithOptions(workspace.Options _
+                    .WithChangedOption(CompletionOptions.EnterKeyBehavior, LanguageNames.CSharp, EnterKeyRule.AfterFullyTypedWord)))
 
                 state.SendTypeChars("System.TimeSpan.FromMinutes")
                 state.SendReturn()
@@ -661,8 +665,9 @@ class Variable
     }
 }]]></Document>)
 
-                state.Workspace.Options = state.Workspace.Options.WithChangedOption(
-                    CompletionOptions.TriggerOnDeletion, LanguageNames.CSharp, True)
+                Dim workspace = state.Workspace
+                workspace.TryApplyChanges(workspace.CurrentSolution.WithOptions(workspace.Options _
+                    .WithChangedOption(CompletionOptions.TriggerOnDeletion, LanguageNames.CSharp, True)))
 
                 state.SendBackspace()
                 ' This completionImplementation is hard-selected because the suggestion mode never triggers on backspace
@@ -691,8 +696,9 @@ class Variable
     }
 }]]></Document>)
 
-                state.Workspace.Options = state.Workspace.Options.WithChangedOption(
-                    CompletionOptions.TriggerOnDeletion, LanguageNames.CSharp, True)
+                Dim workspace = state.Workspace
+                workspace.TryApplyChanges(workspace.CurrentSolution.WithOptions(workspace.Options _
+                    .WithChangedOption(CompletionOptions.TriggerOnDeletion, LanguageNames.CSharp, True)))
 
                 state.SendBackspace()
                 ' This completionImplementation is hard-selected because the suggestion mode never triggers on backspace
@@ -2801,8 +2807,9 @@ class$$ C
 {
 }]]></Document>)
 
-                state.Workspace.Options = state.Workspace.Options.WithChangedOption(
-                    CompletionOptions.TriggerOnDeletion, LanguageNames.CSharp, True)
+                Dim workspace = state.Workspace
+                workspace.TryApplyChanges(workspace.CurrentSolution.WithOptions(workspace.Options _
+                    .WithChangedOption(CompletionOptions.TriggerOnDeletion, LanguageNames.CSharp, True)))
 
                 state.SendBackspace()
                 Await state.AssertCompletionSession()
@@ -2830,8 +2837,9 @@ class Program
     }
 }]]></Document>)
 
-                state.Workspace.Options = state.Workspace.Options.WithChangedOption(
-                    CompletionOptions.TriggerOnDeletion, LanguageNames.CSharp, True)
+                Dim workspace = state.Workspace
+                workspace.TryApplyChanges(workspace.CurrentSolution.WithOptions(workspace.Options _
+                    .WithChangedOption(CompletionOptions.TriggerOnDeletion, LanguageNames.CSharp, True)))
 
                 state.SendBackspace()
                 Await state.AssertCompletionSession()
@@ -3468,8 +3476,10 @@ class Program
     }
 }
             ]]></Document>)
-                state.Workspace.Options = state.Workspace.Options.WithChangedOption(
-                    CompletionOptions.TriggerOnDeletion, LanguageNames.CSharp, True)
+
+                Dim workspace = state.Workspace
+                workspace.TryApplyChanges(workspace.CurrentSolution.WithOptions(workspace.Options _
+                    .WithChangedOption(CompletionOptions.TriggerOnDeletion, LanguageNames.CSharp, True)))
 
                 For Each c In "Offset"
                     state.SendBackspace()
@@ -3495,8 +3505,10 @@ class Program
     }
 }
             ]]></Document>)
-                state.Workspace.Options = state.Workspace.Options.WithChangedOption(
-                    CompletionOptions.TriggerOnDeletion, LanguageNames.CSharp, True)
+
+                Dim workspace = state.Workspace
+                workspace.TryApplyChanges(workspace.CurrentSolution.WithOptions(workspace.Options _
+                    .WithChangedOption(CompletionOptions.TriggerOnDeletion, LanguageNames.CSharp, True)))
 
                 For Each c In "Offset."
                     state.SendBackspace()
@@ -3612,8 +3624,9 @@ class C
                                   using $$
                               </Document>, {New TaskControlledCompletionProvider(tcs.Task)})
 
-                state.Workspace.Options = state.Workspace.Options.WithChangedOption(
-                    CompletionOptions.BlockForCompletionItems, LanguageNames.CSharp, False)
+                Dim workspace = state.Workspace
+                workspace.TryApplyChanges(workspace.CurrentSolution.WithOptions(workspace.Options _
+                    .WithChangedOption(CompletionOptions.BlockForCompletionItems, LanguageNames.CSharp, False)))
 
                 state.SendTypeChars("Sys.")
                 Await state.AssertNoCompletionSession()
@@ -3630,8 +3643,9 @@ class C
                                   using $$
                               </Document>, {New TaskControlledCompletionProvider(Task.FromResult(True))})
 
-                state.Workspace.Options = state.Workspace.Options.WithChangedOption(
-                    CompletionOptions.BlockForCompletionItems, LanguageNames.CSharp, False)
+                Dim workspace = state.Workspace
+                workspace.TryApplyChanges(workspace.CurrentSolution.WithOptions(workspace.Options _
+                    .WithChangedOption(CompletionOptions.BlockForCompletionItems, LanguageNames.CSharp, False)))
 
                 state.SendTypeChars("Sys")
                 Await state.AssertSelectedCompletionItem(displayText:="System")
@@ -3660,8 +3674,9 @@ class C
                                   using $$
                               </Document>, {provider})
 
-                state.Workspace.Options = state.Workspace.Options.WithChangedOption(
-                    CompletionOptions.BlockForCompletionItems, LanguageNames.CSharp, False)
+                Dim workspace = state.Workspace
+                workspace.TryApplyChanges(workspace.CurrentSolution.WithOptions(workspace.Options _
+                    .WithChangedOption(CompletionOptions.BlockForCompletionItems, LanguageNames.CSharp, False)))
 
                 state.SendTypeChars("Sys")
 
@@ -3734,8 +3749,9 @@ class C
                                   using $$
                               </Document>, {provider})
 
-                state.Workspace.Options = state.Workspace.Options.WithChangedOption(
-                    CompletionOptions.BlockForCompletionItems, LanguageNames.CSharp, False)
+                Dim workspace = state.Workspace
+                workspace.TryApplyChanges(workspace.CurrentSolution.WithOptions(workspace.Options _
+                    .WithChangedOption(CompletionOptions.BlockForCompletionItems, LanguageNames.CSharp, False)))
 
                 state.SendTypeChars("Sys")
                 Dim task1 As Task = Nothing
@@ -3822,8 +3838,9 @@ class C
                 provider.UpdateTask(tcs.Task)
 
                 ' Switch to the non-blocking mode
-                state.Workspace.Options = state.Workspace.Options.WithChangedOption(
-                    CompletionOptions.BlockForCompletionItems, LanguageNames.CSharp, False)
+                Dim workspace = state.Workspace
+                workspace.TryApplyChanges(workspace.CurrentSolution.WithOptions(workspace.Options _
+                    .WithChangedOption(CompletionOptions.BlockForCompletionItems, LanguageNames.CSharp, False)))
 
                 ' re-use of TestNoBlockOnCompletionItems1
                 state.SendTypeChars("Sys.")
@@ -3843,8 +3860,8 @@ class C
                 provider.UpdateTask(tcs.Task)
 
                 ' Switch to the blocking mode
-                state.Workspace.Options = state.Workspace.Options.WithChangedOption(
-                    CompletionOptions.BlockForCompletionItems, LanguageNames.CSharp, True)
+                workspace.TryApplyChanges(workspace.CurrentSolution.WithOptions(workspace.Options _
+                    .WithChangedOption(CompletionOptions.BlockForCompletionItems, LanguageNames.CSharp, True)))
 
 #Disable Warning BC42358 ' Because this call is not awaited, execution of the current method continues before the call is completed
                 Task.Run(Function()
@@ -4055,7 +4072,10 @@ class Program
                               </Document>)
 
                 Dim key = New OptionKey(CompletionOptions.TriggerOnDeletion, LanguageNames.CSharp)
-                state.Workspace.Options = state.Workspace.Options.WithChangedOption(key, True)
+
+                Dim workspace = state.Workspace
+                workspace.TryApplyChanges(workspace.CurrentSolution.WithOptions(workspace.Options _
+                    .WithChangedOption(key, True)))
 
                 state.SendBackspace()
                 Await state.AssertSelectedCompletionItem(displayText:="Environment", isHardSelected:=True)
@@ -4504,8 +4524,9 @@ public class Program
 }
                               </Document>)
 
-                state.Workspace.Options = state.Workspace.Options.WithChangedOption(
-                    CompletionOptions.TriggerOnDeletion, LanguageNames.CSharp, True)
+                Dim workspace = state.Workspace
+                workspace.TryApplyChanges(workspace.CurrentSolution.WithOptions(workspace.Options _
+                    .WithChangedOption(CompletionOptions.TriggerOnDeletion, LanguageNames.CSharp, True)))
 
                 state.SendInvokeCompletionList()
                 state.SendBackspace()
@@ -4528,8 +4549,9 @@ public class Program
 }
                               </Document>)
 
-                state.Workspace.Options = state.Workspace.Options.WithChangedOption(
-                    CompletionOptions.TriggerOnDeletion, LanguageNames.CSharp, True)
+                Dim workspace = state.Workspace
+                workspace.TryApplyChanges(workspace.CurrentSolution.WithOptions(workspace.Options _
+                    .WithChangedOption(CompletionOptions.TriggerOnDeletion, LanguageNames.CSharp, True)))
 
                 state.SendInvokeCompletionList()
                 state.SelectAndMoveCaret(-6)
@@ -4575,8 +4597,9 @@ class C
     }
 }</Document>)
 
-                state.Workspace.Options = state.Workspace.Options.WithChangedOption(
-                    CompletionOptions.TriggerOnDeletion, LanguageNames.CSharp, True)
+                Dim workspace = state.Workspace
+                workspace.TryApplyChanges(workspace.CurrentSolution.WithOptions(workspace.Options _
+                    .WithChangedOption(CompletionOptions.TriggerOnDeletion, LanguageNames.CSharp, True)))
 
                 state.SendBackspace()
                 Await state.AssertCompletionItemsContainAll("WriteLine")
@@ -4802,8 +4825,9 @@ class C
 }
                               </Document>)
 
-                state.Workspace.Options = state.Workspace.Options.WithChangedOption(
-                    CompletionOptions.TriggerOnDeletion, LanguageNames.CSharp, True)
+                Dim workspace = state.Workspace
+                workspace.TryApplyChanges(workspace.CurrentSolution.WithOptions(workspace.Options _
+                    .WithChangedOption(CompletionOptions.TriggerOnDeletion, LanguageNames.CSharp, True)))
 
                 state.SendBackspace()
                 Await state.AssertCompletionSession()
@@ -4828,8 +4852,9 @@ class C
 }
                               </Document>)
 
-                state.Workspace.Options = state.Workspace.Options.WithChangedOption(
-                    CompletionOptions.TriggerOnDeletion, LanguageNames.CSharp, True)
+                Dim workspace = state.Workspace
+                workspace.TryApplyChanges(workspace.CurrentSolution.WithOptions(workspace.Options _
+                    .WithChangedOption(CompletionOptions.TriggerOnDeletion, LanguageNames.CSharp, True)))
 
                 state.SendBackspace()
                 Await state.AssertCompletionSession()
@@ -4901,8 +4926,9 @@ class C
 }
                               </Document>, {provider})
 
-                state.Workspace.Options = state.Workspace.Options.WithChangedOption(
-                    CompletionOptions.TriggerOnDeletion, LanguageNames.CSharp, True)
+                Dim workspace = state.Workspace
+                workspace.TryApplyChanges(workspace.CurrentSolution.WithOptions(workspace.Options _
+                    .WithChangedOption(CompletionOptions.TriggerOnDeletion, LanguageNames.CSharp, True)))
 
                 state.SendBackspace()
                 Await state.AssertCompletionItemsContainAll("Normalize", "★ Normalize")
@@ -4992,8 +5018,9 @@ class C
 }
                               </Document>, {provider})
 
-                state.Workspace.Options = state.Workspace.Options.WithChangedOption(
-                    CompletionOptions.TriggerOnDeletion, LanguageNames.CSharp, True)
+                Dim workspace = state.Workspace
+                workspace.TryApplyChanges(workspace.CurrentSolution.WithOptions(workspace.Options _
+                    .WithChangedOption(CompletionOptions.TriggerOnDeletion, LanguageNames.CSharp, True)))
 
                 state.SendTypeChars(".nor")
                 Await state.AssertCompletionItemsContainAll("Normalize", "★ Normalize")
@@ -5037,8 +5064,9 @@ class C
 }
                               </Document>, {provider})
 
-                state.Workspace.Options = state.Workspace.Options.WithChangedOption(
-                    CompletionOptions.TriggerOnDeletion, LanguageNames.CSharp, True)
+                Dim workspace = state.Workspace
+                workspace.TryApplyChanges(workspace.CurrentSolution.WithOptions(workspace.Options _
+                    .WithChangedOption(CompletionOptions.TriggerOnDeletion, LanguageNames.CSharp, True)))
 
                 state.SendTypeChars(".nor")
                 Await state.AssertCompletionItemsContainAll("Normalize", "★ Normalize")
@@ -5070,60 +5098,7 @@ class C
             End Using
         End Function
 
-        <WorkItem(35614, "https://github.com/dotnet/roslyn/issues/35614")>
         <WpfFact, Trait(Traits.Feature, Traits.Features.Completion)>
-        Public Async Function TestTypeImportCompletion() As Task
-            Using state = TestStateFactory.CreateCSharpTestState(
-                  <Document><![CDATA[
-namespace NS1
-{
-    class C
-    {
-        public void Foo()
-        {
-            Bar$$
-        }
-    }
-}
-
-namespace NS2
-{
-    public class Bar { }
-}
-]]></Document>)
-
-                Dim expectedText = "
-using NS2;
-
-namespace NS1
-{
-    class C
-    {
-        public void Foo()
-        {
-            Bar
-        }
-    }
-}
-
-namespace NS2
-{
-    public class Bar { }
-}
-"
-
-                state.Workspace.Options = state.Workspace.Options _
-                    .WithChangedOption(CompletionOptions.ShowItemsFromUnimportedNamespaces, LanguageNames.CSharp, True) _
-                    .WithChangedOption(CompletionServiceOptions.TimeoutInMillisecondsForImportCompletion, -1)   ' disable timebox for import completion
-
-                state.SendInvokeCompletionList()
-                Await state.AssertSelectedCompletionItem(displayText:="Bar", inlineDescription:="NS2")
-                state.SendTab()
-                Assert.Equal(expectedText, state.GetDocumentText())
-            End Using
-        End Function
-
-        <WpfFact(Skip:="https://github.com/dotnet/roslyn/issues/39070"), Trait(Traits.Feature, Traits.Features.Completion)>
         Public Async Function TestExpanderWithImportCompletionDisabled() As Task
             Using state = TestStateFactory.CreateCSharpTestState(
                   <Document><![CDATA[
@@ -5144,16 +5119,15 @@ namespace NS2
 }
 ]]></Document>)
 
-                state.Workspace.Options = state.Workspace.Options.WithChangedOption(CompletionOptions.ShowItemsFromUnimportedNamespaces, LanguageNames.CSharp, False)
+                Dim workspace = state.Workspace
+                workspace.TryApplyChanges(workspace.CurrentSolution.WithOptions(workspace.Options _
+                    .WithChangedOption(CompletionOptions.ShowItemsFromUnimportedNamespaces, LanguageNames.CSharp, False)))
 
                 ' trigger completion with import completion disabled
                 state.SendInvokeCompletionList()
                 Await state.WaitForUIRenderedAsync()
 
-                Await state.AssertCompletionItemsDoNotContainAny("Bar")
-                state.AssertCompletionItemExpander(isAvailable:=True, isSelected:=False)
-
-                ' select expander
+                ' make sure expander is selected
                 state.SetCompletionItemExpanderState(isSelected:=True)
                 Await state.WaitForAsynchronousOperationsAsync()
                 Await state.WaitForUIRenderedAsync()
@@ -5176,6 +5150,19 @@ namespace NS2
 
                 Await state.AssertSelectedCompletionItem(displayText:="Bar", inlineDescription:="NS2")
                 state.AssertCompletionItemExpander(isAvailable:=True, isSelected:=True)
+
+                ' dismiss completion
+                state.SendEscape()
+                Await state.AssertNoCompletionSession()
+
+                ' trigger completion again
+                state.SendInvokeCompletionList()
+                Await state.WaitForUIRenderedAsync()
+
+                ' should not show unimported item even with cache populated
+                Await state.AssertCompletionItemsDoNotContainAny({"Bar"})
+                state.AssertCompletionItemExpander(isAvailable:=True, isSelected:=False)
+
             End Using
         End Function
 
@@ -5200,26 +5187,15 @@ namespace NS2
 }
 ]]></Document>)
 
-                state.Workspace.Options = state.Workspace.Options _
-                    .WithChangedOption(CompletionOptions.ShowItemsFromUnimportedNamespaces, LanguageNames.CSharp, True) _
-                    .WithChangedOption(CompletionServiceOptions.TimeoutInMillisecondsForImportCompletion, -1)   ' disable timebox for import completion
+                Dim workspace = state.Workspace
+                workspace.TryApplyChanges(workspace.CurrentSolution.WithOptions(workspace.Options _
+                    .WithChangedOption(CompletionOptions.ShowItemsFromUnimportedNamespaces, LanguageNames.CSharp, True)))
 
                 ' trigger completion with import completion enabled
                 state.SendInvokeCompletionList()
                 Await state.WaitForUIRenderedAsync()
 
-                Await state.AssertSelectedCompletionItem(displayText:="Bar", inlineDescription:="NS2")
-                state.AssertCompletionItemExpander(isAvailable:=True, isSelected:=True)
-
-                ' unselect expander
-                state.SetCompletionItemExpanderState(isSelected:=False)
-                Await state.WaitForAsynchronousOperationsAsync()
-                Await state.WaitForUIRenderedAsync()
-
-                Await state.AssertCompletionItemsDoNotContainAny("Bar")
-                state.AssertCompletionItemExpander(isAvailable:=True, isSelected:=False)
-
-                ' select expander
+                ' make sure expander is selected
                 state.SetCompletionItemExpanderState(isSelected:=True)
                 Await state.WaitForAsynchronousOperationsAsync()
                 Await state.WaitForUIRenderedAsync()
@@ -5227,102 +5203,15 @@ namespace NS2
                 Await state.AssertSelectedCompletionItem(displayText:="Bar", inlineDescription:="NS2")
                 state.AssertCompletionItemExpander(isAvailable:=True, isSelected:=True)
 
-                ' unselect expander again
-                state.SetCompletionItemExpanderState(isSelected:=False)
-                Await state.WaitForAsynchronousOperationsAsync()
-                Await state.WaitForUIRenderedAsync()
+                ' dismiss completion
+                state.SendEscape()
+                Await state.AssertNoCompletionSession()
 
-                Await state.AssertCompletionItemsDoNotContainAny("Bar")
-                state.AssertCompletionItemExpander(isAvailable:=True, isSelected:=False)
-            End Using
-        End Function
-
-        <WpfFact, Trait(Traits.Feature, Traits.Features.Completion)>
-        Public Async Function TestExpanderAndTimeboxWithImportCompletionEnabled() As Task
-            Using state = TestStateFactory.CreateCSharpTestState(
-                  <Document><![CDATA[
-namespace NS1
-{
-    class C
-    {
-        public void Foo()
-        {
-            Bar$$
-        }
-    }
-}
-
-namespace NS2
-{
-    public class Bar { }
-}
-]]></Document>)
-
-                ' Enable import completion and set timeout to 0 (so always timeout)
-                state.Workspace.Options = state.Workspace.Options _
-                    .WithChangedOption(CompletionOptions.ShowItemsFromUnimportedNamespaces, LanguageNames.CSharp, True) _
-                    .WithChangedOption(CompletionServiceOptions.TimeoutInMillisecondsForImportCompletion, 0)
-
-                ' trigger completion with import completion enabled, this should timeout so no unimport types should be shown and expander should be unselected
-                ' (but the caculation should continue in background)
+                ' trigger completion again
                 state.SendInvokeCompletionList()
                 Await state.WaitForUIRenderedAsync()
 
-                Await state.AssertCompletionItemsDoNotContainAny("Bar")
-                state.AssertCompletionItemExpander(isAvailable:=True, isSelected:=False)
-
-                ' select expander
-                state.SetCompletionItemExpanderState(isSelected:=True)
-                Await state.WaitForAsynchronousOperationsAsync()
-                Await state.WaitForUIRenderedAsync()
-
-                ' timeout is ignored if user asked for unimport types explicitly (via expander)
-                Await state.AssertSelectedCompletionItem(displayText:="Bar", inlineDescription:="NS2")
-                state.AssertCompletionItemExpander(isAvailable:=True, isSelected:=True)
-
-            End Using
-        End Function
-
-        <WpfFact, Trait(Traits.Feature, Traits.Features.Completion)>
-        Public Async Function TestExpanderAndTimeboxWithImportCompletionDisabled() As Task
-            Using state = TestStateFactory.CreateCSharpTestState(
-                  <Document><![CDATA[
-namespace NS1
-{
-    class C
-    {
-        public void Foo()
-        {
-            Bar$$
-        }
-    }
-}
-
-namespace NS2
-{
-    public class Bar { }
-}
-]]></Document>)
-
-                ' Disable import completion 
-                state.Workspace.Options = state.Workspace.Options.WithChangedOption(CompletionOptions.ShowItemsFromUnimportedNamespaces, LanguageNames.CSharp, False)
-
-                ' trigger completion with import completion disabled
-                state.SendInvokeCompletionList()
-                Await state.WaitForUIRenderedAsync()
-
-                Await state.AssertCompletionItemsDoNotContainAny("Bar")
-                state.AssertCompletionItemExpander(isAvailable:=True, isSelected:=False)
-
-                ' set timeout to 0 (always timeout)
-                state.Workspace.Options = state.Workspace.Options.WithChangedOption(CompletionServiceOptions.TimeoutInMillisecondsForImportCompletion, 0)
-
-                ' select expander
-                state.SetCompletionItemExpanderState(isSelected:=True)
-                Await state.WaitForAsynchronousOperationsAsync()
-                Await state.WaitForUIRenderedAsync()
-
-                ' timeout should be ignored since user asked for unimport types explicitly (via expander)
+                ' now cache is populated
                 Await state.AssertSelectedCompletionItem(displayText:="Bar", inlineDescription:="NS2")
                 state.AssertCompletionItemExpander(isAvailable:=True, isSelected:=True)
 
@@ -5339,7 +5228,9 @@ namespace NS1
 }
 ]]></Document>)
 
-                state.Workspace.Options = state.Workspace.Options.WithChangedOption(CompletionOptions.ShowItemsFromUnimportedNamespaces, LanguageNames.CSharp, True)
+                Dim workspace = state.Workspace
+                workspace.TryApplyChanges(workspace.CurrentSolution.WithOptions(workspace.Options _
+                    .WithChangedOption(CompletionOptions.ShowItemsFromUnimportedNamespaces, LanguageNames.CSharp, True)))
 
                 ' trigger completion with import completion enabled
                 state.SendInvokeCompletionList()
@@ -5743,12 +5634,21 @@ namespace NS2
 }
 "
 
-                state.Workspace.Options = state.Workspace.Options _
-                    .WithChangedOption(CompletionOptions.ShowItemsFromUnimportedNamespaces, LanguageNames.CSharp, True) _
-                    .WithChangedOption(CompletionServiceOptions.TimeoutInMillisecondsForImportCompletion, -1)
+                Dim workspace = state.Workspace
+                workspace.TryApplyChanges(workspace.CurrentSolution.WithOptions(workspace.Options _
+                    .WithChangedOption(CompletionOptions.ShowItemsFromUnimportedNamespaces, LanguageNames.CSharp, True)))
 
                 state.SendInvokeCompletionList()
+                Await state.WaitForUIRenderedAsync()
+
+                ' make sure expander is selected
+                state.SetCompletionItemExpanderState(isSelected:=True)
+                Await state.WaitForAsynchronousOperationsAsync()
+                Await state.WaitForUIRenderedAsync()
+
+                state.AssertCompletionItemExpander(isAvailable:=True, isSelected:=True)
                 Await state.AssertSelectedCompletionItem(displayText:="Bar", displayTextSuffix:="<>")
+
                 state.SendTab()
                 Assert.Equal(expectedText, state.GetDocumentText())
             End Using
@@ -5806,12 +5706,21 @@ namespace NS2
 }
 "
 
-                state.Workspace.Options = state.Workspace.Options _
-                    .WithChangedOption(CompletionOptions.ShowItemsFromUnimportedNamespaces, LanguageNames.CSharp, True) _
-                    .WithChangedOption(CompletionServiceOptions.TimeoutInMillisecondsForImportCompletion, -1)
+                Dim workspace = state.Workspace
+                workspace.TryApplyChanges(workspace.CurrentSolution.WithOptions(workspace.Options _
+                    .WithChangedOption(CompletionOptions.ShowItemsFromUnimportedNamespaces, LanguageNames.CSharp, True)))
 
                 state.SendInvokeCompletionList()
+                Await state.WaitForUIRenderedAsync()
+
+                ' make sure expander is selected
+                state.SetCompletionItemExpanderState(isSelected:=True)
+                Await state.WaitForAsynchronousOperationsAsync()
+                Await state.WaitForUIRenderedAsync()
+
+                state.AssertCompletionItemExpander(isAvailable:=True, isSelected:=True)
                 Await state.AssertSelectedCompletionItem(displayText:="Bar")
+
                 state.SendTab()
                 Assert.Equal(expectedText, state.GetDocumentText())
             End Using
@@ -5869,12 +5778,21 @@ namespace NS2
 }
 "
 
-                state.Workspace.Options = state.Workspace.Options _
-                    .WithChangedOption(CompletionOptions.ShowItemsFromUnimportedNamespaces, LanguageNames.CSharp, True) _
-                    .WithChangedOption(CompletionServiceOptions.TimeoutInMillisecondsForImportCompletion, -1)
+                Dim workspace = state.Workspace
+                workspace.TryApplyChanges(workspace.CurrentSolution.WithOptions(workspace.Options _
+                    .WithChangedOption(CompletionOptions.ShowItemsFromUnimportedNamespaces, LanguageNames.CSharp, True)))
 
                 state.SendInvokeCompletionList()
+                Await state.WaitForUIRenderedAsync()
+
+                ' make sure expander is selected
+                state.SetCompletionItemExpanderState(isSelected:=True)
+                Await state.WaitForAsynchronousOperationsAsync()
+                Await state.WaitForUIRenderedAsync()
+
+                state.AssertCompletionItemExpander(isAvailable:=True, isSelected:=True)
                 Await state.AssertSelectedCompletionItem(displayText:="ABar")
+
                 state.SendTab()
                 Assert.Equal(expectedText, state.GetDocumentText())
             End Using
@@ -5932,11 +5850,19 @@ namespace NS2
 }
 "
 
-                state.Workspace.Options = state.Workspace.Options _
-                    .WithChangedOption(CompletionOptions.ShowItemsFromUnimportedNamespaces, LanguageNames.CSharp, True) _
-                    .WithChangedOption(CompletionServiceOptions.TimeoutInMillisecondsForImportCompletion, -1)
+                Dim workspace = state.Workspace
+                workspace.TryApplyChanges(workspace.CurrentSolution.WithOptions(workspace.Options _
+                    .WithChangedOption(CompletionOptions.ShowItemsFromUnimportedNamespaces, LanguageNames.CSharp, True)))
 
                 state.SendInvokeCompletionList()
+                Await state.WaitForUIRenderedAsync()
+
+                ' make sure expander is selected
+                state.SetCompletionItemExpanderState(isSelected:=True)
+                Await state.WaitForAsynchronousOperationsAsync()
+                Await state.WaitForUIRenderedAsync()
+
+                state.AssertCompletionItemExpander(isAvailable:=True, isSelected:=True)
                 Await state.AssertSelectedCompletionItem(displayText:="Bar", inlineDescription:="")
                 state.SendTab()
                 Assert.Equal(expectedText, state.GetDocumentText())
@@ -5997,12 +5923,21 @@ namespace NS2
 }
 "
 
-                state.Workspace.Options = state.Workspace.Options _
-                    .WithChangedOption(CompletionOptions.ShowItemsFromUnimportedNamespaces, LanguageNames.CSharp, True) _
-                    .WithChangedOption(CompletionServiceOptions.TimeoutInMillisecondsForImportCompletion, -1)
+                Dim workspace = state.Workspace
+                workspace.TryApplyChanges(workspace.CurrentSolution.WithOptions(workspace.Options _
+                    .WithChangedOption(CompletionOptions.ShowItemsFromUnimportedNamespaces, LanguageNames.CSharp, True)))
 
                 state.SendInvokeCompletionList()
+                Await state.WaitForUIRenderedAsync()
+
+                ' make sure expander is selected
+                state.SetCompletionItemExpanderState(isSelected:=True)
+                Await state.WaitForAsynchronousOperationsAsync()
+                Await state.WaitForUIRenderedAsync()
+
                 Await state.AssertSelectedCompletionItem(displayText:="Bar", inlineDescription:="NS2")
+                state.AssertCompletionItemExpander(isAvailable:=True, isSelected:=True)
+
                 state.SendTab()
                 Assert.Equal(expectedText, state.GetDocumentText())
             End Using
@@ -6010,7 +5945,7 @@ namespace NS2
 
         <WorkItem(38253, "https://github.com/dotnet/roslyn/issues/38253")>
         <WpfFact, Trait(Traits.Feature, Traits.Features.Completion)>
-        Public Async Function SortItemsByPatternMatchIfExperimentEnabled() As Task
+        Public Async Function SortItemsByPatternMatch() As Task
             Using state = TestStateFactory.CreateCSharpTestState(
                               <Document>
 namespace NS
@@ -6037,11 +5972,9 @@ namespace NS
     class ATaAaSaKa { }
 } </Document>, extraExportedTypes:={GetType(TestExperimentationService)}.ToList())
 
-                state.Workspace.Options = state.Workspace.Options _
-                    .WithChangedOption(CompletionOptions.ShowItemsFromUnimportedNamespaces, LanguageNames.CSharp, False)
-
-                Dim experimentService = state.GetService(Of TestExperimentationService)()
-                experimentService.SetExperimentOption(WellKnownExperimentNames.SortCompletionListByMatch, True)
+                Dim workspace = state.Workspace
+                workspace.TryApplyChanges(workspace.CurrentSolution.WithOptions(workspace.Options _
+                    .WithChangedOption(CompletionOptions.ShowItemsFromUnimportedNamespaces, LanguageNames.CSharp, False)))
 
                 state.SendTypeChars("task")
                 Await state.WaitForAsynchronousOperationsAsync()
@@ -6063,12 +5996,12 @@ namespace NS
             End Using
         End Function
 
-        <WorkItem(38253, "https://github.com/dotnet/roslyn/issues/38253")>
+        <WorkItem(41601, "https://github.com/dotnet/roslyn/issues/41601")>
         <WpfFact, Trait(Traits.Feature, Traits.Features.Completion)>
-        Public Async Function SortItemsAlphabeticallyIfExperimentDisabled() As Task
+        Public Async Function SortItemsByExpandedFlag() As Task
             Using state = TestStateFactory.CreateCSharpTestState(
                               <Document>
-namespace NS
+namespace NS1
 {
     class C
     {
@@ -6078,43 +6011,114 @@ namespace NS
         }
     }
 
-    class Task { }
+    class MyTask1 { }
+    class MyTask2 { }
+    class MyTask3 { }
+}
 
-    class BTask1 { }
-    class BTask2 { }
-    class BTask3 { }
+namespace NS2
+{
+    class MyTask1 { }
+    class MyTask2 { }
+    class MyTask3 { }
+}
+</Document>, extraExportedTypes:={GetType(TestExperimentationService)}.ToList())
 
+                Dim workspace = state.Workspace
+                workspace.TryApplyChanges(workspace.CurrentSolution.WithOptions(workspace.Options _
+                    .WithChangedOption(CompletionOptions.ShowItemsFromUnimportedNamespaces, LanguageNames.CSharp, False)))
 
-    class Task1 { }
-    class Task2 { }
-    class Task3 { }
+                ' trigger completion with import completion disabled
+                state.SendInvokeCompletionList()
+                Await state.WaitForUIRenderedAsync()
 
-    class ATaAaSaKa { }
-} </Document>, extraExportedTypes:={GetType(TestExperimentationService)}.ToList())
-
-                state.Workspace.Options = state.Workspace.Options _
-                    .WithChangedOption(CompletionOptions.ShowItemsFromUnimportedNamespaces, LanguageNames.CSharp, False)
-
-                Dim experimentService = state.GetService(Of TestExperimentationService)()
-                experimentService.SetExperimentOption(WellKnownExperimentNames.SortCompletionListByMatch, False)
-
-                state.SendTypeChars("task")
+                ' make sure expander is selected
+                state.SetCompletionItemExpanderState(isSelected:=True)
                 Await state.WaitForAsynchronousOperationsAsync()
-                Await state.AssertSelectedCompletionItem(displayText:="Task")
+                Await state.WaitForUIRenderedAsync()
 
-                Dim expectedOrder =
+                state.SendEscape()
+                Await state.AssertNoCompletionSession()
+
+                workspace.TryApplyChanges(workspace.CurrentSolution.WithOptions(workspace.Options _
+                    .WithChangedOption(CompletionOptions.ShowItemsFromUnimportedNamespaces, LanguageNames.CSharp, True)))
+
+                state.SendTypeChars("mytask")
+                Await state.WaitForAsynchronousOperationsAsync()
+
+                ' make sure expander is selected
+                state.AssertCompletionItemExpander(isAvailable:=True, isSelected:=True)
+                Await state.AssertSelectedCompletionItem(displayText:="MyTask1", inlineDescription:="")
+
+
+                Dim expectedOrder As (String, String)() =
                     {
-                        "ATaAaSaKa",
-                        "BTask1",
-                        "BTask2",
-                        "BTask3",
-                        "Task",
-                        "Task1",
-                        "Task2",
-                        "Task3"
+                        ("MyTask1", ""),
+                        ("MyTask2", ""),
+                        ("MyTask3", ""),
+                        ("MyTask1", "NS2"),
+                        ("MyTask2", "NS2"),
+                        ("MyTask3", "NS2")
                     }
-
                 state.AssertItemsInOrder(expectedOrder)
+            End Using
+        End Function
+
+        <WorkItem(39519, "https://github.com/dotnet/roslyn/issues/39519")>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.Completion)>
+        Public Async Function TestSuggestedNamesDontStartWithDigit_DigitsInTheMiddle() As Task
+            Using state = TestStateFactory.CreateCSharpTestState(
+                  <Document><![CDATA[
+namespace NS
+{
+    class C
+    {
+        public void Foo(Foo123Bar $$)
+        {
+        }
+    }
+
+    public class Foo123Bar
+    {
+    } 
+}
+]]></Document>)
+                Dim workspace = state.Workspace
+                workspace.TryApplyChanges(workspace.CurrentSolution.WithOptions(workspace.Options _
+                    .WithChangedOption(CompletionOptions.ShowNameSuggestions, LanguageNames.CSharp, True)))
+
+                state.SendInvokeCompletionList()
+                Await state.AssertCompletionItemsContainAll("foo123Bar", "foo123", "foo", "bar")
+                Await state.AssertCompletionItemsDoNotContainAny("123Bar")
+            End Using
+        End Function
+
+        <WorkItem(39519, "https://github.com/dotnet/roslyn/issues/39519")>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.Completion)>
+        Public Async Function TestSuggestedNamesDontStartWithDigit_DigitsOnTheRight() As Task
+            Using state = TestStateFactory.CreateCSharpTestState(
+                  <Document><![CDATA[
+namespace NS
+{
+    class C
+    {
+        public void Foo(Foo123 $$)
+        {
+        }
+    }
+
+    public class Foo123
+    {
+    } 
+}
+]]></Document>)
+                Dim workspace = state.Workspace
+                workspace.TryApplyChanges(workspace.CurrentSolution.WithOptions(workspace.Options _
+                    .WithChangedOption(CompletionOptions.ShowNameSuggestions, LanguageNames.CSharp, True)))
+
+                state.SendInvokeCompletionList()
+                Await state.AssertCompletionItemsContainAll("foo123", "foo")
+                Await state.AssertCompletionItemsDoNotContainAny("123")
             End Using
         End Function
 

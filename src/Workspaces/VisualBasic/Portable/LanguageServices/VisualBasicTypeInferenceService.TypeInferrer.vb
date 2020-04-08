@@ -1,4 +1,6 @@
-﻿' Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
+﻿' Licensed to the .NET Foundation under one or more agreements.
+' The .NET Foundation licenses this file to you under the MIT license.
+' See the LICENSE file in the project root for more information.
 
 Imports System.Collections.Immutable
 Imports System.Threading
@@ -451,7 +453,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                     Return CreateResult(task)
                 End If
 
-                Return types.Select(Function(t) New TypeInferenceInfo(If(t.InferredType.SpecialType = SpecialType.System_Void, task, taskOfT.ConstructWithNullability(t.InferredType))))
+                Return types.Select(Function(t) New TypeInferenceInfo(If(t.InferredType.SpecialType = SpecialType.System_Void, task, taskOfT.Construct(t.InferredType))))
             End Function
 
             Private Function InferTypeInConditionalAccessExpression(conditional As ConditionalAccessExpressionSyntax) As IEnumerable(Of TypeInferenceInfo)

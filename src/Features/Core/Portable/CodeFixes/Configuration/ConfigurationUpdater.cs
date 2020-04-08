@@ -1,4 +1,6 @@
-﻿// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+// See the LICENSE file in the project root for more information.
 
 using System;
 using System.Collections.Generic;
@@ -43,7 +45,7 @@ namespace Microsoft.CodeAnalysis.CodeFixes.Configuration
 
         // Regular expression for .editorconfig code style option entry.
         // For example: "dotnet_style_object_initializer = true:suggestion   # Optional comment"
-        private static readonly Regex s_optionBasedEntryPattern = new Regex(@"([\w ]+)=([\w ]+):[ ]*([\w]+)([ ]*[;#].*)?");
+        private static readonly Regex s_optionBasedEntryPattern = new Regex(@"([\w ]+)=([\w, ]+):[ ]*([\w]+)([ ]*[;#].*)?");
 
         // Regular expression for .editorconfig diagnosticID severity configuration entry.
         // For example: "dotnet_diagnostic.CA2000.severity = suggestion   # Optional comment"
@@ -308,7 +310,7 @@ namespace Microsoft.CodeAnalysis.CodeFixes.Configuration
 
                 try
                 {
-                    foreach (var option in options)
+                    foreach (var option in options.OrderBy(option => option.Name))
                     {
                         var editorConfigLocation = option.StorageLocations.OfType<IEditorConfigStorageLocation2>().FirstOrDefault();
                         if (editorConfigLocation != null)

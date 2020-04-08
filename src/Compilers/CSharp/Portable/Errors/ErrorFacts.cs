@@ -1,4 +1,6 @@
-﻿// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+// See the LICENSE file in the project root for more information.
 
 using System;
 using System.Collections.Generic;
@@ -25,7 +27,6 @@ namespace Microsoft.CodeAnalysis.CSharp
             builder.Add(getId(ErrorCode.WRN_NullReferenceReceiver));
             builder.Add(getId(ErrorCode.WRN_NullReferenceReturn));
             builder.Add(getId(ErrorCode.WRN_NullReferenceArgument));
-            builder.Add(getId(ErrorCode.WRN_NullReferenceIterationVariable));
             builder.Add(getId(ErrorCode.WRN_UninitializedNonNullableField));
             builder.Add(getId(ErrorCode.WRN_NullabilityMismatchInAssignment));
             builder.Add(getId(ErrorCode.WRN_NullabilityMismatchInArgument));
@@ -39,14 +40,12 @@ namespace Microsoft.CodeAnalysis.CSharp
             builder.Add(getId(ErrorCode.WRN_NullabilityMismatchInTypeParameterNotNullConstraint));
             builder.Add(getId(ErrorCode.WRN_ThrowPossibleNull));
             builder.Add(getId(ErrorCode.WRN_UnboxPossibleNull));
-            builder.Add(getId(ErrorCode.WRN_DefaultExpressionMayIntroduceNullT));
-            builder.Add(getId(ErrorCode.WRN_NullLiteralMayIntroduceNullT));
-            builder.Add(getId(ErrorCode.WRN_ConditionalAccessMayReturnNull));
-            builder.Add(getId(ErrorCode.WRN_AsOperatorMayReturnNull));
             builder.Add(getId(ErrorCode.WRN_SwitchExpressionNotExhaustiveForNull));
 
             builder.Add(getId(ErrorCode.WRN_ConvertingNullableToNonNullable));
             builder.Add(getId(ErrorCode.WRN_DisallowNullAttributeForbidsMaybeNullAssignment));
+            builder.Add(getId(ErrorCode.WRN_ParameterConditionallyDisallowsNull));
+            builder.Add(getId(ErrorCode.WRN_ShouldNotReturn));
 
             builder.Add(getId(ErrorCode.WRN_NullabilityMismatchInTypeOnOverride));
             builder.Add(getId(ErrorCode.WRN_NullabilityMismatchInReturnTypeOnOverride));
@@ -65,11 +64,9 @@ namespace Microsoft.CodeAnalysis.CSharp
             builder.Add(getId(ErrorCode.WRN_NullabilityMismatchInConstraintsOnPartialImplementation));
             builder.Add(getId(ErrorCode.WRN_NullReferenceInitializer));
 
-            builder.Add(getId(ErrorCode.WRN_ExpressionMayIntroduceNullT));
-
             NullableWarnings = builder.ToImmutable();
 
-            string getId(ErrorCode errorCode)
+            static string getId(ErrorCode errorCode)
             {
                 return MessageProvider.Instance.GetIdForErrorCode((int)errorCode);
             }
@@ -388,7 +385,6 @@ namespace Microsoft.CodeAnalysis.CSharp
                 case ErrorCode.WRN_NullReferenceReceiver:
                 case ErrorCode.WRN_NullReferenceReturn:
                 case ErrorCode.WRN_NullReferenceArgument:
-                case ErrorCode.WRN_NullReferenceIterationVariable:
                 case ErrorCode.WRN_NullabilityMismatchInTypeOnOverride:
                 case ErrorCode.WRN_NullabilityMismatchInReturnTypeOnOverride:
                 case ErrorCode.WRN_NullabilityMismatchInParameterTypeOnOverride:
@@ -423,18 +419,15 @@ namespace Microsoft.CodeAnalysis.CSharp
                 case ErrorCode.WRN_CaseConstantNamedUnderscore:
                 case ErrorCode.WRN_ThrowPossibleNull:
                 case ErrorCode.WRN_UnboxPossibleNull:
-                case ErrorCode.WRN_DefaultExpressionMayIntroduceNullT:
-                case ErrorCode.WRN_NullLiteralMayIntroduceNullT:
-                case ErrorCode.WRN_ConditionalAccessMayReturnNull:
-                case ErrorCode.WRN_AsOperatorMayReturnNull:
                 case ErrorCode.WRN_SwitchExpressionNotExhaustiveForNull:
                 case ErrorCode.WRN_ImplicitCopyInReadOnlyMember:
                 case ErrorCode.WRN_UnconsumedEnumeratorCancellationAttributeUsage:
                 case ErrorCode.WRN_UndecoratedCancellationTokenParameter:
                 case ErrorCode.WRN_NullabilityMismatchInTypeParameterNotNullConstraint:
                 case ErrorCode.WRN_DisallowNullAttributeForbidsMaybeNullAssignment:
+                case ErrorCode.WRN_ParameterConditionallyDisallowsNull:
                 case ErrorCode.WRN_NullReferenceInitializer:
-                case ErrorCode.WRN_ExpressionMayIntroduceNullT:
+                case ErrorCode.WRN_ShouldNotReturn:
                     return 1;
                 default:
                     return 0;

@@ -22,6 +22,11 @@
         <target state="translated">Чтобы применять "@$" вместо "$@" для интерполированной буквальной строки, следует использовать версию языка "{0}" или более позднюю.</target>
         <note />
       </trans-unit>
+      <trans-unit id="ERR_AmbigBinaryOpsOnUnconstrainedDefault">
+        <source>Operator '{0}' cannot be applied to 'default' and operand of type '{1}' because it is a type parameter that is not known to be a reference type</source>
+        <target state="translated">Оператор "{0}" не может быть применен к "default" и операнду типа "{1}", так как это параметр типа, который не является ссылочным типом.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ERR_AnnotationDisallowedInObjectCreation">
         <source>Cannot use a nullable reference type in object creation.</source>
         <target state="translated">При создании объекта невозможно использовать ссылочный тип, допускающий значения NULL.</target>
@@ -177,6 +182,11 @@
         <target state="translated">Дерево выражений не может содержать оператор == или != кортежа.</target>
         <note />
       </trans-unit>
+      <trans-unit id="ERR_ExternEventInitializer">
+        <source>'{0}': extern event cannot have initializer</source>
+        <target state="translated">"{0}": внешнее событие не может иметь инициализатор</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ERR_FeatureInPreview">
         <source>The feature '{0}' is currently in Preview and *unsupported*. To use Preview features, use the 'preview' language version.</source>
         <target state="translated">Функция "{0}" сейчас находится на этапе предварительной версии и *является неподдерживаемой*. Для работы с предварительными версиями функций используйте версию языка "preview".</target>
@@ -220,6 +230,16 @@
       <trans-unit id="ERR_IllegalSuppression">
         <source>The suppression operator is not allowed in this context</source>
         <target state="translated">Оператор подавления недопустим в данном контексте.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ERR_ImplicitIndexIndexerWithName">
+        <source>Invocation of implicit Index Indexer cannot name the argument.</source>
+        <target state="translated">Вызов неявного индексатора для индекса не может присвоить аргументу имя.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ERR_ImplicitRangeIndexerWithName">
+        <source>Invocation of implicit Range Indexer cannot name the argument.</source>
+        <target state="translated">Вызов неявного индексатора для диапазона не может присвоить аргументу имя.</target>
         <note />
       </trans-unit>
       <trans-unit id="ERR_InDynamicMethodArg">
@@ -298,8 +318,8 @@
         <note />
       </trans-unit>
       <trans-unit id="ERR_NoConvToIDispWrongAsync">
-        <source>'{0}': type used in a using statement must be implicitly convertible to 'System.IDisposable' or implement a suitable 'Dispose' method. Did you mean 'await using' rather than 'using'?</source>
-        <target state="translated">"{0}": тип, используемый в операторе using, должен допускать неявное преобразование в тип "System.IDisposable" или реализовывать подходящий метод "Dispose". Возможно, вы имели в виду "await using", а не "using"?</target>
+        <source>'{0}': type used in a using statement must be implicitly convertible to 'System.IDisposable'. Did you mean 'await using' rather than 'using'?</source>
+        <target state="translated">"{0}": тип, использованный в операторе using, должен иметь возможность неявного преобразования в System.IDisposable. Вы хотели использовать "await using" вместо "using"?</target>
         <note />
       </trans-unit>
       <trans-unit id="ERR_NotNullConstraintMustBeFirst">
@@ -470,6 +490,11 @@
       <trans-unit id="ERR_VarMayNotBindToType">
         <source>The syntax 'var' for a pattern is not permitted to refer to a type, but '{0}' is in scope here.</source>
         <target state="translated">Синтаксису "var" для шаблона запрещено ссылаться на тип, но "{0}" здесь входит в область.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ERR_VarianceInterfaceNesting">
+        <source>Enums, classes, and structures cannot be declared in an interface that has an 'in' or 'out' type parameter.</source>
+        <target state="translated">Перечисления, классы и структуры не могут быть объявлены в интерфейсе, имеющем параметр типа "In" или "Out".</target>
         <note />
       </trans-unit>
       <trans-unit id="ERR_WrongNumberOfSubpatterns">
@@ -840,6 +865,11 @@
       <trans-unit id="IDS_FeatureIndexingMovableFixedBuffers">
         <source>indexing movable fixed buffers</source>
         <target state="translated">индексирование перемещаемых буферов фиксированного размера</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="IDS_FeatureLambdaDiscardParameters">
+        <source>lambda discard parameters</source>
+        <target state="translated">Параметры удаления лямбда-выражения</target>
         <note />
       </trans-unit>
       <trans-unit id="IDS_FeatureNameShadowingInNestedFunctions">
@@ -1332,16 +1362,6 @@
         <target state="translated">SyntaxTree не входит в компиляцию, поэтому его невозможно удалить</target>
         <note />
       </trans-unit>
-      <trans-unit id="WRN_AsOperatorMayReturnNull">
-        <source>The 'as' operator may produce a null value when '{0}' is a non-nullable reference type.</source>
-        <target state="translated">Оператор as может создавать значение NULL, если "{0}" является ссылочным типом, не допускающим значение NULL.</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="WRN_AsOperatorMayReturnNull_Title">
-        <source>The 'as' operator may produce a null value for a type parameter.</source>
-        <target state="translated">Оператор as может создавать значение NULL для параметра типа.</target>
-        <note />
-      </trans-unit>
       <trans-unit id="WRN_CaseConstantNamedUnderscore">
         <source>The name '_' refers to the constant, not the discard pattern. Use 'var _' to discard the value, or '@_' to refer to a constant by that name.</source>
         <target state="translated">Имя "_" ссылается на константу, а не на шаблон отмены. Используйте "var _", чтобы отменить значение, или "@_", чтобы сослаться на константу по этому имени.</target>
@@ -1350,16 +1370,6 @@
       <trans-unit id="WRN_CaseConstantNamedUnderscore_Title">
         <source>Do not use '_' for a case constant.</source>
         <target state="translated">Не используйте "_" для константы case.</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="WRN_ConditionalAccessMayReturnNull">
-        <source>Conditional access may produce a null value when '{0}' is a non-nullable reference type.</source>
-        <target state="translated">Условный доступ может создавать значение NULL, если "{0}" является ссылочным типом, не допускающим значение NULL.</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="WRN_ConditionalAccessMayReturnNull_Title">
-        <source>Conditional access may produce a null value for a type parameter.</source>
-        <target state="translated">Условный доступ может создавать значение NULL для параметра типа.</target>
         <note />
       </trans-unit>
       <trans-unit id="WRN_ConvertingNullableToNonNullable">
@@ -1372,24 +1382,14 @@
         <target state="translated">Преобразование литерала, допускающего значение NULL или возможного значения NULL в тип, не допускающий значение NULL.</target>
         <note />
       </trans-unit>
-      <trans-unit id="WRN_DefaultExpressionMayIntroduceNullT">
-        <source>A default expression introduces a null value when '{0}' is a non-nullable reference type.</source>
-        <target state="translated">Выражение по умолчанию вводит значение NULL, если "{0}" является ссылочным типом, не допускающим значение NULL.</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="WRN_DefaultExpressionMayIntroduceNullT_Title">
-        <source>A default expression introduces a null value for a type parameter.</source>
-        <target state="translated">Выражение по умолчанию вводит значение NULL для параметра типа.</target>
-        <note />
-      </trans-unit>
       <trans-unit id="WRN_DisallowNullAttributeForbidsMaybeNullAssignment">
-        <source>A possible null value may not be assigned to a target marked with the [DisallowNull] attribute</source>
-        <target state="translated">Возможное значение NULL не может быть назначено целевому объекту, помеченному атрибутом [DisallowNull]</target>
+        <source>A possible null value may not be used for a type marked with [NotNull] or [DisallowNull]</source>
+        <target state="translated">Возможное значение NULL не может использоваться для типа, помеченного как [NotNull] или [DisallowNull]</target>
         <note />
       </trans-unit>
       <trans-unit id="WRN_DisallowNullAttributeForbidsMaybeNullAssignment_Title">
-        <source>A possible null value may not be assigned to a target marked with the [DisallowNull] attribute</source>
-        <target state="translated">Возможное значение NULL не может быть назначено целевому объекту, помеченному атрибутом [DisallowNull]</target>
+        <source>A possible null value may not be used for a type marked with [NotNull] or [DisallowNull]</source>
+        <target state="translated">Возможное значение NULL не может использоваться для типа, помеченного как [NotNull] или [DisallowNull]</target>
         <note />
       </trans-unit>
       <trans-unit id="WRN_DuplicateInterfaceWithNullabilityMismatchInBaseList">
@@ -1400,16 +1400,6 @@
       <trans-unit id="WRN_DuplicateInterfaceWithNullabilityMismatchInBaseList_Title">
         <source>Interface is already listed in the interface list with different nullability of reference types.</source>
         <target state="translated">Интерфейс уже указан в списке интерфейсов с другой допустимостью значений NULL ссылочных типов.</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="WRN_ExpressionMayIntroduceNullT">
-        <source>A member returning a [MaybeNull] value introduces a null value when '{0}' is a non-nullable reference type.</source>
-        <target state="translated">Член, возвращающий значение [MaybeNull], предоставляет значение NULL, если "{0}" является ссылочным типом, не допускающим значение NULL.</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="WRN_ExpressionMayIntroduceNullT_Title">
-        <source>A member returning a [MaybeNull] value introduces a null value for a type parameter.</source>
-        <target state="translated">Член, возвращающий значение [MaybeNull], предоставляет значение NULL для параметра типа.</target>
         <note />
       </trans-unit>
       <trans-unit id="WRN_GivenExpressionAlwaysMatchesConstant">
@@ -1482,16 +1472,6 @@
         <target state="translated">Литерал, равный NULL, не может быть преобразован в ссылочный тип, не допускающий значение NULL.</target>
         <note />
       </trans-unit>
-      <trans-unit id="WRN_NullLiteralMayIntroduceNullT">
-        <source>A null literal introduces a null value when '{0}' is a non-nullable reference type.</source>
-        <target state="translated">Литерал NULL вводит значение NULL, если "{0}" является ссылочным типом, не допускающим значение NULL.</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="WRN_NullLiteralMayIntroduceNullT_Title">
-        <source>A null literal introduces a null value for a type parameter.</source>
-        <target state="translated">Литерал NULL вводит значение NULL для параметра типа.</target>
-        <note />
-      </trans-unit>
       <trans-unit id="WRN_NullReferenceArgument">
         <source>Possible null reference argument for parameter '{0}' in '{1}'.</source>
         <target state="translated">Возможно, аргумент-ссылка, допускающий значение NULL, для параметра "{0}" в "{1}".</target>
@@ -1520,16 +1500,6 @@
       <trans-unit id="WRN_NullReferenceInitializer_Title">
         <source>Object or collection initializer implicitly dereferences possibly null member.</source>
         <target state="translated">Инициализатор объекта или коллекции неявно разыменовывает член, который может быть равен NULL.</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="WRN_NullReferenceIterationVariable">
-        <source>Possible null reference assignment to iteration variable</source>
-        <target state="translated">Назначение вероятной пустой ссылки переменной итерации</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="WRN_NullReferenceIterationVariable_Title">
-        <source>Possible null reference assignment to iteration variable</source>
-        <target state="translated">Назначение вероятной пустой ссылки переменной итерации</target>
         <note />
       </trans-unit>
       <trans-unit id="WRN_NullReferenceReceiver">
@@ -1780,6 +1750,26 @@
       <trans-unit id="WRN_NullableValueTypeMayBeNull_Title">
         <source>Nullable value type may be null.</source>
         <target state="translated">Тип значения, допускающего NULL, может быть NULL.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WRN_ParameterConditionallyDisallowsNull">
+        <source>Parameter '{0}' may not have a null value when exiting with '{1}'.</source>
+        <target state="translated">Параметр "{0}" не может иметь значение null при выходе с "{1}".</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WRN_ParameterConditionallyDisallowsNull_Title">
+        <source>Parameter may not have a null value when exiting in some condition.</source>
+        <target state="translated">Параметр не может иметь значение null при выходе в определенном условии.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WRN_ShouldNotReturn">
+        <source>A method marked [DoesNotReturn] should not return.</source>
+        <target state="translated">Метод, помеченный [DoesNotReturn], не должен возвращать значение.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WRN_ShouldNotReturn_Title">
+        <source>A method marked [DoesNotReturn] should not return.</source>
+        <target state="translated">Метод, помеченный [DoesNotReturn], не должен возвращать значение</target>
         <note />
       </trans-unit>
       <trans-unit id="WRN_SwitchExpressionNotExhaustive">
@@ -5971,8 +5961,8 @@ A catch() block after a catch (System.Exception e) block can catch non-CLS excep
         <note />
       </trans-unit>
       <trans-unit id="ERR_AssgReadonly">
-        <source>A readonly field cannot be assigned to (except in a constructor or a variable initializer)</source>
-        <target state="translated">Присваивание значений доступному только для чтения полю допускается только в конструкторе и в инициализаторе переменных.</target>
+        <source>A readonly field cannot be assigned to (except in a constructor of the class in which the field is defined or a variable initializer))</source>
+        <target state="translated">Полю, которое доступно только для чтения, не может быть присвоено значение (значение может быть присвоено только в конструкторе класса, в котором определено поле, или в инициализаторе переменной).</target>
         <note />
       </trans-unit>
       <trans-unit id="ERR_AssgReadonly2">
@@ -6141,8 +6131,8 @@ A catch() block after a catch (System.Exception e) block can catch non-CLS excep
         <note />
       </trans-unit>
       <trans-unit id="ERR_NoConvToIDisp">
-        <source>'{0}': type used in a using statement must be implicitly convertible to 'System.IDisposable' or implement a suitable 'Dispose' method.</source>
-        <target state="translated">"{0}": тип, используемый в операторе using, должен допускать неявное преобразование в тип "System.IDisposable" или реализовывать подходящий метод "Dispose".</target>
+        <source>'{0}': type used in a using statement must be implicitly convertible to 'System.IDisposable'.</source>
+        <target state="translated">"{0}": тип, использованный в операторе using, должен иметь возможность неявного преобразования в System.IDisposable.</target>
         <note />
       </trans-unit>
       <trans-unit id="ERR_BadParamRef">
@@ -7821,8 +7811,8 @@ You should consider suppressing the warning only if you're sure that you don't w
         <note />
       </trans-unit>
       <trans-unit id="ERR_ModuleEmitFailure">
-        <source>Failed to emit module '{0}'.</source>
-        <target state="translated">Не удалось выдать модуль "{0}".</target>
+        <source>Failed to emit module '{0}': {1}</source>
+        <target state="translated">Не удалось выдать модуль "{0}": {1}</target>
         <note />
       </trans-unit>
       <trans-unit id="ERR_FixedLocalInLambda">

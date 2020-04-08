@@ -82,6 +82,16 @@
         <target state="translated">转换为方法</target>
         <note />
       </trans-unit>
+      <trans-unit id="Convert_to_switch_expression">
+        <source>Convert to 'switch' expression</source>
+        <target state="translated">转换为 "switch" 表达式</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Convert_to_switch_statement">
+        <source>Convert to 'switch' statement</source>
+        <target state="translated">转换为 \"switch\" 语句</target>
+        <note />
+      </trans-unit>
       <trans-unit id="Declare_as_nullable">
         <source>Declare as nullable</source>
         <target state="translated">声明成可为 null</target>
@@ -126,6 +136,11 @@
         <source>Remove unused variables</source>
         <target state="translated">删除未使用的变量</target>
         <note />
+      </trans-unit>
+      <trans-unit id="Reverse_for_statement">
+        <source>Reverse 'for' statement</source>
+        <target state="translated">反向“for”语句</target>
+        <note>{Locked="for"} "for" is a C# keyword and should not be localized.</note>
       </trans-unit>
       <trans-unit id="Simplify_lambda_expression">
         <source>Simplify lambda expression</source>
@@ -747,11 +762,6 @@
         <target state="translated">添加 "this."</target>
         <note />
       </trans-unit>
-      <trans-unit id="Warning_Extracting_a_local_function_reference_may_produce_invalid_code">
-        <source>Warning: Extracting a local function reference may produce invalid code</source>
-        <target state="translated">警告: 提取本地函数引用可能会生成无效代码</target>
-        <note />
-      </trans-unit>
       <trans-unit id="Name">
         <source>&lt;Name&gt;</source>
         <target state="translated">&lt;名称&gt;</target>
@@ -780,11 +790,6 @@
       <trans-unit id="Add_parentheses_around_conditional_expression_in_interpolated_string">
         <source>Add parentheses</source>
         <target state="translated">添加括号</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="Convert_to_switch">
-        <source>Convert to 'switch'</source>
-        <target state="translated">转换为 “switch</target>
         <note />
       </trans-unit>
       <trans-unit id="Convert_to_foreach">

@@ -22,6 +22,11 @@
         <target state="translated">挿入される逐語的文字列で '$@' の代わりに '@$' を使用するには、言語バージョン '{0}' 以上をご使用ください。</target>
         <note />
       </trans-unit>
+      <trans-unit id="ERR_AmbigBinaryOpsOnUnconstrainedDefault">
+        <source>Operator '{0}' cannot be applied to 'default' and operand of type '{1}' because it is a type parameter that is not known to be a reference type</source>
+        <target state="translated">演算子 '{0}' は、参照型として認識されていない型パラメーターであるため、型 '{1}' の 'default' およびオペランドに適用できません</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ERR_AnnotationDisallowedInObjectCreation">
         <source>Cannot use a nullable reference type in object creation.</source>
         <target state="translated">オブジェクト作成では Null 許容参照型を使用できません。</target>
@@ -177,6 +182,11 @@
         <target state="translated">式ツリーにタプルの == または != 演算子を含めることはできません</target>
         <note />
       </trans-unit>
+      <trans-unit id="ERR_ExternEventInitializer">
+        <source>'{0}': extern event cannot have initializer</source>
+        <target state="translated">'{0}': extern イベントは初期化子を持つことができません</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ERR_FeatureInPreview">
         <source>The feature '{0}' is currently in Preview and *unsupported*. To use Preview features, use the 'preview' language version.</source>
         <target state="translated">機能 '{0}' は現在、プレビュー段階であり、*サポートされていません*。プレビュー機能を使用するには、'preview' 言語バージョンを使用してください。</target>
@@ -220,6 +230,16 @@
       <trans-unit id="ERR_IllegalSuppression">
         <source>The suppression operator is not allowed in this context</source>
         <target state="translated">このコンテキストでは抑制演算子が許可されていません</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ERR_ImplicitIndexIndexerWithName">
+        <source>Invocation of implicit Index Indexer cannot name the argument.</source>
+        <target state="translated">暗黙的なインデックス インデクサーの呼び出しでは、引数に名前を付けることはできません。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ERR_ImplicitRangeIndexerWithName">
+        <source>Invocation of implicit Range Indexer cannot name the argument.</source>
+        <target state="translated">暗黙的な範囲インデクサーの呼び出しでは、引数に名前を付けることはできません。</target>
         <note />
       </trans-unit>
       <trans-unit id="ERR_InDynamicMethodArg">
@@ -298,8 +318,8 @@
         <note />
       </trans-unit>
       <trans-unit id="ERR_NoConvToIDispWrongAsync">
-        <source>'{0}': type used in a using statement must be implicitly convertible to 'System.IDisposable' or implement a suitable 'Dispose' method. Did you mean 'await using' rather than 'using'?</source>
-        <target state="translated">'{0}': using ステートメントで使用される型は、暗黙的に 'System.IDisposable' に変換可能であるか、適切な 'Dispose' メソッドを実装する必要があります。'using' ではなく 'await using' ですか?</target>
+        <source>'{0}': type used in a using statement must be implicitly convertible to 'System.IDisposable'. Did you mean 'await using' rather than 'using'?</source>
+        <target state="translated">'{0}': using ステートメントで使用される型は、暗黙的に 'System.IDisposable' への変換が可能でなければなりません。'using' ではなく 'await using' ですか?</target>
         <note />
       </trans-unit>
       <trans-unit id="ERR_NotNullConstraintMustBeFirst">
@@ -369,7 +389,7 @@
       </trans-unit>
       <trans-unit id="ERR_ReAbstractionInNoPIAType">
         <source>Type '{0}' cannot be embedded because it has a re-abstraction of a member from base interface. Consider setting the 'Embed Interop Types' property to false.</source>
-        <target state="translated">型 '{0}' には基底インターフェイスからの再抽象化があるため、この型を埋め込むことはできません。'相互運用型の埋め込み' プロパティを false に設定することをご検討ください。</target>
+        <target state="translated">型 '{0}' には基底インターフェイスからのメンバーの再抽象化があるため、この型を埋め込むことはできません。'相互運用型の埋め込み' プロパティを false に設定することをご検討ください。</target>
         <note />
       </trans-unit>
       <trans-unit id="ERR_ReadOnlyModMissingAccessor">
@@ -470,6 +490,11 @@
       <trans-unit id="ERR_VarMayNotBindToType">
         <source>The syntax 'var' for a pattern is not permitted to refer to a type, but '{0}' is in scope here.</source>
         <target state="translated">型を参照するためにパターンに構文 'var' を使用することは許可されていませんが、ここでは '{0}' がスコープ内にあります。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ERR_VarianceInterfaceNesting">
+        <source>Enums, classes, and structures cannot be declared in an interface that has an 'in' or 'out' type parameter.</source>
+        <target state="translated">'in' または 'out' の型パラメーターを持つインターフェイス内では、列挙体、クラス、および構造体を宣言することはできません。</target>
         <note />
       </trans-unit>
       <trans-unit id="ERR_WrongNumberOfSubpatterns">
@@ -840,6 +865,11 @@
       <trans-unit id="IDS_FeatureIndexingMovableFixedBuffers">
         <source>indexing movable fixed buffers</source>
         <target state="translated">移動可能な固定バッファーのインデックス化</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="IDS_FeatureLambdaDiscardParameters">
+        <source>lambda discard parameters</source>
+        <target state="translated">ラムダ ディスカード パラメーター</target>
         <note />
       </trans-unit>
       <trans-unit id="IDS_FeatureNameShadowingInNestedFunctions">
@@ -1332,16 +1362,6 @@
         <target state="translated">SyntaxTree はコンパイルの一部ではないため削除できません</target>
         <note />
       </trans-unit>
-      <trans-unit id="WRN_AsOperatorMayReturnNull">
-        <source>The 'as' operator may produce a null value when '{0}' is a non-nullable reference type.</source>
-        <target state="translated">'{0}' が NULL 非許容の参照型の場合、'as' 演算子は null 値を生成することがあります。</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="WRN_AsOperatorMayReturnNull_Title">
-        <source>The 'as' operator may produce a null value for a type parameter.</source>
-        <target state="translated">'as' 演算子は、型パラメーターに対して null 値を生成することがあります。</target>
-        <note />
-      </trans-unit>
       <trans-unit id="WRN_CaseConstantNamedUnderscore">
         <source>The name '_' refers to the constant, not the discard pattern. Use 'var _' to discard the value, or '@_' to refer to a constant by that name.</source>
         <target state="translated">名前 '_' は、破棄パターンではなく定数を参照しています。値を破棄する場合には 'var _' を、そのような名前の定数を参照する場合には '@_' を使用します。</target>
@@ -1350,16 +1370,6 @@
       <trans-unit id="WRN_CaseConstantNamedUnderscore_Title">
         <source>Do not use '_' for a case constant.</source>
         <target state="translated">case 定数に '_' を使用しないでください。</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="WRN_ConditionalAccessMayReturnNull">
-        <source>Conditional access may produce a null value when '{0}' is a non-nullable reference type.</source>
-        <target state="translated">条件付きアクセスでは、'{0}' が NULL 非許容の参照型の場合、null 値が生成されることがあります。</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="WRN_ConditionalAccessMayReturnNull_Title">
-        <source>Conditional access may produce a null value for a type parameter.</source>
-        <target state="translated">条件付きアクセスでは、型パラメーターに null 値が生成されることがあります。</target>
         <note />
       </trans-unit>
       <trans-unit id="WRN_ConvertingNullableToNonNullable">
@@ -1372,24 +1382,14 @@
         <target state="translated">Null リテラルまたは Null の可能性がある値を Null 非許容型に変換しています。</target>
         <note />
       </trans-unit>
-      <trans-unit id="WRN_DefaultExpressionMayIntroduceNullT">
-        <source>A default expression introduces a null value when '{0}' is a non-nullable reference type.</source>
-        <target state="translated">'{0}' が null 非許容参照型である場合、既定の式は null 値を導入します。</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="WRN_DefaultExpressionMayIntroduceNullT_Title">
-        <source>A default expression introduces a null value for a type parameter.</source>
-        <target state="translated">既定の式は、型パラメーターに null 値を導入します。</target>
-        <note />
-      </trans-unit>
       <trans-unit id="WRN_DisallowNullAttributeForbidsMaybeNullAssignment">
-        <source>A possible null value may not be assigned to a target marked with the [DisallowNull] attribute</source>
-        <target state="translated">[DisallowNull] 属性でマークされたターゲットに Null の可能性がある値を割り当てることはできません</target>
+        <source>A possible null value may not be used for a type marked with [NotNull] or [DisallowNull]</source>
+        <target state="translated">[NotNull] または [DisallowNull] としてマークされた型に対して、Null の可能性がある値を使用することはできません</target>
         <note />
       </trans-unit>
       <trans-unit id="WRN_DisallowNullAttributeForbidsMaybeNullAssignment_Title">
-        <source>A possible null value may not be assigned to a target marked with the [DisallowNull] attribute</source>
-        <target state="translated">[DisallowNull] 属性でマークされたターゲットに Null の可能性がある値を割り当てることはできません</target>
+        <source>A possible null value may not be used for a type marked with [NotNull] or [DisallowNull]</source>
+        <target state="translated">[NotNull] または [DisallowNull] としてマークされた型に対して、Null の可能性がある値を使用することはできない</target>
         <note />
       </trans-unit>
       <trans-unit id="WRN_DuplicateInterfaceWithNullabilityMismatchInBaseList">
@@ -1400,16 +1400,6 @@
       <trans-unit id="WRN_DuplicateInterfaceWithNullabilityMismatchInBaseList_Title">
         <source>Interface is already listed in the interface list with different nullability of reference types.</source>
         <target state="translated">インターフェイスは既にインターフェイス リストに存在しますが、参照型の Null 許容性が異なっています。</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="WRN_ExpressionMayIntroduceNullT">
-        <source>A member returning a [MaybeNull] value introduces a null value when '{0}' is a non-nullable reference type.</source>
-        <target state="translated">'{0}' が null 非許容の参照型である場合、[MaybeNull] 値を返すメンバーで null 値が発生します。</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="WRN_ExpressionMayIntroduceNullT_Title">
-        <source>A member returning a [MaybeNull] value introduces a null value for a type parameter.</source>
-        <target state="translated">[MaybeNull] 値を返すメンバーが、型パラメーターに null 値を導入しています。</target>
         <note />
       </trans-unit>
       <trans-unit id="WRN_GivenExpressionAlwaysMatchesConstant">
@@ -1482,16 +1472,6 @@
         <target state="translated">null リテラルを null 非許容参照型に変換できません。</target>
         <note />
       </trans-unit>
-      <trans-unit id="WRN_NullLiteralMayIntroduceNullT">
-        <source>A null literal introduces a null value when '{0}' is a non-nullable reference type.</source>
-        <target state="translated">null リテラルは、'{0}' が null 非許容参照型である場合に null 値を導入します。</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="WRN_NullLiteralMayIntroduceNullT_Title">
-        <source>A null literal introduces a null value for a type parameter.</source>
-        <target state="translated">null リテラルは、型パラメーターに null 値を導入します。</target>
-        <note />
-      </trans-unit>
       <trans-unit id="WRN_NullReferenceArgument">
         <source>Possible null reference argument for parameter '{0}' in '{1}'.</source>
         <target state="translated">'{1}' 内のパラメーター '{0}' に Null 参照引数がある可能性があります。</target>
@@ -1520,16 +1500,6 @@
       <trans-unit id="WRN_NullReferenceInitializer_Title">
         <source>Object or collection initializer implicitly dereferences possibly null member.</source>
         <target state="translated">オブジェクトまたはコレクション初期化子が、null の可能性があるメンバーを暗黙的に逆参照しています。</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="WRN_NullReferenceIterationVariable">
-        <source>Possible null reference assignment to iteration variable</source>
-        <target state="translated">繰り返し変数に対する null 参照代入の可能性があります</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="WRN_NullReferenceIterationVariable_Title">
-        <source>Possible null reference assignment to iteration variable</source>
-        <target state="translated">繰り返し変数に対する null 参照代入の可能性があります</target>
         <note />
       </trans-unit>
       <trans-unit id="WRN_NullReferenceReceiver">
@@ -1782,9 +1752,29 @@
         <target state="translated">Null 許容値型は Null になる場合があります。</target>
         <note />
       </trans-unit>
+      <trans-unit id="WRN_ParameterConditionallyDisallowsNull">
+        <source>Parameter '{0}' may not have a null value when exiting with '{1}'.</source>
+        <target state="translated">'{1}' で終了する場合、パラメーター '{0}' の値を null にすることはできません。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WRN_ParameterConditionallyDisallowsNull_Title">
+        <source>Parameter may not have a null value when exiting in some condition.</source>
+        <target state="translated">一部の条件で終了するときに、パラメーターの値を null にすることはできません。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WRN_ShouldNotReturn">
+        <source>A method marked [DoesNotReturn] should not return.</source>
+        <target state="translated">[DoesNotReturn] とマークされたメソッドを返すことはできません。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WRN_ShouldNotReturn_Title">
+        <source>A method marked [DoesNotReturn] should not return.</source>
+        <target state="translated">[DoesNotReturn] とマークされたメソッドの返却禁止。</target>
+        <note />
+      </trans-unit>
       <trans-unit id="WRN_SwitchExpressionNotExhaustive">
         <source>The switch expression does not handle all possible values of its input type (it is not exhaustive).</source>
-        <target state="translated">switch 式が入力の種類のうちすべての可能な入力を処理していません (すべてを網羅していません)。</target>
+        <target state="translated">switch 式が入力の種類で可能なすべての値を処理していません (すべてを網羅していません)。</target>
         <note />
       </trans-unit>
       <trans-unit id="WRN_SwitchExpressionNotExhaustiveForNull">
@@ -1799,7 +1789,7 @@
       </trans-unit>
       <trans-unit id="WRN_SwitchExpressionNotExhaustive_Title">
         <source>The switch expression does not handle all possible values of its input type (it is not exhaustive).</source>
-        <target state="translated">switch 式が入力の種類のうちすべての可能な入力を処理していません (すべてを網羅していません)。</target>
+        <target state="translated">switch 式が入力の種類で可能なすべての値を処理していません (すべてを網羅していません)。</target>
         <note />
       </trans-unit>
       <trans-unit id="WRN_ThrowPossibleNull">
@@ -5971,8 +5961,8 @@ AssemblyInfo.cs ファイルで RuntimeCompatibilityAttribute が false に設�
         <note />
       </trans-unit>
       <trans-unit id="ERR_AssgReadonly">
-        <source>A readonly field cannot be assigned to (except in a constructor or a variable initializer)</source>
-        <target state="translated">読み取り専用フィールドに割り当てることはできません (コンストラクター、変数初期化子では可 )。</target>
+        <source>A readonly field cannot be assigned to (except in a constructor of the class in which the field is defined or a variable initializer))</source>
+        <target state="translated">読み取り専用フィールドを割り当てることはできません (フィールドが定義されているクラスのコンストラクターまたは変数初期化子では可)</target>
         <note />
       </trans-unit>
       <trans-unit id="ERR_AssgReadonly2">
@@ -6141,8 +6131,8 @@ AssemblyInfo.cs ファイルで RuntimeCompatibilityAttribute が false に設�
         <note />
       </trans-unit>
       <trans-unit id="ERR_NoConvToIDisp">
-        <source>'{0}': type used in a using statement must be implicitly convertible to 'System.IDisposable' or implement a suitable 'Dispose' method.</source>
-        <target state="translated">'{0}': using ステートメントで使用される型は、暗黙的に 'System.IDisposable' に変換可能であるか、適切な 'Dispose' メソッドを実装する必要があります。</target>
+        <source>'{0}': type used in a using statement must be implicitly convertible to 'System.IDisposable'.</source>
+        <target state="translated">'{0}': using ステートメントで使用される型は、暗黙的に 'System.IDisposable' への変換が可能でなければなりません。</target>
         <note />
       </trans-unit>
       <trans-unit id="ERR_BadParamRef">
@@ -6527,7 +6517,7 @@ AssemblyInfo.cs ファイルで RuntimeCompatibilityAttribute が false に設�
       </trans-unit>
       <trans-unit id="ERR_BadResourceVis">
         <source>Invalid option '{0}'; Resource visibility must be either 'public' or 'private'</source>
-        <target state="translated">無効なオプション '{0}' です。リソースの参照可能範囲は 'public' または 'private' でなければなりません。</target>
+        <target state="translated">無効なオプション '{0}' です。リソースの表示範囲は 'public' または 'private' でなければなりません。</target>
         <note />
       </trans-unit>
       <trans-unit id="ERR_DefaultValueTypeMustMatch">
@@ -7821,8 +7811,8 @@ You should consider suppressing the warning only if you're sure that you don't w
         <note />
       </trans-unit>
       <trans-unit id="ERR_ModuleEmitFailure">
-        <source>Failed to emit module '{0}'.</source>
-        <target state="translated">モジュール '{0}' の作成に失敗しました。</target>
+        <source>Failed to emit module '{0}': {1}</source>
+        <target state="translated">モジュール '{0}' の生成に失敗しました: {1}</target>
         <note />
       </trans-unit>
       <trans-unit id="ERR_FixedLocalInLambda">

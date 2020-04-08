@@ -1,4 +1,6 @@
-﻿// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+// See the LICENSE file in the project root for more information.
 
 using System;
 using System.Collections.Generic;
@@ -654,7 +656,7 @@ namespace Microsoft.CodeAnalysis.CSharp
                     }
                     else if (reorderedArgument.Kind == TypedConstantKind.Array &&
                         parameter.Type.TypeKind == TypeKind.Array &&
-                        !((TypeSymbol)reorderedArgument.Type).Equals(parameter.Type, TypeCompareKind.AllIgnoreOptions))
+                        !((TypeSymbol)reorderedArgument.TypeInternal).Equals(parameter.Type, TypeCompareKind.AllIgnoreOptions))
                     {
                         // NOTE: As in dev11, we don't allow array covariance conversions (presumably, we don't have a way to
                         // represent the conversion in metadata).
@@ -910,7 +912,7 @@ namespace Microsoft.CodeAnalysis.CSharp
             }
 
             HashSet<DiagnosticInfo> useSiteDiagnostics = null; // ignoring, since already bound argument and parameter
-            Conversion conversion = conversions.ClassifyBuiltInConversion((TypeSymbol)argument.Type, parameter.Type, ref useSiteDiagnostics);
+            Conversion conversion = conversions.ClassifyBuiltInConversion((TypeSymbol)argument.TypeInternal, parameter.Type, ref useSiteDiagnostics);
 
             // NOTE: Won't always succeed, even though we've performed overload resolution.
             // For example, passing int[] to params object[] actually treats the int[] as an element of the object[].

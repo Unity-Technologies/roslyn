@@ -1,4 +1,6 @@
-﻿// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+// See the LICENSE file in the project root for more information.
 
 using System;
 using System.Collections.Generic;
@@ -1156,7 +1158,7 @@ True");
             VerifyModelForDeclarationOrVarSimplePattern(model, x1Decl[0], x1Ref[0]);
             VerifyModelForDeclarationOrVarSimplePattern(model, x1Decl[1], x1Ref[1]);
 
-            Assert.Equal("System.Int32", ((LocalSymbol)compilation.GetSemanticModel(tree).GetDeclaredSymbol(x1Decl[0])).TypeWithAnnotations.ToTestDisplayString());
+            Assert.Equal("System.Int32", ((ILocalSymbol)compilation.GetSemanticModel(tree).GetDeclaredSymbol(x1Decl[0])).Type.ToTestDisplayString());
 
             CreateCompilationWithMscorlib45(source, options: TestOptions.DebugExe, parseOptions: TestOptions.Regular7_2).VerifyDiagnostics(
                 // (12,40): error CS8320: Feature 'declaration of expression variables in member initializers and queries' is not available in C# 7.2. Please use language version 7.3 or greater.
@@ -3478,13 +3480,13 @@ unsafe struct S
 
             var x1Decl = GetPatternDeclarations(tree, "x1").Single();
             var x1Ref = GetReferences(tree, "x1").Single();
-            Assert.True(((TypeSymbol)compilation.GetSemanticModel(tree).GetTypeInfo(x1Ref).Type).IsErrorType());
+            Assert.True(((ITypeSymbol)compilation.GetSemanticModel(tree).GetTypeInfo(x1Ref).Type).IsErrorType());
             VerifyModelNotSupported(model, x1Decl, x1Ref);
 
             var x2Decl = GetPatternDeclarations(tree, "x2").Single();
             var x2Ref = GetReferences(tree, "x2").Single();
             VerifyModelNotSupported(model, x2Decl, x2Ref);
-            Assert.True(((TypeSymbol)compilation.GetSemanticModel(tree).GetTypeInfo(x2Ref).Type).IsErrorType());
+            Assert.True(((ITypeSymbol)compilation.GetSemanticModel(tree).GetTypeInfo(x2Ref).Type).IsErrorType());
 
             compilation.VerifyDiagnostics(
                 // (5,17): error CS7092: A fixed buffer may only have one dimension.
@@ -6853,6 +6855,83 @@ public class C
 }
 ").VerifyDiagnostics(
                 );
+        }
+
+        [Fact]
+        [WorkItem(39960, "https://github.com/dotnet/roslyn/issues/39960")]
+        public void MissingExceptionType()
+        {
+            var source = @"
+class C
+{
+    void M(bool b, dynamic d)
+    {
+        _ = b
+            ? throw new System.NullReferenceException()
+            : throw null;
+        L();
+        throw null;
+        void L() => throw d;
+    }
+}
+";
+            var comp = CreateCompilation(source);
+            comp.MakeTypeMissing(WellKnownType.System_Exception);
+            comp.VerifyDiagnostics(
+                // (7,21): error CS0518: Predefined type 'System.Exception' is not defined or imported
+                //             ? throw new System.NullReferenceException()
+                Diagnostic(ErrorCode.ERR_PredefinedTypeNotFound, "new System.NullReferenceException()").WithArguments("System.Exception").WithLocation(7, 21),
+                // (8,21): error CS0518: Predefined type 'System.Exception' is not defined or imported
+                //             : throw null;
+                Diagnostic(ErrorCode.ERR_PredefinedTypeNotFound, "null").WithArguments("System.Exception").WithLocation(8, 21),
+                // (10,15): error CS0518: Predefined type 'System.Exception' is not defined or imported
+                //         throw null;
+                Diagnostic(ErrorCode.ERR_PredefinedTypeNotFound, "null").WithArguments("System.Exception").WithLocation(10, 15),
+                // (11,27): error CS0518: Predefined type 'System.Exception' is not defined or imported
+                //         void L() => throw d;
+                Diagnostic(ErrorCode.ERR_PredefinedTypeNotFound, "d").WithArguments("System.Exception").WithLocation(11, 27)
+                );
+
+            comp = CreateCompilation(source, parseOptions: TestOptions.Regular7);
+            comp.MakeTypeMissing(WellKnownType.System_Exception);
+            comp.VerifyDiagnostics(
+                // (7,21): error CS0155: The type caught or thrown must be derived from System.Exception
+                //             ? throw new System.NullReferenceException()
+                Diagnostic(ErrorCode.ERR_BadExceptionType, "new System.NullReferenceException()").WithLocation(7, 21),
+                // (11,27): error CS0155: The type caught or thrown must be derived from System.Exception
+                //         void L() => throw d;
+                Diagnostic(ErrorCode.ERR_BadExceptionType, "d").WithLocation(11, 27)
+                );
+        }
+
+        [Fact]
+        public void MissingExceptionType_In7()
+        {
+            var source = @"
+class C
+{
+    static void Main()
+    {
+        try
+        {
+            Test();
+        }
+        catch
+        {
+            System.Console.WriteLine(""in catch"");
+        }
+    }
+
+    static void Test()
+    {
+        throw null;
+    }
+}";
+            var comp = CreateCompilation(source, options: TestOptions.DebugExe, parseOptions: TestOptions.Regular7);
+            comp.MakeTypeMissing(WellKnownType.System_Exception);
+            comp.VerifyDiagnostics(
+                );
+            CompileAndVerify(comp, expectedOutput: "in catch");
         }
     }
 }

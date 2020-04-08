@@ -82,6 +82,16 @@
         <target state="translated">メソッドに変換</target>
         <note />
       </trans-unit>
+      <trans-unit id="Convert_to_switch_expression">
+        <source>Convert to 'switch' expression</source>
+        <target state="translated">'switch' 式に変換する</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Convert_to_switch_statement">
+        <source>Convert to 'switch' statement</source>
+        <target state="translated">'switch' ステートメントに変換</target>
+        <note />
+      </trans-unit>
       <trans-unit id="Declare_as_nullable">
         <source>Declare as nullable</source>
         <target state="translated">Null 許容型として宣言する</target>
@@ -126,6 +136,11 @@
         <source>Remove unused variables</source>
         <target state="translated">未使用の変数を削除する</target>
         <note />
+      </trans-unit>
+      <trans-unit id="Reverse_for_statement">
+        <source>Reverse 'for' statement</source>
+        <target state="translated">'for' ステートメントの反転</target>
+        <note>{Locked="for"} "for" is a C# keyword and should not be localized.</note>
       </trans-unit>
       <trans-unit id="Simplify_lambda_expression">
         <source>Simplify lambda expression</source>
@@ -747,11 +762,6 @@
         <target state="translated">this' を追加します。</target>
         <note />
       </trans-unit>
-      <trans-unit id="Warning_Extracting_a_local_function_reference_may_produce_invalid_code">
-        <source>Warning: Extracting a local function reference may produce invalid code</source>
-        <target state="translated">警告: ローカル関数参照を抽出すると無効なコードが生成される可能性があります</target>
-        <note />
-      </trans-unit>
       <trans-unit id="Name">
         <source>&lt;Name&gt;</source>
         <target state="translated">&lt;名前&gt;</target>
@@ -780,11 +790,6 @@
       <trans-unit id="Add_parentheses_around_conditional_expression_in_interpolated_string">
         <source>Add parentheses</source>
         <target state="translated">括弧を追加します</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="Convert_to_switch">
-        <source>Convert to 'switch'</source>
-        <target state="translated">'switch' に変換する</target>
         <note />
       </trans-unit>
       <trans-unit id="Convert_to_foreach">

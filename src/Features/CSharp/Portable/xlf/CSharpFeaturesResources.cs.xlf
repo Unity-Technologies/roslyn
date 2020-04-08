@@ -82,6 +82,16 @@
         <target state="translated">Převést na metodu</target>
         <note />
       </trans-unit>
+      <trans-unit id="Convert_to_switch_expression">
+        <source>Convert to 'switch' expression</source>
+        <target state="translated">Převést na výraz switch</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Convert_to_switch_statement">
+        <source>Convert to 'switch' statement</source>
+        <target state="translated">Převést na příkaz switch</target>
+        <note />
+      </trans-unit>
       <trans-unit id="Declare_as_nullable">
         <source>Declare as nullable</source>
         <target state="translated">Deklarovat jako s možnou hodnotou null</target>
@@ -126,6 +136,11 @@
         <source>Remove unused variables</source>
         <target state="translated">Odebrat nepoužívané proměnné</target>
         <note />
+      </trans-unit>
+      <trans-unit id="Reverse_for_statement">
+        <source>Reverse 'for' statement</source>
+        <target state="translated">Obrátit příkaz for</target>
+        <note>{Locked="for"} "for" is a C# keyword and should not be localized.</note>
       </trans-unit>
       <trans-unit id="Simplify_lambda_expression">
         <source>Simplify lambda expression</source>
@@ -747,11 +762,6 @@
         <target state="translated">Přidejte položku this.</target>
         <note />
       </trans-unit>
-      <trans-unit id="Warning_Extracting_a_local_function_reference_may_produce_invalid_code">
-        <source>Warning: Extracting a local function reference may produce invalid code</source>
-        <target state="translated">Upozornění: Extrahování odkazu na místní funkci může vytvořit neplatný kód.</target>
-        <note />
-      </trans-unit>
       <trans-unit id="Name">
         <source>&lt;Name&gt;</source>
         <target state="translated">&lt;Název&gt;</target>
@@ -780,11 +790,6 @@
       <trans-unit id="Add_parentheses_around_conditional_expression_in_interpolated_string">
         <source>Add parentheses</source>
         <target state="translated">Přidat závorky</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="Convert_to_switch">
-        <source>Convert to 'switch'</source>
-        <target state="translated">Převést na switch</target>
         <note />
       </trans-unit>
       <trans-unit id="Convert_to_foreach">

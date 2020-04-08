@@ -1,4 +1,6 @@
-﻿' Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
+﻿' Licensed to the .NET Foundation under one or more agreements.
+' The .NET Foundation licenses this file to you under the MIT license.
+' See the LICENSE file in the project root for more information.
 
 Imports System.Collections.Immutable
 Imports System.Text
@@ -60,6 +62,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         End Function
 
         Public Function SupportsThrowExpression(options As ParseOptions) As Boolean Implements ISyntaxFactsService.SupportsThrowExpression
+            Return False
+        End Function
+
+        Public Function SupportsLocalFunctionDeclaration(options As ParseOptions) As Boolean Implements ISyntaxFactsService.SupportsLocalFunctionDeclaration
             Return False
         End Function
 
@@ -1312,16 +1318,25 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                       TryCast(node, MemberAccessExpressionSyntax)?.Name)
         End Function
 
+        Public Function GetLeftSideOfDot(node As SyntaxNode, Optional allowImplicitTarget As Boolean = False) As SyntaxNode Implements ISyntaxFactsService.GetLeftSideOfDot
+            Return If(TryCast(node, QualifiedNameSyntax)?.Left,
+                      TryCast(node, MemberAccessExpressionSyntax)?.GetExpressionOfMemberAccessExpression(allowImplicitTarget))
+        End Function
+
         Public Function IsLeftSideOfExplicitInterfaceSpecifier(node As SyntaxNode) As Boolean Implements ISyntaxFactsService.IsLeftSideOfExplicitInterfaceSpecifier
             Return IsLeftSideOfDot(node) AndAlso TryCast(node.Parent.Parent, ImplementsClauseSyntax) IsNot Nothing
         End Function
 
         Public Function IsLeftSideOfAssignment(node As SyntaxNode) As Boolean Implements ISyntaxFactsService.IsLeftSideOfAssignment
-            Return TryCast(node, ExpressionSyntax).IsLeftSideOfAnyAssignStatement
+            Return TryCast(node, ExpressionSyntax).IsLeftSideOfSimpleAssignmentStatement
         End Function
 
         Public Function IsLeftSideOfAnyAssignment(node As SyntaxNode) As Boolean Implements ISyntaxFactsService.IsLeftSideOfAnyAssignment
-            Return TryCast(node, ExpressionSyntax).IsLeftSideOfAnyAssignStatement
+            Return TryCast(node, ExpressionSyntax).IsLeftSideOfAnyAssignmentStatement
+        End Function
+
+        Public Function IsLeftSideOfCompoundAssignment(node As SyntaxNode) As Boolean Implements ISyntaxFactsService.IsLeftSideOfCompoundAssignment
+            Return TryCast(node, ExpressionSyntax).IsLeftSideOfCompoundAssignmentStatement
         End Function
 
         Public Function GetRightHandSideOfAssignment(node As SyntaxNode) As SyntaxNode Implements ISyntaxFactsService.GetRightHandSideOfAssignment
@@ -1504,7 +1519,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             Return False
         End Function
 
-        Public Sub AddFirstMissingCloseBrace(root As SyntaxNode, contextNode As SyntaxNode, ByRef newRoot As SyntaxNode, ByRef newContextNode As SyntaxNode) Implements ISyntaxFactsService.AddFirstMissingCloseBrace
+        Public Sub AddFirstMissingCloseBrace(Of TContextNode As SyntaxNode)(
+                root As SyntaxNode, contextNode As TContextNode,
+                ByRef newRoot As SyntaxNode, ByRef newContextNode As TContextNode) Implements ISyntaxFactsService.AddFirstMissingCloseBrace
             ' Nothing to be done.  VB doesn't have close braces
             newRoot = root
             newContextNode = contextNode
@@ -2061,6 +2078,25 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
 
         Private Function ISyntaxFactsService_IsExpressionStatement(node As SyntaxNode) As Boolean Implements ISyntaxFactsService.IsExpressionStatement
             Return MyBase.IsExpressionStatement(node)
+        End Function
+
+        Public Function IsUsingAliasDirective(node As SyntaxNode) As Boolean Implements ISyntaxFactsService.IsUsingAliasDirective
+            Dim importStatement = TryCast(node, ImportsStatementSyntax)
+
+            If (importStatement IsNot Nothing) Then
+                For Each importsClause In importStatement.ImportsClauses
+
+                    If importsClause.Kind = SyntaxKind.SimpleImportsClause Then
+                        Dim simpleImportsClause = DirectCast(importsClause, SimpleImportsClauseSyntax)
+
+                        If simpleImportsClause.Alias IsNot Nothing Then
+                            Return True
+                        End If
+                    End If
+                Next
+            End If
+
+            Return False
         End Function
     End Class
 End Namespace
