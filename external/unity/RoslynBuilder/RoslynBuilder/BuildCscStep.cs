@@ -9,9 +9,9 @@ namespace RoslynBuilder
 	{
 		public void Execute()
 		{
-			BuildRoslynComponents("netcoreapp2.1", "win-x64", KnownPaths.CscWindowsBinariesDirectory);
-			BuildRoslynComponents("netcoreapp2.1", "osx-x64", KnownPaths.CscMacBinariesDirectory);
-			BuildRoslynComponents("netcoreapp2.1", "linux-x64", KnownPaths.CscLinuxBinariesDirectory);
+			BuildRoslynComponents("netcoreapp3.1", "win-x64", KnownPaths.CscWindowsBinariesDirectory);
+			BuildRoslynComponents("netcoreapp3.1", "osx-x64", KnownPaths.CscMacBinariesDirectory);
+			BuildRoslynComponents("netcoreapp3.1", "linux-x64", KnownPaths.CscLinuxBinariesDirectory);
 		}
 
 		private static void BuildRoslynComponents(string framework, string runtime, NPath outputDir)
