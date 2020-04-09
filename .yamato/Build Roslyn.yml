@@ -1,4 +1,4 @@
-name: build
+name: Build Roslyn
 
 agent:
   type: Unity::VM
@@ -8,6 +8,14 @@ agent:
 commands:
   - git submodule update --init --recursive
   - external\unity\build-roslyn.bat
+
+triggers:
+  branches:
+    only:
+      - "/.*/"
+  recurring:
+    - branch: unity-master
+      frequency: weekly
 
 artifacts: 
   build:
