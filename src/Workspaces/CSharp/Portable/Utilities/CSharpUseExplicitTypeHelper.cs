@@ -1,4 +1,6 @@
-﻿// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+// See the LICENSE file in the project root for more information.
 
 using System.Threading;
 using Microsoft.CodeAnalysis;
@@ -18,23 +20,21 @@ namespace Microsoft.CodeAnalysis.CSharp.Utilities
         {
         }
 
-        protected override bool IsStylePreferred(
-            SemanticModel semanticModel, OptionSet optionSet,
-            State state, CancellationToken cancellationToken)
+        protected override bool IsStylePreferred(in State state)
         {
             var stylePreferences = state.TypeStylePreference;
 
             if (state.IsInIntrinsicTypeContext)
             {
-                return !stylePreferences.HasFlag(TypeStylePreference.ImplicitTypeForIntrinsicTypes);
+                return !stylePreferences.HasFlag(UseVarPreference.ForBuiltInTypes);
             }
             else if (state.IsTypeApparentInContext)
             {
-                return !stylePreferences.HasFlag(TypeStylePreference.ImplicitTypeWhereApparent);
+                return !stylePreferences.HasFlag(UseVarPreference.WhenTypeIsApparent);
             }
             else
             {
-                return !stylePreferences.HasFlag(TypeStylePreference.ImplicitTypeWherePossible);
+                return !stylePreferences.HasFlag(UseVarPreference.Elsewhere);
             }
         }
 
@@ -88,10 +88,17 @@ namespace Microsoft.CodeAnalysis.CSharp.Utilities
                 typeName.Parent.Parent.IsKind(SyntaxKind.LocalDeclarationStatement, SyntaxKind.ForStatement, SyntaxKind.UsingStatement))
             {
                 // check assignment for variable declarations.
-                var variable = ((VariableDeclarationSyntax)typeName.Parent).Variables.First();
+                var variableDeclaration = (VariableDeclarationSyntax)typeName.Parent;
+                var variable = variableDeclaration.Variables.First();
                 if (!AssignmentSupportsStylePreference(
                         variable.Identifier, typeName, variable.Initializer.Value,
                         semanticModel, optionSet, cancellationToken))
+                {
+                    return false;
+                }
+
+                // This error case is handled by a separate code fix (UseExplicitTypeForConst).
+                if ((variableDeclaration.Parent as LocalDeclarationStatementSyntax)?.IsConst == true)
                 {
                     return false;
                 }
@@ -100,7 +107,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Utilities
                      foreachStatement.Type == typeName)
             {
                 if (!AssignmentSupportsStylePreference(
-                        foreachStatement.Identifier, typeName, foreachStatement.Expression, 
+                        foreachStatement.Identifier, typeName, foreachStatement.Expression,
                         semanticModel, optionSet, cancellationToken))
                 {
                     return false;

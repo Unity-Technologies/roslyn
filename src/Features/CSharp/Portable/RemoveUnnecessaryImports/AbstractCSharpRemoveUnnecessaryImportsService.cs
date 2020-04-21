@@ -1,4 +1,6 @@
-﻿// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+// See the LICENSE file in the project root for more information.
 
 using System;
 using System.Collections.Generic;
@@ -20,11 +22,11 @@ namespace Microsoft.CodeAnalysis.CSharp.RemoveUnnecessaryImports
         AbstractRemoveUnnecessaryImportsService<UsingDirectiveSyntax>
     {
         public override async Task<Document> RemoveUnnecessaryImportsAsync(
-            Document document, 
+            Document document,
             Func<SyntaxNode, bool> predicate,
             CancellationToken cancellationToken)
         {
-            predicate = predicate ?? Functions<SyntaxNode>.True;
+            predicate ??= Functions<SyntaxNode>.True;
             using (Logger.LogBlock(FunctionId.Refactoring_RemoveUnnecessaryImports_CSharp, cancellationToken))
             {
                 var unnecessaryImports = await GetCommonUnnecessaryImportsOfAllContextAsync(
@@ -37,7 +39,7 @@ namespace Microsoft.CodeAnalysis.CSharp.RemoveUnnecessaryImports
                 var root = await document.GetSyntaxRootAsync(cancellationToken).ConfigureAwait(false);
 
                 var oldRoot = (CompilationUnitSyntax)root;
-                var newRoot = (CompilationUnitSyntax)new Rewriter(unnecessaryImports, cancellationToken).Visit(oldRoot);
+                var newRoot = (CompilationUnitSyntax)new Rewriter(this, document, unnecessaryImports, cancellationToken).Visit(oldRoot);
 
                 cancellationToken.ThrowIfCancellationRequested();
                 return document.WithSyntaxRoot(await FormatResultAsync(document, newRoot, cancellationToken).ConfigureAwait(false));
@@ -48,7 +50,7 @@ namespace Microsoft.CodeAnalysis.CSharp.RemoveUnnecessaryImports
             SemanticModel model, SyntaxNode root,
             Func<SyntaxNode, bool> predicate, CancellationToken cancellationToken)
         {
-            predicate = predicate ?? Functions<SyntaxNode>.True;
+            predicate ??= Functions<SyntaxNode>.True;
             var diagnostics = model.GetDiagnostics(cancellationToken: cancellationToken);
             if (!diagnostics.Any())
             {
@@ -77,7 +79,7 @@ namespace Microsoft.CodeAnalysis.CSharp.RemoveUnnecessaryImports
             var spans = new List<TextSpan>();
             AddFormattingSpans(newRoot, spans, cancellationToken);
             var options = await document.GetOptionsAsync(cancellationToken).ConfigureAwait(false);
-            return await Formatter.FormatAsync(newRoot, spans, document.Project.Solution.Workspace, options, cancellationToken: cancellationToken).ConfigureAwait(false);
+            return Formatter.Format(newRoot, spans, document.Project.Solution.Workspace, options, cancellationToken: cancellationToken);
         }
 
         private void AddFormattingSpans(

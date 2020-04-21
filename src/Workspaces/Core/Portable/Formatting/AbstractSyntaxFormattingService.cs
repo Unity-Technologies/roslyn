@@ -1,10 +1,11 @@
-﻿// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+// See the LICENSE file in the project root for more information.
 
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
-using System.Threading.Tasks;
 using Microsoft.CodeAnalysis.Formatting.Rules;
 using Microsoft.CodeAnalysis.Options;
 using Microsoft.CodeAnalysis.Shared;
@@ -12,6 +13,10 @@ using Microsoft.CodeAnalysis.Shared.Collections;
 using Microsoft.CodeAnalysis.Shared.Utilities;
 using Microsoft.CodeAnalysis.Text;
 using Roslyn.Utilities;
+
+#if CODE_STYLE
+using OptionSet = Microsoft.CodeAnalysis.Diagnostics.AnalyzerConfigOptions;
+#endif
 
 namespace Microsoft.CodeAnalysis.Formatting
 {
@@ -24,13 +29,13 @@ namespace Microsoft.CodeAnalysis.Formatting
         {
         }
 
-        public abstract IEnumerable<IFormattingRule> GetDefaultFormattingRules();
+        public abstract IEnumerable<AbstractFormattingRule> GetDefaultFormattingRules();
 
-        protected abstract IFormattingResult CreateAggregatedFormattingResult(SyntaxNode node, IList<AbstractFormattingResult> results, SimpleIntervalTree<TextSpan> formattingSpans = null);
+        protected abstract IFormattingResult CreateAggregatedFormattingResult(SyntaxNode node, IList<AbstractFormattingResult> results, SimpleIntervalTree<TextSpan, TextSpanIntervalIntrospector> formattingSpans = null);
 
-        protected abstract Task<AbstractFormattingResult> FormatAsync(SyntaxNode node, OptionSet options, IEnumerable<IFormattingRule> rules, SyntaxToken token1, SyntaxToken token2, CancellationToken cancellationToken);
+        protected abstract AbstractFormattingResult Format(SyntaxNode node, OptionSet options, IEnumerable<AbstractFormattingRule> rules, SyntaxToken token1, SyntaxToken token2, CancellationToken cancellationToken);
 
-        public Task<IFormattingResult> FormatAsync(SyntaxNode node, IEnumerable<TextSpan> spans, OptionSet options, IEnumerable<IFormattingRule> rules, CancellationToken cancellationToken)
+        public IFormattingResult Format(SyntaxNode node, IEnumerable<TextSpan> spans, OptionSet options, IEnumerable<AbstractFormattingRule> rules, CancellationToken cancellationToken)
         {
             CheckArguments(node, spans, options, rules);
 
@@ -38,20 +43,20 @@ namespace Microsoft.CodeAnalysis.Formatting
             var spansToFormat = new NormalizedTextSpanCollection(spans.Where(s_notEmpty));
             if (spansToFormat.Count == 0)
             {
-                return Task.FromResult(CreateAggregatedFormattingResult(node, SpecializedCollections.EmptyList<AbstractFormattingResult>()));
+                return CreateAggregatedFormattingResult(node, SpecializedCollections.EmptyList<AbstractFormattingResult>());
             }
 
             // check what kind of formatting strategy to use
             if (AllowDisjointSpanMerging(spansToFormat, options.GetOption(FormattingOptions.AllowDisjointSpanMerging)))
             {
-                return FormatMergedSpanAsync(node, options, rules, spansToFormat, cancellationToken);
+                return FormatMergedSpan(node, options, rules, spansToFormat, cancellationToken);
             }
 
-            return FormatIndividuallyAsync(node, options, rules, spansToFormat, cancellationToken);
+            return FormatIndividually(node, options, rules, spansToFormat, cancellationToken);
         }
 
-        private async Task<IFormattingResult> FormatMergedSpanAsync(
-            SyntaxNode node, OptionSet options, IEnumerable<IFormattingRule> rules, IList<TextSpan> spansToFormat, CancellationToken cancellationToken)
+        private IFormattingResult FormatMergedSpan(
+            SyntaxNode node, OptionSet options, IEnumerable<AbstractFormattingRule> rules, IList<TextSpan> spansToFormat, CancellationToken cancellationToken)
         {
             var spanToFormat = TextSpan.FromBounds(spansToFormat[0].Start, spansToFormat[spansToFormat.Count - 1].End);
             var pair = node.ConvertToTokenPair(spanToFormat);
@@ -62,12 +67,12 @@ namespace Microsoft.CodeAnalysis.Formatting
             }
 
             // more expensive case
-            var result = await FormatAsync(node, options, rules, pair.Item1, pair.Item2, cancellationToken).ConfigureAwait(false);
-            return CreateAggregatedFormattingResult(node, new List<AbstractFormattingResult>(1) { result }, SimpleIntervalTree.Create(TextSpanIntervalIntrospector.Instance, spanToFormat));
+            var result = Format(node, options, rules, pair.Item1, pair.Item2, cancellationToken);
+            return CreateAggregatedFormattingResult(node, new List<AbstractFormattingResult>(1) { result }, SimpleIntervalTree.Create(new TextSpanIntervalIntrospector(), spanToFormat));
         }
 
-        private async Task<IFormattingResult> FormatIndividuallyAsync(
-            SyntaxNode node, OptionSet options, IEnumerable<IFormattingRule> rules, IList<TextSpan> spansToFormat, CancellationToken cancellationToken)
+        private IFormattingResult FormatIndividually(
+            SyntaxNode node, OptionSet options, IEnumerable<AbstractFormattingRule> rules, IList<TextSpan> spansToFormat, CancellationToken cancellationToken)
         {
             List<AbstractFormattingResult> results = null;
             foreach (var pair in node.ConvertToTokenPairs(spansToFormat))
@@ -77,8 +82,8 @@ namespace Microsoft.CodeAnalysis.Formatting
                     continue;
                 }
 
-                results = results ?? new List<AbstractFormattingResult>();
-                results.Add(await FormatAsync(node, options, rules, pair.Item1, pair.Item2, cancellationToken).ConfigureAwait(false));
+                results ??= new List<AbstractFormattingResult>();
+                results.Add(Format(node, options, rules, pair.Item1, pair.Item2, cancellationToken));
             }
 
             // quick simple case check
@@ -129,7 +134,7 @@ namespace Microsoft.CodeAnalysis.Formatting
             return (formattingSpan.Length / Math.Max(actualFormattingSize, 1)) < 2;
         }
 
-        private static void CheckArguments(SyntaxNode node, IEnumerable<TextSpan> spans, OptionSet options, IEnumerable<IFormattingRule> rules)
+        private static void CheckArguments(SyntaxNode node, IEnumerable<TextSpan> spans, OptionSet options, IEnumerable<AbstractFormattingRule> rules)
         {
             if (node == null)
             {

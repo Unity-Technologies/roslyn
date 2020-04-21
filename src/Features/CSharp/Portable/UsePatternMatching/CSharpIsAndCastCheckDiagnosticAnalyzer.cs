@@ -1,6 +1,7 @@
-﻿// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+// See the LICENSE file in the project root for more information.
 
-using System;
 using System.Collections.Immutable;
 using System.Linq;
 using Microsoft.CodeAnalysis.CodeStyle;
@@ -27,14 +28,14 @@ namespace Microsoft.CodeAnalysis.CSharp.UsePatternMatching
     ///     }
     /// </summary>
     [DiagnosticAnalyzer(LanguageNames.CSharp)]
-    internal class CSharpIsAndCastCheckDiagnosticAnalyzer : AbstractCodeStyleDiagnosticAnalyzer
+    internal class CSharpIsAndCastCheckDiagnosticAnalyzer : AbstractBuiltInCodeStyleDiagnosticAnalyzer
     {
         public static readonly CSharpIsAndCastCheckDiagnosticAnalyzer Instance = new CSharpIsAndCastCheckDiagnosticAnalyzer();
 
-        public override bool OpenFileOnly(Workspace workspace) => false;
-
         public CSharpIsAndCastCheckDiagnosticAnalyzer()
             : base(IDEDiagnosticIds.InlineIsTypeCheckId,
+                   CSharpCodeStyleOptions.PreferPatternMatchingOverIsWithCastCheck,
+                   LanguageNames.CSharp,
                    new LocalizableResourceString(
                        nameof(FeaturesResources.Use_pattern_matching), FeaturesResources.ResourceManager, typeof(FeaturesResources)))
         {
@@ -64,7 +65,7 @@ namespace Microsoft.CodeAnalysis.CSharp.UsePatternMatching
             var severity = styleOption.Notification.Severity;
 
             // "x is Type y" is only available in C# 7.0 and above.  Don't offer this refactoring
-            // in projects targetting a lesser version.
+            // in projects targeting a lesser version.
             if (((CSharpParseOptions)syntaxTree.Options).LanguageVersion < LanguageVersion.CSharp7)
             {
                 return;
@@ -73,7 +74,7 @@ namespace Microsoft.CodeAnalysis.CSharp.UsePatternMatching
             var isExpression = (BinaryExpressionSyntax)syntaxContext.Node;
 
             if (!TryGetPatternPieces(isExpression,
-                    out var ifStatement, out var localDeclarationStatement, 
+                    out var ifStatement, out var localDeclarationStatement,
                     out var declarator, out var castExpression))
             {
                 return;

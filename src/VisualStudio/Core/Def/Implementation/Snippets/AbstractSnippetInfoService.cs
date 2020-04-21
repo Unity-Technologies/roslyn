@@ -1,4 +1,6 @@
-﻿// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+// See the LICENSE file in the project root for more information.
 
 using System;
 using System.Collections.Generic;
@@ -43,9 +45,11 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.Snippets
         private readonly IAsynchronousOperationListener _waiter;
 
         public AbstractSnippetInfoService(
+            IThreadingContext threadingContext,
             Shell.SVsServiceProvider serviceProvider,
             Guid languageGuidForSnippets,
             IAsynchronousOperationListenerProvider listenerProvider)
+            : base(threadingContext)
         {
             AssertIsForeground();
 
@@ -140,10 +144,8 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.Snippets
 
             // The rest of the process requires being on the UI thread, see the explanation on
             // PopulateSnippetCacheFromExpansionEnumeration for details
-            await Task.Factory.StartNew(() => PopulateSnippetCacheFromExpansionEnumeration(expansionEnumerator),
-                CancellationToken.None,
-                TaskCreationOptions.None,
-                ForegroundTaskScheduler).ConfigureAwait(false);
+            await ThreadingContext.JoinableTaskFactory.SwitchToMainThreadAsync();
+            PopulateSnippetCacheFromExpansionEnumeration(expansionEnumerator);
         }
 
         /// <remarks>
@@ -191,8 +193,8 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.Snippets
 
             uint count = 0;
             uint fetched = 0;
-            VsExpansion snippetInfo = new VsExpansion();
-            IntPtr[] pSnippetInfo = new IntPtr[1];
+            var snippetInfo = new VsExpansion();
+            var pSnippetInfo = new IntPtr[1];
 
             try
             {

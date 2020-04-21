@@ -1,4 +1,6 @@
-﻿// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+// See the LICENSE file in the project root for more information.
 
 using System.Threading.Tasks;
 using Microsoft.CodeAnalysis.CodeFixes;
@@ -273,6 +275,98 @@ internal static class C
 }
 #endif
 ");
+        }
+
+        [Fact, Trait(Traits.Feature, Traits.Features.CodeActionsOrderModifiers)]
+        public async Task PartialAtTheEndClass1()
+        {
+            await TestInRegularAndScript1Async(
+@"[|partial|] public class C { }",
+@"public partial class C { }");
+        }
+
+        [Fact, Trait(Traits.Feature, Traits.Features.CodeActionsOrderModifiers)]
+        public async Task PartialAtTheEndClass2()
+        {
+            await TestInRegularAndScript1Async(
+@"[|partial|] abstract class C { }",
+@"abstract partial class C { }");
+        }
+
+        [Fact, Trait(Traits.Feature, Traits.Features.CodeActionsOrderModifiers)]
+        public async Task PartialAtTheEndClass3()
+        {
+            await TestInRegularAndScript1Async(
+@"[|partial|] sealed class C { }",
+@"sealed partial class C { }");
+        }
+
+        [Fact, Trait(Traits.Feature, Traits.Features.CodeActionsOrderModifiers)]
+        public async Task PartialAtTheEndClass4()
+        {
+            await TestInRegularAndScript1Async(
+@"[|partial|] static class C { }",
+@"static partial class C { }");
+        }
+
+        [Fact, Trait(Traits.Feature, Traits.Features.CodeActionsOrderModifiers)]
+        public async Task PartialAtTheEndClass5()
+        {
+            await TestInRegularAndScript1Async(
+@"[|partial|] unsafe class C { }",
+@"unsafe partial class C { }");
+        }
+
+        [Fact, Trait(Traits.Feature, Traits.Features.CodeActionsOrderModifiers)]
+        public async Task PartialAtTheEndStruct1()
+        {
+            await TestInRegularAndScript1Async(
+@"[|partial|] public struct S { }",
+@"public partial struct S { }");
+        }
+
+        [Fact, Trait(Traits.Feature, Traits.Features.CodeActionsOrderModifiers)]
+        public async Task PartialAtTheEndStruct2()
+        {
+            await TestInRegularAndScript1Async(
+@"[|partial|] unsafe struct S { }",
+@"unsafe partial struct S { }");
+        }
+
+        [Fact, Trait(Traits.Feature, Traits.Features.CodeActionsOrderModifiers)]
+        public async Task PartialAtTheEndInterface()
+        {
+            await TestInRegularAndScript1Async(
+@"[|partial|] public interface I { }",
+@"public partial interface I { }");
+        }
+
+        [Fact, Trait(Traits.Feature, Traits.Features.CodeActionsOrderModifiers)]
+        public async Task PartialAtTheEndMethod1()
+        {
+            await TestInRegularAndScript1Async(
+@"partial class C
+{
+    [|partial|] static void M();
+}",
+@"partial class C
+{
+    static partial void M();
+}");
+        }
+
+        [Fact, Trait(Traits.Feature, Traits.Features.CodeActionsOrderModifiers)]
+        public async Task PartialAtTheEndMethod2()
+        {
+            await TestInRegularAndScript1Async(
+@"partial class C
+{
+    [|partial|] unsafe void M();
+}",
+@"partial class C
+{
+    unsafe partial void M();
+}");
         }
     }
 }

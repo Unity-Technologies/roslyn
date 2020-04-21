@@ -10,7 +10,6 @@ namespace RoslynBuilder
 		public void Execute()
 		{
 			MakeSureCompilerWorks(KnownPaths.CscWindowsBinariesDirectory.Combine("csc.exe"));
-			MakeSureCompilerWorks(KnownPaths.CscNet46Directory.Combine("csc.exe"));
 		}
 
 		private void MakeSureCompilerWorks(NPath compilerPath)

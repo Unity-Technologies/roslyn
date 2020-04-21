@@ -1,13 +1,20 @@
-﻿// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+// See the LICENSE file in the project root for more information.
+
+#nullable enable
 
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Diagnostics;
 using System.Globalization;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.CodeAnalysis.CodeFixes;
+using Microsoft.CodeAnalysis.CodeStyle;
+using Microsoft.CodeAnalysis.Options;
 using Microsoft.CodeAnalysis.PooledObjects;
 using Microsoft.CodeAnalysis.Text;
 using Microsoft.CodeAnalysis.Workspaces.Diagnostics;
@@ -15,61 +22,21 @@ using Roslyn.Utilities;
 
 namespace Microsoft.CodeAnalysis.Diagnostics
 {
-    internal static class Extensions
+    internal static partial class Extensions
     {
-        public static readonly CultureInfo s_USCultureInfo = new CultureInfo("en-US");
+        public static readonly CultureInfo USCultureInfo = new CultureInfo("en-US");
 
-        public static string GetBingHelpMessage(this Diagnostic diagnostic, Workspace workspace)
-        {
-            var option = GetCustomTypeInBingSearchOption(workspace);
-
-            // We use the ENU version of the message for bing search.
-            return option ? diagnostic.GetMessage(s_USCultureInfo) : diagnostic.Descriptor.GetBingHelpMessage();
-        }
-
-        public static string GetBingHelpMessage(this DiagnosticDescriptor descriptor)
+        public static string? GetBingHelpMessage(this Diagnostic diagnostic, OptionSet options)
         {
             // We use the ENU version of the message for bing search.
-            return descriptor.MessageFormat.ToString(s_USCultureInfo);
+            return options.GetOption(InternalDiagnosticsOptions.PutCustomTypeInBingSearch) ?
+                diagnostic.GetMessage(USCultureInfo) : diagnostic.Descriptor.GetBingHelpMessage();
         }
 
-        private static bool GetCustomTypeInBingSearchOption(Workspace workspace)
+        public static string? GetBingHelpMessage(this DiagnosticDescriptor descriptor)
         {
-            if (workspace == null)
-            {
-                return false;
-            }
-
-            return workspace.Options.GetOption(InternalDiagnosticsOptions.PutCustomTypeInBingSearch);
-        }
-
-        public static DiagnosticData GetPrimaryDiagnosticData(this CodeFix fix)
-        {
-            return fix.PrimaryDiagnostic.ToDiagnosticData(fix.Project);
-        }
-
-        public static ImmutableArray<DiagnosticData> GetDiagnosticData(this CodeFix fix)
-        {
-            return fix.Diagnostics.SelectAsArray(d => d.ToDiagnosticData(fix.Project));
-        }
-
-        public static DiagnosticData ToDiagnosticData(this Diagnostic diagnostic, Project project)
-        {
-            if (diagnostic.Location.IsInSource)
-            {
-                return DiagnosticData.Create(project.GetDocument(diagnostic.Location.SourceTree), diagnostic);
-            }
-
-            if (diagnostic.Location.Kind == LocationKind.ExternalFile)
-            {
-                var document = project.Documents.FirstOrDefault(d => d.FilePath == diagnostic.Location.GetLineSpan().Path);
-                if (document != null)
-                {
-                    return DiagnosticData.Create(document, diagnostic);
-                }
-            }
-
-            return DiagnosticData.Create(project, diagnostic);
+            // We use the ENU version of the message for bing search.
+            return descriptor.MessageFormat.ToString(USCultureInfo);
         }
 
         public static async Task<ImmutableArray<Diagnostic>> ToDiagnosticsAsync(this IEnumerable<DiagnosticData> diagnostics, Project project, CancellationToken cancellationToken)
@@ -86,7 +53,7 @@ namespace Microsoft.CodeAnalysis.Diagnostics
         public static async Task<IList<Location>> ConvertLocationsAsync(
             this IReadOnlyCollection<DiagnosticDataLocation> locations, Project project, CancellationToken cancellationToken)
         {
-            if (locations == null || locations.Count == 0)
+            if (locations.Count == 0)
             {
                 return SpecializedCollections.EmptyList<Location>();
             }
@@ -102,19 +69,18 @@ namespace Microsoft.CodeAnalysis.Diagnostics
         }
 
         public static async Task<Location> ConvertLocationAsync(
-            this DiagnosticDataLocation dataLocation, Project project, CancellationToken cancellationToken)
+            this DiagnosticDataLocation? dataLocation, Project project, CancellationToken cancellationToken)
         {
             if (dataLocation?.DocumentId == null)
             {
                 return Location.None;
             }
 
-            var document = project.GetDocument(dataLocation?.DocumentId);
+            var document = project.GetDocument(dataLocation.DocumentId);
             if (document == null)
             {
                 return Location.None;
             }
-
 
             if (document.SupportsSyntaxTree)
             {
@@ -126,7 +92,7 @@ namespace Microsoft.CodeAnalysis.Diagnostics
         }
 
         public static Location ConvertLocation(
-            this DiagnosticDataLocation dataLocation, SyntacticDocument document = null)
+            this DiagnosticDataLocation dataLocation, SyntacticDocument? document = null)
         {
             if (dataLocation?.DocumentId == null)
             {
@@ -135,13 +101,13 @@ namespace Microsoft.CodeAnalysis.Diagnostics
 
             if (document == null)
             {
-                if (dataLocation?.OriginalFilePath == null || dataLocation.SourceSpan == null)
+                if (dataLocation.OriginalFilePath == null || dataLocation.SourceSpan == null)
                 {
                     return Location.None;
                 }
 
                 var span = dataLocation.SourceSpan.Value;
-                return Location.Create(dataLocation?.OriginalFilePath, span, new LinePositionSpan(
+                return Location.Create(dataLocation.OriginalFilePath, span, new LinePositionSpan(
                     new LinePosition(dataLocation.OriginalStartLine, dataLocation.OriginalStartColumn),
                     new LinePosition(dataLocation.OriginalEndLine, dataLocation.OriginalEndColumn)));
             }
@@ -185,7 +151,7 @@ namespace Microsoft.CodeAnalysis.Diagnostics
                 {
                     if (diagnosticsByAnalyzerMap.TryGetValue(analyzer, out diagnostics))
                     {
-                        Contract.Requires(diagnostics.Length == CompilationWithAnalyzers.GetEffectiveDiagnostics(diagnostics, compilation).Count());
+                        Debug.Assert(diagnostics.Length == CompilationWithAnalyzers.GetEffectiveDiagnostics(diagnostics, compilation).Count());
                         result.AddSyntaxDiagnostics(tree, diagnostics);
                     }
                 }
@@ -194,14 +160,14 @@ namespace Microsoft.CodeAnalysis.Diagnostics
                 {
                     if (diagnosticsByAnalyzerMap.TryGetValue(analyzer, out diagnostics))
                     {
-                        Contract.Requires(diagnostics.Length == CompilationWithAnalyzers.GetEffectiveDiagnostics(diagnostics, compilation).Count());
+                        Debug.Assert(diagnostics.Length == CompilationWithAnalyzers.GetEffectiveDiagnostics(diagnostics, compilation).Count());
                         result.AddSemanticDiagnostics(tree, diagnostics);
                     }
                 }
 
                 if (analysisResult.CompilationDiagnostics.TryGetValue(analyzer, out diagnostics))
                 {
-                    Contract.Requires(diagnostics.Length == CompilationWithAnalyzers.GetEffectiveDiagnostics(diagnostics, compilation).Count());
+                    Debug.Assert(diagnostics.Length == CompilationWithAnalyzers.GetEffectiveDiagnostics(diagnostics, compilation).Count());
                     result.AddCompilationDiagnostics(diagnostics);
                 }
 
@@ -211,92 +177,28 @@ namespace Microsoft.CodeAnalysis.Diagnostics
             return builder.ToImmutable();
         }
 
-        /// <summary>
-        /// Returns the equivalent <see cref="DiagnosticSeverity"/> for a <see cref="ReportDiagnostic"/> value.
-        /// </summary>
-        /// <param name="reportDiagnostic">The <see cref="ReportDiagnostic"/> value.</param>
-        /// <returns>
-        /// The equivalent <see cref="DiagnosticSeverity"/> for a <see cref="ReportDiagnostic"/> value; otherwise,
-        /// <see langword="null"/> if <see cref="DiagnosticSeverity"/> does not contain a direct equivalent for
-        /// <paramref name="reportDiagnostic"/>.
-        /// </returns>
-        /// <exception cref="InvalidOperationException">
-        /// If <paramref name="reportDiagnostic"/> is not one of the expected values.
-        /// </exception>
-        public static DiagnosticSeverity? ToDiagnosticSeverity(this ReportDiagnostic reportDiagnostic)
+        public static NotificationOption ToNotificationOption(this ReportDiagnostic reportDiagnostic, DiagnosticSeverity defaultSeverity)
         {
-            switch (reportDiagnostic)
+            switch (reportDiagnostic.WithDefaultSeverity(defaultSeverity))
             {
-            case ReportDiagnostic.Error:
-                return DiagnosticSeverity.Error;
+                case ReportDiagnostic.Error:
+                    return NotificationOption.Error;
 
-            case ReportDiagnostic.Warn:
-                return DiagnosticSeverity.Warning;
+                case ReportDiagnostic.Warn:
+                    return NotificationOption.Warning;
 
-            case ReportDiagnostic.Info:
-                return DiagnosticSeverity.Info;
+                case ReportDiagnostic.Info:
+                    return NotificationOption.Suggestion;
 
-            case ReportDiagnostic.Hidden:
-                return DiagnosticSeverity.Hidden;
+                case ReportDiagnostic.Hidden:
+                    return NotificationOption.Silent;
 
-            case ReportDiagnostic.Suppress:
-            case ReportDiagnostic.Default:
-                return null;
+                case ReportDiagnostic.Suppress:
+                    return NotificationOption.None;
 
-            default:
-                throw ExceptionUtilities.UnexpectedValue(reportDiagnostic);
-            }
-        }
-
-        /// <summary>
-        /// Applies a default severity to a <see cref="ReportDiagnostic"/> value.
-        /// </summary>
-        /// <param name="reportDiagnostic">The <see cref="ReportDiagnostic"/> value.</param>
-        /// <param name="defaultSeverity">The default severity.</param>
-        /// <returns>
-        /// <para>If <paramref name="reportDiagnostic"/> is <see cref="ReportDiagnostic.Default"/>, returns
-        /// <paramref name="defaultSeverity"/>.</para>
-        /// <para>-or-</para>
-        /// <para>Otherwise, returns <paramref name="reportDiagnostic"/> if it has a non-default value.</para>
-        /// </returns>
-        public static ReportDiagnostic WithDefaultSeverity(this ReportDiagnostic reportDiagnostic, DiagnosticSeverity defaultSeverity)
-        {
-            if (reportDiagnostic != ReportDiagnostic.Default)
-            {
-                return reportDiagnostic;
-            }
-
-            return defaultSeverity.ToReportDiagnostic();
-        }
-
-        /// <summary>
-        /// Returns the equivalent <see cref="ReportDiagnostic"/> for a <see cref="DiagnosticSeverity"/> value.
-        /// </summary>
-        /// <param name="diagnosticSeverity">The <see cref="DiagnosticSeverity"/> value.</param>
-        /// <returns>
-        /// The equivalent <see cref="ReportDiagnostic"/> for the <see cref="DiagnosticSeverity"/> value.
-        /// </returns>
-        /// <exception cref="InvalidOperationException">
-        /// If <paramref name="diagnosticSeverity"/> is not one of the expected values.
-        /// </exception>
-        public static ReportDiagnostic ToReportDiagnostic(this DiagnosticSeverity diagnosticSeverity)
-        {
-            switch (diagnosticSeverity)
-            {
-            case DiagnosticSeverity.Hidden:
-                return ReportDiagnostic.Hidden;
-
-            case DiagnosticSeverity.Info:
-                return ReportDiagnostic.Info;
-
-            case DiagnosticSeverity.Warning:
-                return ReportDiagnostic.Warn;
-
-            case DiagnosticSeverity.Error:
-                return ReportDiagnostic.Error;
-
-            default:
-                throw ExceptionUtilities.UnexpectedValue(diagnosticSeverity);
+                case ReportDiagnostic.Default:
+                default:
+                    throw ExceptionUtilities.UnexpectedValue(reportDiagnostic);
             }
         }
     }

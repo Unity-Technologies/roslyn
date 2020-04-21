@@ -1,4 +1,6 @@
-﻿// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+// See the LICENSE file in the project root for more information.
 
 ////#define TRACKDEPTH
 
@@ -43,6 +45,20 @@ namespace Microsoft.CodeAnalysis.Shared.Utilities
                     throw new InvalidOperationException("Stack too deep.");
                 }
 #endif
+                // https://github.com/dotnet/roslyn/issues/39643 This is a temporary workaround sufficient to get existing tests passing.
+                // This component should be modified to properly deal with differences caused by nullability.
+                if (x is ITypeSymbol xType && y is ITypeSymbol yType && xType.IsDefinition != yType.IsDefinition)
+                {
+                    if (x.IsDefinition)
+                    {
+                        y = yType.WithNullableAnnotation(xType.NullableAnnotation);
+                    }
+                    else
+                    {
+                        x = xType.WithNullableAnnotation(yType.NullableAnnotation);
+                    }
+                }
+
                 if (ReferenceEquals(x, y))
                 {
                     return true;
@@ -91,7 +107,7 @@ namespace Microsoft.CodeAnalysis.Shared.Utilities
                     return false;
                 }
 
-                for (int i = 0; i < x.Length; i++)
+                for (var i = 0; i < x.Length; i++)
                 {
                     if (!AreEquivalent(x[i], y[i], equivalentTypesWithDifferingAssemblies))
                     {
@@ -104,7 +120,7 @@ namespace Microsoft.CodeAnalysis.Shared.Utilities
 
             private bool AreEquivalentWorker(ISymbol x, ISymbol y, SymbolKind k, Dictionary<INamedTypeSymbol, INamedTypeSymbol> equivalentTypesWithDifferingAssemblies)
             {
-                Contract.Requires(x.Kind == y.Kind && x.Kind == k);
+                Debug.Assert(x.Kind == y.Kind && x.Kind == k);
                 switch (k)
                 {
                     case SymbolKind.ArrayType:
@@ -272,6 +288,13 @@ namespace Microsoft.CodeAnalysis.Shared.Utilities
                     return true;
                 }
 
+                // User-defined and Built-in operators are comparable
+                if ((kind1 == MethodKind.BuiltinOperator && kind2 == MethodKind.UserDefinedOperator) ||
+                    (kind1 == MethodKind.UserDefinedOperator && kind2 == MethodKind.BuiltinOperator))
+                {
+                    return true;
+                }
+
                 return false;
             }
 
@@ -354,7 +377,7 @@ namespace Microsoft.CodeAnalysis.Shared.Utilities
                         return false;
                     }
 
-                    for (int i = 0; i < xElements.Length; i++)
+                    for (var i = 0; i < xElements.Length; i++)
                     {
                         if (!AreEquivalent(xElements[i].Type, yElements[i].Type, equivalentTypesWithDifferingAssemblies))
                         {
@@ -421,7 +444,7 @@ namespace Microsoft.CodeAnalysis.Shared.Utilities
                     return false;
                 }
 
-                for (int i = 0; i < count; i++)
+                for (var i = 0; i < count; i++)
                 {
                     if (!_symbolEquivalenceComparer.ParameterEquivalenceComparer.Equals(xParameters[i], yParameters[i], equivalentTypesWithDifferingAssemblies, compareParameterName, isParameterNameCaseSensitive))
                     {
@@ -440,13 +463,13 @@ namespace Microsoft.CodeAnalysis.Shared.Utilities
 
             private bool TypeArgumentsAreEquivalent(ImmutableArray<ITypeSymbol> xTypeArguments, ImmutableArray<ITypeSymbol> yTypeArguments, Dictionary<INamedTypeSymbol, INamedTypeSymbol> equivalentTypesWithDifferingAssemblies)
             {
-                int count = xTypeArguments.Length;
+                var count = xTypeArguments.Length;
                 if (yTypeArguments.Length != count)
                 {
                     return false;
                 }
 
-                for (int i = 0; i < count; i++)
+                for (var i = 0; i < count; i++)
                 {
                     if (!AreEquivalent(xTypeArguments[i], yTypeArguments[i], equivalentTypesWithDifferingAssemblies))
                     {
@@ -558,11 +581,11 @@ namespace Microsoft.CodeAnalysis.Shared.Utilities
 
             private bool TypeParametersAreEquivalent(ITypeParameterSymbol x, ITypeParameterSymbol y, Dictionary<INamedTypeSymbol, INamedTypeSymbol> equivalentTypesWithDifferingAssemblies)
             {
-                Contract.Requires(
+                Debug.Assert(
                     (x.TypeParameterKind == TypeParameterKind.Method && IsConstructedFromSelf(x.DeclaringMethod)) ||
                     (x.TypeParameterKind == TypeParameterKind.Type && IsConstructedFromSelf(x.ContainingType)) ||
                     x.TypeParameterKind == TypeParameterKind.Cref);
-                Contract.Requires(
+                Debug.Assert(
                     (y.TypeParameterKind == TypeParameterKind.Method && IsConstructedFromSelf(y.DeclaringMethod)) ||
                     (y.TypeParameterKind == TypeParameterKind.Type && IsConstructedFromSelf(y.ContainingType)) ||
                     y.TypeParameterKind == TypeParameterKind.Cref);

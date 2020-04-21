@@ -1,4 +1,6 @@
-﻿' Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
+﻿' Licensed to the .NET Foundation under one or more agreements.
+' The .NET Foundation licenses this file to you under the MIT license.
+' See the LICENSE file in the project root for more information.
 
 Imports System.Runtime.CompilerServices
 Imports System.Threading
@@ -7,7 +9,7 @@ Imports Microsoft.CodeAnalysis.LanguageServices
 Imports Microsoft.CodeAnalysis.VisualBasic.Syntax
 
 Namespace Microsoft.CodeAnalysis.VisualBasic.Extensions
-    Friend Module SyntaxTokenExtensions
+    Partial Friend Module SyntaxTokenExtensions
         <Extension()>
         Public Function IsKindOrHasMatchingText(token As SyntaxToken, kind As SyntaxKind) As Boolean
             Return token.Kind = kind OrElse
@@ -17,17 +19,6 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Extensions
         <Extension()>
         Public Function HasMatchingText(token As SyntaxToken, kind As SyntaxKind) As Boolean
             Return String.Equals(token.ToString(), SyntaxFacts.GetText(kind), StringComparison.OrdinalIgnoreCase)
-        End Function
-
-        <Extension()>
-        Public Function IsKind(token As SyntaxToken, kind1 As SyntaxKind, kind2 As SyntaxKind) As Boolean
-            Return token.Kind = kind1 OrElse
-                   token.Kind = kind2
-        End Function
-
-        <Extension()>
-        Public Function IsKind(token As SyntaxToken, ParamArray kinds As SyntaxKind()) As Boolean
-            Return kinds.Contains(token.Kind)
         End Function
 
         <Extension()>
@@ -206,29 +197,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Extensions
 
         <Extension()>
         Public Function SpansPreprocessorDirective(tokens As IEnumerable(Of SyntaxToken)) As Boolean
-            ' we want to check all leading trivia of all tokens (except the 
-            ' first one), and all trailing trivia of all tokens (except the
-            ' last one).
-
-            Dim first As Boolean = True
-            Dim previousToken As SyntaxToken = Nothing
-
-            For Each token In tokens
-                If first Then
-                    first = False
-                Else
-                    ' check the leading trivia of this token, and the trailing trivia
-                    ' of the previous token.
-                    If token.LeadingTrivia.ContainsPreprocessorDirective() OrElse
-                       previousToken.TrailingTrivia.ContainsPreprocessorDirective() Then
-                        Return True
-                    End If
-                End If
-
-                previousToken = token
-            Next token
-
-            Return False
+            Return VisualBasicSyntaxFactsService.Instance.SpansPreprocessorDirective(tokens)
         End Function
 
         <Extension()>

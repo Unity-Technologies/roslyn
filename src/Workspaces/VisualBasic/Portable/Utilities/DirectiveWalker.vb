@@ -1,4 +1,6 @@
-﻿' Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
+﻿' Licensed to the .NET Foundation under one or more agreements.
+' The .NET Foundation licenses this file to you under the MIT license.
+' See the LICENSE file in the project root for more information.
 
 Imports System
 Imports System.Collections
@@ -99,9 +101,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Utilities
 
             ' #If should be the first one in sorted order
             Dim ifDirective = condDirectives.First()
-            Contract.Assert(ifDirective.Kind = SyntaxKind.IfDirectiveTrivia OrElse
-                            ifDirective.Kind = SyntaxKind.ElseIfDirectiveTrivia OrElse
-                            ifDirective.Kind = SyntaxKind.ElseDirectiveTrivia)
+            Debug.Assert(ifDirective.Kind = SyntaxKind.IfDirectiveTrivia OrElse
+                         ifDirective.Kind = SyntaxKind.ElseIfDirectiveTrivia OrElse
+                         ifDirective.Kind = SyntaxKind.ElseDirectiveTrivia)
 
             If directiveOpt IsNot Nothing Then
                 _startEndMap.Add(directiveOpt, ifDirective)

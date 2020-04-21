@@ -1,4 +1,6 @@
-﻿// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+// See the LICENSE file in the project root for more information.
 
 using System;
 using System.Collections.Generic;
@@ -10,6 +12,7 @@ using Microsoft.CodeAnalysis.CodeFixes;
 using Microsoft.CodeAnalysis.Diagnostics;
 using Microsoft.CodeAnalysis.Editor.CSharp.RenameTracking;
 using Microsoft.CodeAnalysis.Editor.Implementation.RenameTracking;
+using Microsoft.CodeAnalysis.Editor.Shared.Utilities;
 using Microsoft.CodeAnalysis.Editor.UnitTests.Utilities;
 using Microsoft.CodeAnalysis.Editor.UnitTests.Workspaces;
 using Microsoft.CodeAnalysis.Editor.VisualBasic.RenameTracking;
@@ -98,6 +101,7 @@ namespace Microsoft.CodeAnalysis.Editor.UnitTests.RenameTracking
             notificationService.NotificationCallback = callback;
 
             var tracker = new RenameTrackingTaggerProvider(
+                Workspace.ExportProvider.GetExportedValue<IThreadingContext>(),
                 _historyRegistry,
                 Workspace.ExportProvider.GetExport<Host.IWaitIndicator>().Value,
                 Workspace.ExportProvider.GetExport<IInlineRenameService>().Value,
@@ -110,14 +114,12 @@ namespace Microsoft.CodeAnalysis.Editor.UnitTests.RenameTracking
             if (languageName == LanguageNames.CSharp)
             {
                 _codeFixProvider = new CSharpRenameTrackingCodeFixProvider(
-                    Workspace.ExportProvider.GetExport<Host.IWaitIndicator>().Value,
                     _historyRegistry,
                     SpecializedCollections.SingletonEnumerable(_mockRefactorNotifyService));
             }
             else if (languageName == LanguageNames.VisualBasic)
             {
                 _codeFixProvider = new VisualBasicRenameTrackingCodeFixProvider(
-                    Workspace.ExportProvider.GetExport<Host.IWaitIndicator>().Value,
                     _historyRegistry,
                     SpecializedCollections.SingletonEnumerable(_mockRefactorNotifyService));
             }
@@ -173,7 +175,7 @@ namespace Microsoft.CodeAnalysis.Editor.UnitTests.RenameTracking
 
         public async Task<IList<Diagnostic>> GetDocumentDiagnosticsAsync(Document document = null)
         {
-            document = document ?? this.Workspace.CurrentSolution.GetDocument(_hostDocument.Id);
+            document ??= this.Workspace.CurrentSolution.GetDocument(_hostDocument.Id);
             var analyzer = new RenameTrackingDiagnosticAnalyzer();
             return (await DiagnosticProviderTestUtilities.GetDocumentDiagnosticsAsync(analyzer, document,
                 (await document.GetSyntaxRootAsync()).FullSpan)).ToList();

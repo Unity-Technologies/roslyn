@@ -1,4 +1,6 @@
-﻿' Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
+﻿' Licensed to the .NET Foundation under one or more agreements.
+' The .NET Foundation licenses this file to you under the MIT license.
+' See the LICENSE file in the project root for more information.
 
 Imports Microsoft.CodeAnalysis.Test.Utilities
 Imports Microsoft.CodeAnalysis.VisualBasic
@@ -5306,6 +5308,335 @@ C1
 ]]>)
         End Sub
 
+        <Fact>
+        <WorkItem(3519, "https://github.com/dotnet/roslyn/issues/35319")>
+        Public Sub CodeGen_ConditionalAccessUnconstrainedTField()
+            Dim c = CompileAndVerify(
+<compilation>
+    <file name="a.vb">
+Imports System
+
+Public Class C(Of T)
+    Public Sub New(t As T)
+        field = t
+    End Sub
+
+    Public Sub New()
+    End Sub
+
+    Private field As T
+
+    Public Sub Print()
+        Console.WriteLine(field?.ToString())
+        Console.WriteLine(field)
+    End Sub
+End Class
+
+Public Structure S
+    Private a As Integer
+
+    Public Overrides Function ToString() As String
+        Dim result = a.ToString()
+        a = a + 1
+        Return result
+    End Function
+End Structure
+
+Module Program
+    Sub Main()
+        Call New C(Of S)().Print()
+        Call New C(Of S?)().Print()
+        Call New C(Of S?)(New S()).Print()
+        Call New C(Of String)("hello").Print()
+        Call New C(Of String)().Print()
+    End Sub
+End Module
+    </file>
+</compilation>, expectedOutput:="0
+1
+
+
+0
+0
+hello
+hello")
+
+            c.VerifyIL("C(Of T).Print()",
+            <![CDATA[
+{
+  // Code size       75 (0x4b)
+  .maxstack  2
+  .locals init (T V_0)
+  IL_0000:  ldarg.0
+  IL_0001:  ldflda     "C(Of T).field As T"
+  IL_0006:  ldloca.s   V_0
+  IL_0008:  initobj    "T"
+  IL_000e:  ldloc.0
+  IL_000f:  box        "T"
+  IL_0014:  brtrue.s   IL_002a
+  IL_0016:  ldobj      "T"
+  IL_001b:  stloc.0
+  IL_001c:  ldloca.s   V_0
+  IL_001e:  ldloc.0
+  IL_001f:  box        "T"
+  IL_0024:  brtrue.s   IL_002a
+  IL_0026:  pop
+  IL_0027:  ldnull
+  IL_0028:  br.s       IL_0035
+  IL_002a:  constrained. "T"
+  IL_0030:  callvirt   "Function Object.ToString() As String"
+  IL_0035:  call       "Sub System.Console.WriteLine(String)"
+  IL_003a:  ldarg.0
+  IL_003b:  ldfld      "C(Of T).field As T"
+  IL_0040:  box        "T"
+  IL_0045:  call       "Sub System.Console.WriteLine(Object)"
+  IL_004a:  ret
+}
+]]>)
+        End Sub
+
+        <Fact>
+        <WorkItem(3519, "https://github.com/dotnet/roslyn/issues/35319")>
+        Public Sub CodeGen_ConditionalAccessReadonlyUnconstrainedTField()
+            Dim c = CompileAndVerify(
+<compilation>
+    <file name="a.vb">
+Imports System
+
+Public Class C(Of T)
+    Public Sub New(ByVal t As T)
+        field = t
+    End Sub
+
+    Public Sub New()
+    End Sub
+
+    ReadOnly field As T
+
+    Public Sub Print()
+        Console.WriteLine(field?.ToString())
+        Console.WriteLine(field)
+    End Sub
+End Class
+
+Public Structure S
+    Private a As Integer
+
+    Public Overrides Function ToString() As String
+        Return Math.Min(System.Threading.Interlocked.Increment(a), a - 1).ToString()
+    End Function
+End Structure
+
+Module Program
+    Sub Main()
+		Call New C(Of S)().Print()
+		Call New C(Of S?)().Print()
+		Call New C(Of S?)(New S()).Print()
+		Call New C(Of String)("hello").Print()
+		Call New C(Of String)().Print()
+    End Sub
+End Module
+    </file>
+</compilation>, expectedOutput:="0
+0
+
+
+0
+0
+hello
+hello")
+
+            c.VerifyIL("C(Of T).Print()",
+            <![CDATA[
+{
+  // Code size       78 (0x4e)
+  .maxstack  2
+  .locals init (T V_0,
+                T V_1)
+  IL_0000:  ldarg.0
+  IL_0001:  ldfld      "C(Of T).field As T"
+  IL_0006:  stloc.0
+  IL_0007:  ldloca.s   V_0
+  IL_0009:  ldloca.s   V_1
+  IL_000b:  initobj    "T"
+  IL_0011:  ldloc.1
+  IL_0012:  box        "T"
+  IL_0017:  brtrue.s   IL_002d
+  IL_0019:  ldobj      "T"
+  IL_001e:  stloc.1
+  IL_001f:  ldloca.s   V_1
+  IL_0021:  ldloc.1
+  IL_0022:  box        "T"
+  IL_0027:  brtrue.s   IL_002d
+  IL_0029:  pop
+  IL_002a:  ldnull
+  IL_002b:  br.s       IL_0038
+  IL_002d:  constrained. "T"
+  IL_0033:  callvirt   "Function Object.ToString() As String"
+  IL_0038:  call       "Sub System.Console.WriteLine(String)"
+  IL_003d:  ldarg.0
+  IL_003e:  ldfld      "C(Of T).field As T"
+  IL_0043:  box        "T"
+  IL_0048:  call       "Sub System.Console.WriteLine(Object)"
+  IL_004d:  ret
+}
+]]>)
+        End Sub
+
+        <Fact>
+        <WorkItem(3519, "https://github.com/dotnet/roslyn/issues/35319")>
+        Public Sub CodeGen_ConditionalAccessUnconstrainedTLocal()
+            Dim c = CompileAndVerify(
+<compilation>
+    <file name="a.vb">
+Imports System
+
+Public Class C(Of T)
+    Public Sub New(ByVal t As T)
+        field = t
+    End Sub
+
+    Public Sub New()
+    End Sub
+
+    Private field As T
+
+    Public Sub Print()
+        Dim temp = field
+        Console.WriteLine(temp?.ToString())
+        Console.WriteLine(temp)
+    End Sub
+End Class
+
+Public Structure S
+    Private a As Integer
+
+    Public Overrides Function ToString() As String
+        Return Math.Min(System.Threading.Interlocked.Increment(a), a - 1).ToString()
+    End Function
+End Structure
+
+Module Program
+	Sub Main()
+		Call New C(Of S)().Print()
+		Call New C(Of S?)().Print()
+		Call New C(Of S?)(New S()).Print()
+		Call New C(Of String)("hello").Print()
+		Call New C(Of String)().Print()
+    End Sub
+End Module
+    </file>
+</compilation>, expectedOutput:="0
+1
+
+
+0
+1
+hello
+hello")
+
+            c.VerifyIL("C(Of T).Print()",
+            <![CDATA[
+{
+  // Code size       48 (0x30)
+  .maxstack  1
+  .locals init (T V_0) //temp
+  IL_0000:  ldarg.0
+  IL_0001:  ldfld      "C(Of T).field As T"
+  IL_0006:  stloc.0
+  IL_0007:  ldloc.0
+  IL_0008:  box        "T"
+  IL_000d:  brtrue.s   IL_0012
+  IL_000f:  ldnull
+  IL_0010:  br.s       IL_001f
+  IL_0012:  ldloca.s   V_0
+  IL_0014:  constrained. "T"
+  IL_001a:  callvirt   "Function Object.ToString() As String"
+  IL_001f:  call       "Sub System.Console.WriteLine(String)"
+  IL_0024:  ldloc.0
+  IL_0025:  box        "T"
+  IL_002a:  call       "Sub System.Console.WriteLine(Object)"
+  IL_002f:  ret
+}
+]]>)
+        End Sub
+
+        <Fact>
+        <WorkItem(3519, "https://github.com/dotnet/roslyn/issues/35319")>
+        Public Sub CodeGen_ConditionalAccessUnconstrainedTTemp()
+            Dim c = CompileAndVerify(
+<compilation>
+    <file name="a.vb">
+Imports System
+
+Public Class C(Of T)
+    Public Sub New(ByVal t As T)
+        field = t
+    End Sub
+
+    Public Sub New()
+    End Sub
+
+    Private field As T
+
+    Private Function M() As T
+        Return field
+    End Function
+
+    Public Sub Print()
+        Console.WriteLine(M()?.ToString())
+    End Sub
+End Class
+
+Module Program
+    Sub Main()
+        Call New C(Of Integer)().Print()
+        Call New C(Of Integer?)().Print()
+        Call New C(Of Integer?)(0).Print()
+        Call New C(Of String)("hello").Print()
+        Call New C(Of String)().Print()
+    End Sub
+End Module
+    </file>
+</compilation>, expectedOutput:="0
+
+0
+hello
+")
+
+            c.VerifyIL("C(Of T).Print()",
+            <![CDATA[
+{
+  // Code size       62 (0x3e)
+  .maxstack  2
+  .locals init (T V_0,
+                T V_1)
+  IL_0000:  ldarg.0
+  IL_0001:  call       "Function C(Of T).M() As T"
+  IL_0006:  stloc.0
+  IL_0007:  ldloca.s   V_0
+  IL_0009:  ldloca.s   V_1
+  IL_000b:  initobj    "T"
+  IL_0011:  ldloc.1
+  IL_0012:  box        "T"
+  IL_0017:  brtrue.s   IL_002d
+  IL_0019:  ldobj      "T"
+  IL_001e:  stloc.1
+  IL_001f:  ldloca.s   V_1
+  IL_0021:  ldloc.1
+  IL_0022:  box        "T"
+  IL_0027:  brtrue.s   IL_002d
+  IL_0029:  pop
+  IL_002a:  ldnull
+  IL_002b:  br.s       IL_0038
+  IL_002d:  constrained. "T"
+  IL_0033:  callvirt   "Function Object.ToString() As String"
+  IL_0038:  call       "Sub System.Console.WriteLine(String)"
+  IL_003d:  ret
+}
+]]>)
+        End Sub
+
         <Fact()>
         Public Sub InlineNullableIsTrue_01()
 
@@ -6228,6 +6559,51 @@ M1
   IL_001e:  call       "Function S1.M1() As Integer"
   IL_0023:  call       "Sub System.Console.WriteLine(Integer)"
   IL_0028:  ret
+}
+]]>)
+        End Sub
+
+        <Fact()>
+        Public Sub InlineBinaryConditional_Default()
+            Dim compilationDef =
+<compilation>
+    <file name="a.vb">
+Public Module Program
+    Public Class C1
+        Public Property x As Integer
+    End Class
+
+    Public Sub Main()
+        Dim c = New C1() With { .x = 42 }
+        System.Console.WriteLine(Test(c))
+        System.Console.WriteLine(Test(Nothing))
+    End Sub
+
+    Public Function Test(c As C1) As Integer
+        Return If(c?.x, 0)
+    End Function
+End Module</file>
+</compilation>
+
+            Dim compilation = CompilationUtils.CreateCompilationWithMscorlib40AndVBRuntime(compilationDef, TestOptions.ReleaseExe)
+
+            Dim verifier = CompileAndVerify(compilation, expectedOutput:=
+            <![CDATA[
+42
+0
+]]>)
+            verifier.VerifyIL("Program.Test(Program.C1)",
+            <![CDATA[
+{
+  // Code size       12 (0xc)
+  .maxstack  1
+  IL_0000:  ldarg.0
+  IL_0001:  brtrue.s   IL_0005
+  IL_0003:  ldc.i4.0
+  IL_0004:  ret
+  IL_0005:  ldarg.0
+  IL_0006:  call       "Function Program.C1.get_x() As Integer"
+  IL_000b:  ret
 }
 ]]>)
         End Sub
@@ -9571,7 +9947,7 @@ End Class
     ]]></file>
 </compilation>
 
-            Dim compilation = CompilationUtils.CreateCompilationWithMscorlib40(compilationDef, parseOptions:=TestOptions.RegularWithFlowAnalysisFeature)
+            Dim compilation = CompilationUtils.CreateCompilationWithMscorlib40(compilationDef)
 
             compilation.AssertTheseDiagnostics(<expected>
 BC32022: 'Public Event TestEvent As Action' is an event, and cannot be called directly. Use a 'RaiseEvent' statement to raise an event.
@@ -9837,6 +10213,90 @@ False
 ]]>
             CompileAndVerify(compilationDef, options:=TestOptions.DebugExe, expectedOutput:=expectedOutput)
             CompileAndVerify(compilationDef, options:=TestOptions.ReleaseExe, expectedOutput:=expectedOutput)
+        End Sub
+
+
+        <Fact()>
+        <WorkItem(40690, "https://github.com/dotnet/roslyn/issues/40690")>
+        Public Sub ConditionalAccess_GenericExtension_ValueTuple
+            Dim compilationDef =
+<compilation>
+    <file name="a.vb">
+Imports System
+Imports System.Runtime.CompilerServices
+
+Public Module Extensions
+    &lt;Extension&gt;
+    Public Function GetValue(obj As Object) As String
+        Return obj?.ToString()
+    End Function
+End Module
+
+Public Class BGen(Of __T__)
+    Public ReadOnly Property Data As (Integer, __T__)
+
+    Public Sub New(data As (Integer, __T__))
+        Me.Data = data
+    End Sub
+
+    Public ReadOnly Property Value As String
+        Get
+            Return Data.Item2?.GetValue()
+        End Get
+    End Property
+End Class
+
+Public Class Main
+    Public Shared Sub Main()
+        Dim i = New BGen(Of String)((0, "abc"))
+        Dim r = i.Value
+        Console.Write(r)
+    End Sub
+End Class
+    </file>
+</compilation>
+
+            Dim valueTupleRefs As MetadataReference() = New MetadataReference() {ValueTupleRef, SystemRuntimeFacadeRef}
+            Dim expectedOutput = "abc"
+            Dim verifier = CompileAndVerify(
+                CreateCompilationWithMscorlib45AndVBRuntime(compilationDef, options:=TestOptions.DebugExe, references:=valueTupleRefs),
+                expectedOutput:=expectedOutput)
+
+            verifier.VerifyIL("BGen(Of __T__).get_Value()", "
+{
+  // Code size       71 (0x47)
+  .maxstack  2
+  .locals init (String V_0, //Value
+                System.ValueTuple(Of Integer, __T__) V_1,
+                __T__ V_2)
+  IL_0000:  nop
+  IL_0001:  ldarg.0
+  IL_0002:  call       ""Function BGen(Of __T__).get_Data() As (Integer, __T__)""
+  IL_0007:  stloc.1
+  IL_0008:  ldloca.s   V_1
+  IL_000a:  ldflda     ""System.ValueTuple(Of Integer, __T__).Item2 As __T__""
+  IL_000f:  ldloca.s   V_2
+  IL_0011:  initobj    ""__T__""
+  IL_0017:  ldloc.2
+  IL_0018:  box        ""__T__""
+  IL_001d:  brtrue.s   IL_0033
+  IL_001f:  ldobj      ""__T__""
+  IL_0024:  stloc.2
+  IL_0025:  ldloca.s   V_2
+  IL_0027:  ldloc.2
+  IL_0028:  box        ""__T__""
+  IL_002d:  brtrue.s   IL_0033
+  IL_002f:  pop
+  IL_0030:  ldnull
+  IL_0031:  br.s       IL_0042
+  IL_0033:  ldobj      ""__T__""
+  IL_0038:  box        ""__T__""
+  IL_003d:  call       ""Function Extensions.GetValue(Object) As String""
+  IL_0042:  stloc.0
+  IL_0043:  br.s       IL_0045
+  IL_0045:  ldloc.0
+  IL_0046:  ret
+}")
         End Sub
 
     End Class

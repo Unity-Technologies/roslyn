@@ -11,9 +11,7 @@ namespace RoslynBuilder
 			{
 				new CleanOldBuildArtifactsStep(),
 				new PrepareStep(),
-				new InstallCrossGenStep(),
 				new BuildCscStep(),
-				new CrossGenNativeAssembliesStep(),
 				new MakeSureCompilerWorksStep(),
 				new PrepareArtifactsForBuildsZipStep(),
 			};

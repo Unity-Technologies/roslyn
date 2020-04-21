@@ -1,4 +1,6 @@
-﻿' Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
+﻿' Licensed to the .NET Foundation under one or more agreements.
+' The .NET Foundation licenses this file to you under the MIT license.
+' See the LICENSE file in the project root for more information.
 
 Imports Microsoft.CodeAnalysis.CodeFixes
 Imports Microsoft.CodeAnalysis.Diagnostics
@@ -547,6 +549,122 @@ class C
             Foo(
                 4, 5, 6))
     end sub
+end class")
+        End Function
+
+        <WorkItem(29376, "https://github.com/dotnet/roslyn/issues/29376")>
+        <Fact, Trait(Traits.Feature, Traits.Features.CodeActionsUseConditionalExpression)>
+        Public Async Function TestOnAssignmentToImplicitLocalInContainingProperty() As Task
+            Await TestInRegularAndScriptAsync(
+"
+class C
+    public theemployee as string
+
+    public readonly property employee as string
+        get
+            [||]if theemployee is nothing then
+                employee = ""1""
+            else
+                employee = ""2""
+            end if
+        end get
+    end property
+end class",
+"
+class C
+    public theemployee as string
+
+    public readonly property employee as string
+        get
+            employee = If(theemployee is nothing, ""1"", ""2"")
+        end get
+    end property
+end class")
+        End Function
+
+        <WorkItem(29376, "https://github.com/dotnet/roslyn/issues/29376")>
+        <Fact, Trait(Traits.Feature, Traits.Features.CodeActionsUseConditionalExpression)>
+        Public Async Function TestOnAssignmentToImplicitLocalInContainingFunction() As Task
+            Await TestInRegularAndScriptAsync(
+"
+class C
+    public theemployee as string
+
+    Public Function employee() As String
+        [||]If theemployee Is Nothing Then
+            employee = ""1""
+        Else
+            employee = ""2""
+        End If
+    End Function
+end class",
+"
+class C
+    public theemployee as string
+
+    Public Function employee() As String
+        employee = If(theemployee Is Nothing, ""1"", ""2"")
+    End Function
+end class")
+        End Function
+
+        <WorkItem(29376, "https://github.com/dotnet/roslyn/issues/29376")>
+        <Fact, Trait(Traits.Feature, Traits.Features.CodeActionsUseConditionalExpression)>
+        Public Async Function TestOnAssignmentToImplicitLocalInContainingSub1() As Task
+            Await TestInRegularAndScriptAsync(
+"
+Option Explicit Off
+
+class C
+    public theemployee as string
+
+    Public Sub F()
+        [||]If theemployee Is Nothing Then
+            employee = ""1""
+        Else
+            employee = ""2""
+        End If
+    End Sub
+end class",
+"
+Option Explicit Off
+
+class C
+    public theemployee as string
+
+    Public Sub F()
+        employee = If(theemployee Is Nothing, ""1"", ""2"")
+    End Sub
+end class")
+        End Function
+
+        <WorkItem(29376, "https://github.com/dotnet/roslyn/issues/29376")>
+        <Fact, Trait(Traits.Feature, Traits.Features.CodeActionsUseConditionalExpression)>
+        Public Async Function TestOnAssignmentToImplicitLocalInContainingSub2() As Task
+            Await TestInRegularAndScriptAsync(
+"
+Option Explicit Off
+
+class C
+    public theemployee as string
+
+    Public Sub employee()
+        [||]If theemployee Is Nothing Then
+            employee = ""1""
+        Else
+            employee = ""2""
+        End If
+    End Sub
+end class",
+"
+Option Explicit Off
+
+class C
+    public theemployee as string
+
+    Public Sub employee()
+        employee = If(theemployee Is Nothing, ""1"", ""2"")
+    End Sub
 end class")
         End Function
     End Class

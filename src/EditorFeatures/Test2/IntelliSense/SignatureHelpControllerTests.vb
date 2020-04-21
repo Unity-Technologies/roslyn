@@ -1,11 +1,13 @@
-﻿' Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
+﻿' Licensed to the .NET Foundation under one or more agreements.
+' The .NET Foundation licenses this file to you under the MIT license.
+' See the LICENSE file in the project root for more information.
 
 Imports System.Runtime.CompilerServices
 Imports System.Threading
-Imports System.Threading.Tasks
 Imports System.Windows.Threading
 Imports Microsoft.CodeAnalysis.Editor.Implementation.IntelliSense
 Imports Microsoft.CodeAnalysis.Editor.Implementation.IntelliSense.SignatureHelp
+Imports Microsoft.CodeAnalysis.Editor.Shared.Utilities
 Imports Microsoft.CodeAnalysis.Editor.UnitTests.Utilities
 Imports Microsoft.CodeAnalysis.Editor.UnitTests.Workspaces
 Imports Microsoft.CodeAnalysis.Shared.TestHooks
@@ -22,15 +24,10 @@ Namespace Microsoft.CodeAnalysis.Editor.UnitTests.IntelliSense
 
     <[UseExportProvider]>
     Public Class SignatureHelpControllerTests
-        Public Sub New()
-            ' The controller expects to be on a UI thread
-            TestWorkspace.ResetThreadAffinity()
-        End Sub
-
         <WpfFact>
         Public Sub InvokeSignatureHelpWithoutDocumentShouldNotStartNewSession()
             Dim emptyProvider = New Mock(Of IDocumentProvider)
-            emptyProvider.Setup(Function(p) p.GetDocumentAsync(It.IsAny(Of ITextSnapshot), It.IsAny(Of CancellationToken))).Returns(Task.FromResult(DirectCast(Nothing, Document)))
+            emptyProvider.Setup(Function(p) p.GetDocument(It.IsAny(Of ITextSnapshot), It.IsAny(Of CancellationToken))).Returns(DirectCast(Nothing, Document))
             Dim controller As Controller = CreateController(documentProvider:=emptyProvider)
             controller.WaitForController()
 
@@ -222,7 +219,7 @@ Namespace Microsoft.CodeAnalysis.Editor.UnitTests.IntelliSense
                 New TypeCharCommandArgs(CreateMock(Of ITextView), CreateMock(Of ITextBuffer), "a"c),
                 Sub() GetMocks(controller).Buffer.Insert(0, "a"), TestCommandExecutionContext.Create())
 
-            GetMocks(controller).DocumentProvider.Verify(Function(p) p.GetDocumentAsync(It.IsAny(Of ITextSnapshot), It.IsAny(Of CancellationToken)), Times.Never)
+            GetMocks(controller).DocumentProvider.Verify(Function(p) p.GetDocument(It.IsAny(Of ITextSnapshot), It.IsAny(Of CancellationToken)), Times.Never)
         End Sub
 
         Private Shared ReadOnly s_controllerMocksMap As New ConditionalWeakTable(Of Controller, ControllerMocks)
@@ -249,14 +246,14 @@ Namespace Microsoft.CodeAnalysis.Editor.UnitTests.IntelliSense
                          </Workspace>)
                      Return workspace.CurrentSolution.GetDocument(workspace.Documents.Single().Id)
                  End Function)()
+            Dim threadingContext = DirectCast(document.Project.Solution.Workspace, TestWorkspace).GetService(Of IThreadingContext)
             Dim bufferFactory As ITextBufferFactoryService = DirectCast(document.Project.Solution.Workspace, TestWorkspace).GetService(Of ITextBufferFactoryService)
             Dim buffer = bufferFactory.CreateTextBuffer()
             Dim view = CreateMockTextView(buffer)
             Dim asyncListener = New Mock(Of IAsynchronousOperationListener)
             If documentProvider Is Nothing Then
                 documentProvider = New Mock(Of IDocumentProvider)
-                documentProvider.Setup(Function(p) p.GetDocumentAsync(It.IsAny(Of ITextSnapshot), It.IsAny(Of CancellationToken))).Returns(Task.FromResult(document))
-                documentProvider.Setup(Function(p) p.GetOpenDocumentInCurrentContextWithChanges(It.IsAny(Of ITextSnapshot))).Returns(document)
+                documentProvider.Setup(Function(p) p.GetDocument(It.IsAny(Of ITextSnapshot), It.IsAny(Of CancellationToken))).Returns(document)
             End If
 
             If provider Is Nothing Then
@@ -272,6 +269,7 @@ Namespace Microsoft.CodeAnalysis.Editor.UnitTests.IntelliSense
 
 
             Dim controller = New Controller(
+                threadingContext,
                 view.Object,
                 buffer,
                 presenter.Object,

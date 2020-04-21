@@ -1,14 +1,15 @@
-﻿// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+// See the LICENSE file in the project root for more information.
 
 using System.Threading;
-using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.CSharp;
-using Microsoft.CodeAnalysis.CSharp.Symbols;
-using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Formatting;
+
+#if CODE_STYLE
+using OptionSet = Microsoft.CodeAnalysis.Diagnostics.AnalyzerConfigOptions;
+#else
 using Microsoft.CodeAnalysis.Options;
-using Microsoft.CodeAnalysis.Text;
-using Roslyn.Utilities;
+#endif
 
 namespace Microsoft.CodeAnalysis.CSharp.Formatting
 {
@@ -23,7 +24,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Formatting
         {
             var root = trivia.GetStructure();
             var formatter = new CSharpStructuredTriviaFormatEngine(trivia, initialColumn, optionSet, formattingRules, root.GetFirstToken(includeZeroWidth: true), root.GetLastToken(includeZeroWidth: true));
-            return formatter.FormatAsync(cancellationToken).WaitAndGetResult_CanCallOnBackground(cancellationToken);
+            return formatter.Format(cancellationToken);
         }
 
         private CSharpStructuredTriviaFormatEngine(
@@ -32,13 +33,12 @@ namespace Microsoft.CodeAnalysis.CSharp.Formatting
             OptionSet optionSet,
             ChainedFormattingRules formattingRules,
             SyntaxToken token1,
-            SyntaxToken token2) :
-            base(TreeData.Create(trivia, initialColumn),
-                 optionSet,
-                 formattingRules,
-                 token1,
-                 token2,
-                 TaskExecutor.Synchronous)
+            SyntaxToken token2)
+            : base(TreeData.Create(trivia, initialColumn),
+                   optionSet,
+                   formattingRules,
+                   token1,
+                   token2)
         {
         }
 
@@ -52,7 +52,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Formatting
             return new FormattingContext(this, tokenStream, LanguageNames.CSharp);
         }
 
-        protected override NodeOperations CreateNodeOperationTasks(CancellationToken cancellationToken)
+        protected override NodeOperations CreateNodeOperations(CancellationToken cancellationToken)
         {
             // ignore all node operations for structured trivia since it is not possible for this to have any impact currently.
             return NodeOperations.Empty;
@@ -60,7 +60,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Formatting
 
         protected override AbstractFormattingResult CreateFormattingResult(TokenStream tokenStream)
         {
-            return new FormattingResult(this.TreeData, tokenStream, this.SpanToFormat, this.TaskExecutor);
+            return new FormattingResult(this.TreeData, tokenStream, this.SpanToFormat);
         }
     }
 }

@@ -1,4 +1,6 @@
-﻿// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+// See the LICENSE file in the project root for more information.
 
 using System.Collections.Generic;
 using System.Linq;
@@ -6,6 +8,7 @@ using System.Threading.Tasks;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Editing;
 using Microsoft.CodeAnalysis.Formatting;
+using Microsoft.CodeAnalysis.Shared.Extensions;
 using Microsoft.CodeAnalysis.Test.Utilities;
 using Roslyn.Test.Utilities;
 using Xunit;
@@ -43,14 +46,14 @@ namespace Microsoft.CodeAnalysis.CSharp.UnitTests.Editing
 
         private void VerifySyntax<TSyntax>(SyntaxNode node, string expectedText) where TSyntax : SyntaxNode
         {
-            Assert.IsAssignableFrom(typeof(TSyntax), node);
+            Assert.IsAssignableFrom<TSyntax>(node);
             var normalized = node.NormalizeWhitespace().ToFullString();
             Assert.Equal(expectedText, normalized);
         }
 
         private void VerifySyntaxRaw<TSyntax>(SyntaxNode node, string expectedText) where TSyntax : SyntaxNode
         {
-            Assert.IsAssignableFrom(typeof(TSyntax), node);
+            Assert.IsAssignableFrom<TSyntax>(node);
             var normalized = node.ToFullString();
             Assert.Equal(expectedText, normalized);
         }
@@ -216,6 +219,11 @@ public class MyAttribute : Attribute { public MyAttribute(int[] values) { } }",
 public class MyAttribute : Attribute { public int Value {get; set;} }",
 @"[MyAttribute(Value = 123)]")),
 @"[global::MyAttribute(Value = 123)]");
+
+            var attributes = Generator.GetAttributes(Generator.AddAttributes(
+                Generator.NamespaceDeclaration("n"),
+                Generator.Attribute("Attr")));
+            Assert.True(attributes.Count == 1);
         }
 
         private AttributeData GetAttributeData(string decl, string use)
@@ -616,6 +624,13 @@ public class MyAttribute : Attribute { public int Value {get; set;} }",
                     Generator.SwitchSection(Generator.IdentifierName("y"),
                         new[] { Generator.ExitSwitchStatement() })),
                 "switch (x)\r\n{\r\n    case y:\r\n        break;\r\n}");
+
+            VerifySyntax<SwitchStatementSyntax>(
+                Generator.SwitchStatement(Generator.TupleExpression(new[] { Generator.IdentifierName("x1"), Generator.IdentifierName("x2") }),
+                    Generator.SwitchSection(Generator.IdentifierName("y"),
+                        new[] { Generator.IdentifierName("z") })),
+                "switch (x1, x2)\r\n{\r\n    case y:\r\n        z;\r\n}");
+
         }
 
         [Fact]
@@ -1772,6 +1787,19 @@ public class C { } // end").Members[0];
     event global::System.ComponentModel.PropertyChangedEventHandler PropertyChanged;
 }");
         }
+
+        [WorkItem(38379, "https://github.com/dotnet/roslyn/issues/38379")]
+        [Fact]
+        public void TestUnsafeFieldDeclarationFromSymbol()
+        {
+            VerifySyntax<MethodDeclarationSyntax>(
+                Generator.Declaration(
+                    _emptyCompilation.GetTypeByMetadataName("System.IntPtr").GetMembers("ToPointer").Single()),
+@"public unsafe void *ToPointer()
+{
+}");
+        }
+
         #endregion
 
         #region Add/Insert/Remove/Get declarations & members/elements
@@ -1867,7 +1895,7 @@ public class C
             var cls = cu.Members[0];
             var summary = cls.DescendantNodes(descendIntoTrivia: true).OfType<XmlElementSyntax>().First();
 
-            var summary2 = summary.WithContent(default(SyntaxList<XmlNodeSyntax>));
+            var summary2 = summary.WithContent(default);
 
             var newCu = Generator.ReplaceNode(cu, summary, summary2);
 
@@ -2075,7 +2103,7 @@ public class C
         }
 
         [Fact]
-        public void TestWithAccessibilty()
+        public void TestWithAccessibility()
         {
             Assert.Equal(Accessibility.Private, Generator.GetAccessibility(Generator.WithAccessibility(Generator.ClassDeclaration("c", accessibility: Accessibility.Internal), Accessibility.Private)));
             Assert.Equal(Accessibility.Private, Generator.GetAccessibility(Generator.WithAccessibility(Generator.StructDeclaration("s", accessibility: Accessibility.Internal), Accessibility.Private)));
@@ -2142,6 +2170,68 @@ public class C
             Assert.Equal(DeclarationModifiers.None, Generator.GetModifiers(Generator.WithModifiers(Generator.LocalDeclarationStatement(Generator.IdentifierName("t"), "loc"), DeclarationModifiers.Abstract)));
             Assert.Equal(DeclarationModifiers.None, Generator.GetModifiers(Generator.WithModifiers(Generator.Attribute("a"), DeclarationModifiers.Abstract)));
             Assert.Equal(DeclarationModifiers.None, Generator.GetModifiers(Generator.WithModifiers(SyntaxFactory.TypeParameter("tp"), DeclarationModifiers.Abstract)));
+        }
+
+        [Fact]
+        public void TestWithModifiers_AllowedModifiers()
+        {
+            var allModifiers = new DeclarationModifiers(true, true, true, true, true, true, true, true, true, true, true, true, true);
+
+            Assert.Equal(
+                DeclarationModifiers.Abstract | DeclarationModifiers.New | DeclarationModifiers.Partial | DeclarationModifiers.Sealed | DeclarationModifiers.Static | DeclarationModifiers.Unsafe,
+                Generator.GetModifiers(Generator.WithModifiers(Generator.ClassDeclaration("c"), allModifiers)));
+
+            Assert.Equal(
+                DeclarationModifiers.New | DeclarationModifiers.Partial | DeclarationModifiers.Unsafe | DeclarationModifiers.ReadOnly,
+                Generator.GetModifiers(Generator.WithModifiers(Generator.StructDeclaration("s"), allModifiers)));
+
+            Assert.Equal(
+                DeclarationModifiers.New | DeclarationModifiers.Partial | DeclarationModifiers.Unsafe,
+                Generator.GetModifiers(Generator.WithModifiers(Generator.InterfaceDeclaration("i"), allModifiers)));
+
+            Assert.Equal(
+                DeclarationModifiers.New | DeclarationModifiers.Unsafe,
+                Generator.GetModifiers(Generator.WithModifiers(Generator.DelegateDeclaration("d"), allModifiers)));
+
+            Assert.Equal(
+                DeclarationModifiers.New,
+                Generator.GetModifiers(Generator.WithModifiers(Generator.EnumDeclaration("e"), allModifiers)));
+
+            Assert.Equal(
+                DeclarationModifiers.Const | DeclarationModifiers.New | DeclarationModifiers.ReadOnly | DeclarationModifiers.Static | DeclarationModifiers.Unsafe,
+                Generator.GetModifiers(Generator.WithModifiers(Generator.FieldDeclaration("f", Generator.IdentifierName("t")), allModifiers)));
+
+            Assert.Equal(
+                DeclarationModifiers.Static | DeclarationModifiers.Unsafe,
+                Generator.GetModifiers(Generator.WithModifiers(Generator.ConstructorDeclaration("c"), allModifiers)));
+
+            Assert.Equal(
+                DeclarationModifiers.Unsafe,
+                Generator.GetModifiers(Generator.WithModifiers(SyntaxFactory.DestructorDeclaration("c"), allModifiers)));
+
+            Assert.Equal(
+                DeclarationModifiers.Abstract | DeclarationModifiers.Async | DeclarationModifiers.New | DeclarationModifiers.Override | DeclarationModifiers.Partial | DeclarationModifiers.Sealed | DeclarationModifiers.Static | DeclarationModifiers.Virtual | DeclarationModifiers.Unsafe,
+                Generator.GetModifiers(Generator.WithModifiers(Generator.MethodDeclaration("m"), allModifiers)));
+
+            Assert.Equal(
+                DeclarationModifiers.Abstract | DeclarationModifiers.New | DeclarationModifiers.Override | DeclarationModifiers.ReadOnly | DeclarationModifiers.Sealed | DeclarationModifiers.Static | DeclarationModifiers.Virtual | DeclarationModifiers.Unsafe,
+                Generator.GetModifiers(Generator.WithModifiers(Generator.PropertyDeclaration("p", Generator.IdentifierName("t")), allModifiers)));
+
+            Assert.Equal(
+                DeclarationModifiers.Abstract | DeclarationModifiers.New | DeclarationModifiers.Override | DeclarationModifiers.ReadOnly | DeclarationModifiers.Sealed | DeclarationModifiers.Static | DeclarationModifiers.Virtual | DeclarationModifiers.Unsafe,
+                Generator.GetModifiers(Generator.WithModifiers(Generator.IndexerDeclaration(new[] { Generator.ParameterDeclaration("i") }, Generator.IdentifierName("t")), allModifiers)));
+
+            Assert.Equal(
+                DeclarationModifiers.New | DeclarationModifiers.Static | DeclarationModifiers.Unsafe,
+                Generator.GetModifiers(Generator.WithModifiers(Generator.EventDeclaration("ef", Generator.IdentifierName("t")), allModifiers)));
+
+            Assert.Equal(
+                DeclarationModifiers.Abstract | DeclarationModifiers.New | DeclarationModifiers.Override | DeclarationModifiers.Sealed | DeclarationModifiers.Static | DeclarationModifiers.Virtual | DeclarationModifiers.Unsafe,
+                Generator.GetModifiers(Generator.WithModifiers(Generator.CustomEventDeclaration("ep", Generator.IdentifierName("t")), allModifiers)));
+
+            Assert.Equal(
+                DeclarationModifiers.Abstract | DeclarationModifiers.New | DeclarationModifiers.Override | DeclarationModifiers.Virtual,
+                Generator.GetModifiers(Generator.WithModifiers(SyntaxFactory.AccessorDeclaration(SyntaxKind.GetAccessorDeclaration), allModifiers)));
         }
 
         [Fact]
@@ -2863,6 +2953,12 @@ public class C
 {
     public static int Q, Y, Z;
 }");
+            VerifySyntax<ClassDeclarationSyntax>(
+                Generator.ReplaceNode(declC, declX.GetAncestorOrThis<VariableDeclaratorSyntax>(), SyntaxFactory.VariableDeclarator("Q")),
+@"public class C
+{
+    public static int Q, Y, Z;
+}");
 
             VerifySyntax<ClassDeclarationSyntax>(
                 Generator.ReplaceNode(declC, declX, Generator.WithExpression(declX, Generator.IdentifierName("e"))),
@@ -3290,7 +3386,7 @@ public void M()
         [WorkItem(293, "https://github.com/dotnet/roslyn/issues/293")]
         [Fact]
         [Trait(Traits.Feature, Traits.Features.Formatting)]
-        public async Task IntroduceBaseList()
+        public void IntroduceBaseList()
         {
             var text = @"
 public class C
@@ -3308,7 +3404,7 @@ public class C : IDisposable
             var newDecl = Generator.AddInterfaceType(decl, Generator.IdentifierName("IDisposable"));
             var newRoot = root.ReplaceNode(decl, newDecl);
 
-            var elasticOnlyFormatted = (await Formatter.FormatAsync(newRoot, SyntaxAnnotation.ElasticAnnotation, _ws)).ToFullString();
+            var elasticOnlyFormatted = Formatter.Format(newRoot, SyntaxAnnotation.ElasticAnnotation, _ws).ToFullString();
             Assert.Equal(expected, elasticOnlyFormatted);
         }
 

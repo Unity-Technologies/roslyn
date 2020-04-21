@@ -1,12 +1,10 @@
-﻿// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+// See the LICENSE file in the project root for more information.
 
 using System.Linq;
 using Microsoft.CodeAnalysis.CSharp.Symbols;
-using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.PooledObjects;
-using Microsoft.CodeAnalysis.Text;
-using Roslyn.Utilities;
-using static Microsoft.CodeAnalysis.CSharp.Binder;
 
 namespace Microsoft.CodeAnalysis.CSharp
 {
@@ -44,7 +42,12 @@ namespace Microsoft.CodeAnalysis.CSharp
 
         public static bool IsLiteralDefault(this BoundExpression node)
         {
-            return node.Kind == BoundKind.DefaultExpression && node.Syntax.Kind() == SyntaxKind.DefaultLiteralExpression;
+            return node.Kind == BoundKind.DefaultLiteral;
+        }
+
+        public static bool IsLiteralNullOrDefault(this BoundExpression node)
+        {
+            return node.IsLiteralNull() || node.IsLiteralDefault();
         }
 
         // returns true when expression has no side-effects and produces
@@ -55,7 +58,7 @@ namespace Microsoft.CodeAnalysis.CSharp
         //       after some folding/propagation/algebraic transformations.
         public static bool IsDefaultValue(this BoundExpression node)
         {
-            if (node.Kind == BoundKind.DefaultExpression)
+            if (node.Kind == BoundKind.DefaultExpression || node.Kind == BoundKind.DefaultLiteral)
             {
                 return true;
             }

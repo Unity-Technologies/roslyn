@@ -1,4 +1,6 @@
-﻿// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+// See the LICENSE file in the project root for more information.
 
 using System;
 using System.Collections.Immutable;
@@ -23,20 +25,29 @@ namespace Microsoft.CodeAnalysis.UseIsNullCheck
         public override ImmutableArray<string> FixableDiagnosticIds
             => ImmutableArray.Create(IDEDiagnosticIds.UseIsNullCheckDiagnosticId);
 
+        internal sealed override CodeFixCategory CodeFixCategory => CodeFixCategory.CodeStyle;
+
         protected abstract string GetIsNullTitle();
         protected abstract string GetIsNotNullTitle();
         protected abstract SyntaxNode CreateNullCheck(SyntaxNode argument, bool isUnconstrainedGeneric);
-        protected abstract SyntaxNode CreateNotNullCheck(SyntaxNode notExpression, SyntaxNode argument, bool isUnconstrainedGeneric);
+        protected abstract SyntaxNode CreateNotNullCheck(SyntaxNode argument);
+
+        private static bool IsSupportedDiagnostic(Diagnostic diagnostic)
+            => diagnostic.Properties[UseIsNullConstants.Kind] == UseIsNullConstants.ReferenceEqualsKey;
 
         public override Task RegisterCodeFixesAsync(CodeFixContext context)
         {
             var diagnostic = context.Diagnostics.First();
-            var negated = diagnostic.Properties.ContainsKey(Negated);
-            var title = negated ? GetIsNotNullTitle() : GetIsNullTitle();
+            if (IsSupportedDiagnostic(diagnostic))
+            {
+                var negated = diagnostic.Properties.ContainsKey(Negated);
+                var title = negated ? GetIsNotNullTitle() : GetIsNullTitle();
 
-            context.RegisterCodeFix(
-                new MyCodeAction(title, c => this.FixAsync(context.Document, diagnostic, c)),
-                context.Diagnostics);
+                context.RegisterCodeFix(
+                    new MyCodeAction(title, c => FixAsync(context.Document, diagnostic, c)),
+                    context.Diagnostics);
+            }
+
             return Task.CompletedTask;
         }
 
@@ -51,7 +62,7 @@ namespace Microsoft.CodeAnalysis.UseIsNullCheck
             // not there once their parent has been replaced.
             foreach (var diagnostic in diagnostics.OrderByDescending(d => d.Location.SourceSpan.Start))
             {
-                if (diagnostic.Properties[UseIsNullConstants.Kind] != UseIsNullConstants.ReferenceEqualsKey)
+                if (!IsSupportedDiagnostic(diagnostic))
                 {
                     continue;
                 }
@@ -67,7 +78,7 @@ namespace Microsoft.CodeAnalysis.UseIsNullCheck
 
                 var toReplace = negate ? invocation.Parent : invocation;
                 var replacement = negate
-                    ? CreateNotNullCheck(invocation.Parent, argument, isUnconstrainedGeneric)
+                    ? CreateNotNullCheck(argument)
                     : CreateNullCheck(argument, isUnconstrainedGeneric);
 
                 editor.ReplaceNode(

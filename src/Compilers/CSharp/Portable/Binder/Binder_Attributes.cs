@@ -1,4 +1,6 @@
-﻿// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+// See the LICENSE file in the project root for more information.
 
 using System;
 using System.Collections.Generic;
@@ -42,7 +44,7 @@ namespace Microsoft.CodeAnalysis.CSharp
                     // BindType for AttributeSyntax's name is handled specially during lookup, see Binder.LookupAttributeType.
                     // When looking up a name in attribute type context, we generate a diagnostic + error type if it is not an attribute type, i.e. named type deriving from System.Attribute.
                     // Hence we can assume here that BindType returns a NamedTypeSymbol.
-                    boundAttributeTypes[i] = (NamedTypeSymbol)binder.BindType(attributesToBind[i].Name, diagnostics);
+                    boundAttributeTypes[i] = (NamedTypeSymbol)binder.BindType(attributesToBind[i].Name, diagnostics).Type;
                 }
             }
         }
@@ -147,21 +149,33 @@ namespace Microsoft.CodeAnalysis.CSharp
             AnalyzedAttributeArguments analyzedArguments = attributeArgumentBinder.BindAttributeArguments(argumentListOpt, attributeTypeForBinding, diagnostics);
 
             HashSet<DiagnosticInfo> useSiteDiagnostics = null;
+            ImmutableArray<int> argsToParamsOpt = default;
+            bool expanded = false;
+            MethodSymbol attributeConstructor = null;
 
             // Bind attributeType's constructor based on the bound constructor arguments
-            MethodSymbol attributeConstructor = attributeTypeForBinding.IsErrorType() ?
-                null :
-                BindAttributeConstructor(node, attributeTypeForBinding, analyzedArguments.ConstructorArguments, diagnostics, ref resultKind, suppressErrors: attributeType.IsErrorType(), useSiteDiagnostics: ref useSiteDiagnostics);
+            if (!attributeTypeForBinding.IsErrorType())
+            {
+                attributeConstructor = BindAttributeConstructor(node,
+                                                                attributeTypeForBinding,
+                                                                analyzedArguments.ConstructorArguments,
+                                                                diagnostics,
+                                                                ref resultKind,
+                                                                suppressErrors: attributeType.IsErrorType(),
+                                                                ref argsToParamsOpt,
+                                                                ref expanded,
+                                                                ref useSiteDiagnostics);
+            }
             diagnostics.Add(node, useSiteDiagnostics);
 
-            if ((object)attributeConstructor != null)
+            if (attributeConstructor is object)
             {
                 ReportDiagnosticsIfObsolete(diagnostics, attributeConstructor, node, hasBaseReceiver: false);
-            }
 
-            if (attributeConstructor?.Parameters.Any(p => p.RefKind == RefKind.In) == true)
-            {
-                Error(diagnostics, ErrorCode.ERR_AttributeCtorInParameter, node, attributeConstructor.ToDisplayString(SymbolDisplayFormat.CSharpErrorMessageFormat));
+                if (attributeConstructor.Parameters.Any(p => p.RefKind == RefKind.In))
+                {
+                    Error(diagnostics, ErrorCode.ERR_AttributeCtorInParameter, node, attributeConstructor.ToDisplayString(SymbolDisplayFormat.CSharpErrorMessageFormat));
+                }
             }
 
             var constructorArguments = analyzedArguments.ConstructorArguments;
@@ -170,7 +184,7 @@ namespace Microsoft.CodeAnalysis.CSharp
             ImmutableArray<BoundExpression> boundNamedArguments = analyzedArguments.NamedArguments;
             constructorArguments.Free();
 
-            return new BoundAttribute(node, attributeConstructor, boundConstructorArguments, boundConstructorArgumentNamesOpt,
+            return new BoundAttribute(node, attributeConstructor, boundConstructorArguments, boundConstructorArgumentNamesOpt, argsToParamsOpt, expanded,
                 boundNamedArguments, resultKind, attributeType, hasErrors: resultKind != LookupResultKind.Viable);
         }
 
@@ -180,6 +194,8 @@ namespace Microsoft.CodeAnalysis.CSharp
             var attributeConstructor = boundAttribute.Constructor;
 
             Debug.Assert((object)attributeType != null);
+
+            NullableWalker.AnalyzeIfNeeded(this, boundAttribute, diagnostics);
 
             bool hasErrors = boundAttribute.HasAnyErrors;
 
@@ -225,12 +241,12 @@ namespace Microsoft.CodeAnalysis.CSharp
         {
             foreach (var parameter in parameters)
             {
-                var paramType = parameter.Type;
-                Debug.Assert((object)paramType != null);
+                var paramType = parameter.TypeWithAnnotations;
+                Debug.Assert(paramType.HasType);
 
-                if (!paramType.IsValidAttributeParameterType(Compilation))
+                if (!paramType.Type.IsValidAttributeParameterType(Compilation))
                 {
-                    Error(diagnostics, ErrorCode.ERR_BadAttributeParamType, syntax, parameter.Name, paramType);
+                    Error(diagnostics, ErrorCode.ERR_BadAttributeParamType, syntax, parameter.Name, paramType.Type);
                     hasErrors = true;
                 }
             }
@@ -271,6 +287,9 @@ namespace Microsoft.CodeAnalysis.CSharp
             }
         }
 
+        /// <summary>
+        /// The result of this method captures some AnalyzedArguments, which must be free'ed by the caller.
+        /// </summary>
         private AnalyzedAttributeArguments BindAttributeArguments(
             AttributeArgumentListSyntax attributeArgumentList,
             NamedTypeSymbol attributeType,
@@ -349,6 +368,16 @@ namespace Microsoft.CodeAnalysis.CSharp
             Symbol namedArgumentNameSymbol = BindNamedAttributeArgumentName(namedArgument, attributeType, diagnostics, out wasError, out resultKind);
 
             ReportDiagnosticsIfObsolete(diagnostics, namedArgumentNameSymbol, namedArgument, hasBaseReceiver: false);
+
+            if (namedArgumentNameSymbol.Kind == SymbolKind.Property)
+            {
+                var propertySymbol = (PropertySymbol)namedArgumentNameSymbol;
+                var setMethod = propertySymbol.GetOwnOrInheritedSetMethod();
+                if (setMethod != null)
+                {
+                    ReportDiagnosticsIfObsolete(diagnostics, setMethod, namedArgument, hasBaseReceiver: false);
+                }
+            }
 
             Debug.Assert(resultKind == LookupResultKind.Viable || wasError);
 
@@ -481,13 +510,15 @@ namespace Microsoft.CodeAnalysis.CSharp
             return namedArgumentType;
         }
 
-        protected virtual MethodSymbol BindAttributeConstructor(
+        protected MethodSymbol BindAttributeConstructor(
             AttributeSyntax node,
             NamedTypeSymbol attributeType,
             AnalyzedArguments boundConstructorArguments,
             DiagnosticBag diagnostics,
             ref LookupResultKind resultKind,
             bool suppressErrors,
+            ref ImmutableArray<int> argsToParamsOpt,
+            ref bool expanded,
             ref HashSet<DiagnosticInfo> useSiteDiagnostics)
         {
             MemberResolutionResult<MethodSymbol> memberResolutionResult;
@@ -508,7 +539,8 @@ namespace Microsoft.CodeAnalysis.CSharp
                         LookupResultKind.Inaccessible :
                         LookupResultKind.OverloadResolutionFailure);
             }
-
+            argsToParamsOpt = memberResolutionResult.Result.ArgsToParamsOpt;
+            expanded = memberResolutionResult.Result.Kind == MemberResolutionKind.ApplicableInExpandedForm;
             return memberResolutionResult.Member;
         }
 
@@ -622,7 +654,9 @@ namespace Microsoft.CodeAnalysis.CSharp
                     {
                         hasErrors = true;
                     }
-                    else if (reorderedArgument.Kind == TypedConstantKind.Array && parameter.Type.TypeKind == TypeKind.Array && (TypeSymbol)reorderedArgument.Type != parameter.Type)
+                    else if (reorderedArgument.Kind == TypedConstantKind.Array &&
+                        parameter.Type.TypeKind == TypeKind.Array &&
+                        !((TypeSymbol)reorderedArgument.TypeInternal).Equals(parameter.Type, TypeCompareKind.AllIgnoreOptions))
                     {
                         // NOTE: As in dev11, we don't allow array covariance conversions (presumably, we don't have a way to
                         // represent the conversion in metadata).
@@ -877,20 +911,12 @@ namespace Microsoft.CodeAnalysis.CSharp
                 return false;
             }
 
-            TypeSymbol argumentType = (TypeSymbol)argument.Type;
-            // Easy out (i.e. don't bother classifying conversion).
-            if (argumentType == parameter.Type)
-            {
-                result = argument;
-                return true;
-            }
-
             HashSet<DiagnosticInfo> useSiteDiagnostics = null; // ignoring, since already bound argument and parameter
-            Conversion conversion = conversions.ClassifyBuiltInConversion(argumentType, parameter.Type, ref useSiteDiagnostics);
+            Conversion conversion = conversions.ClassifyBuiltInConversion((TypeSymbol)argument.TypeInternal, parameter.Type, ref useSiteDiagnostics);
 
             // NOTE: Won't always succeed, even though we've performed overload resolution.
             // For example, passing int[] to params object[] actually treats the int[] as an element of the object[].
-            if (conversion.IsValid && conversion.Kind == ConversionKind.ImplicitReference)
+            if (conversion.IsValid && (conversion.Kind == ConversionKind.ImplicitReference || conversion.Kind == ConversionKind.Identity))
             {
                 result = argument;
                 return true;

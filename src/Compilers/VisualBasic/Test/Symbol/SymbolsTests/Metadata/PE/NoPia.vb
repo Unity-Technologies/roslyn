@@ -1,4 +1,6 @@
-﻿' Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
+﻿' Licensed to the .NET Foundation under one or more agreements.
+' The .NET Foundation licenses this file to you under the MIT license.
+' See the LICENSE file in the project root for more information.
 
 Imports System.Collections.Immutable
 Imports CompilationCreationTestHelpers
@@ -1016,7 +1018,7 @@ End interface
         End Sub
 
         <WorkItem(546735, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/546735")>
-        <ConditionalFact(GetType(DesktopOnly), Skip:=ConditionalSkipReason.NoPiaNeedsDesktop)>
+        <ConditionalFact(GetType(DesktopOnly), Reason:=ConditionalSkipReason.NoPiaNeedsDesktop)>
         Public Sub Bug16689_1()
             Dim ilSource =
             <![CDATA[
@@ -1155,7 +1157,7 @@ Derived
         End Sub
 
         <WorkItem(546735, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/546735")>
-        <ConditionalFact(GetType(DesktopOnly), Skip:=ConditionalSkipReason.NoPiaNeedsDesktop)>
+        <ConditionalFact(GetType(DesktopOnly), Reason:=ConditionalSkipReason.NoPiaNeedsDesktop)>
         Public Sub Bug16689_3()
 
             Dim i3Def =

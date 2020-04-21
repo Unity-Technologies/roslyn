@@ -1,4 +1,6 @@
-﻿// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+// See the LICENSE file in the project root for more information.
 
 using System.Threading.Tasks;
 using Microsoft.CodeAnalysis.CodeFixes;
@@ -22,14 +24,18 @@ namespace Microsoft.CodeAnalysis.Editor.CSharp.UnitTests.UsePatternMatching
         [InlineData("null != x", "o is string x")]
         [InlineData("(object)x != null", "o is string x")]
         [InlineData("null != (object)x", "o is string x")]
+        [InlineData("x is object", "o is string x")]
         [InlineData("x == null", "!(o is string x)")]
         [InlineData("null == x", "!(o is string x)")]
         [InlineData("(object)x == null", "!(o is string x)")]
         [InlineData("null == (object)x", "!(o is string x)")]
+        [InlineData("x is null", "!(o is string x)")]
         [InlineData("(x = o as string) != null", "o is string x")]
         [InlineData("null != (x = o as string)", "o is string x")]
+        [InlineData("(x = o as string) is object", "o is string x")]
         [InlineData("(x = o as string) == null", "!(o is string x)")]
         [InlineData("null == (x = o as string)", "!(o is string x)")]
+        [InlineData("(x = o as string) is null", "!(o is string x)")]
         public async Task InlineTypeCheck1(string input, string output)
         {
             await TestStatement($"if ({input}) {{ }}", $"if ({output}) {{ }}");
@@ -40,6 +46,7 @@ namespace Microsoft.CodeAnalysis.Editor.CSharp.UnitTests.UsePatternMatching
         [Theory, Trait(Traits.Feature, Traits.Features.CodeActionsInlineTypeCheck)]
         [InlineData("(x = o as string) != null", "o is string x")]
         [InlineData("null != (x = o as string)", "o is string x")]
+        [InlineData("(x = o as string) is object", "o is string x")]
         [InlineData("(x = o as string) == null", "!(o is string x)")]
         [InlineData("null == (x = o as string)", "!(o is string x)")]
         public async Task InlineTypeCheck2(string input, string output)
@@ -94,6 +101,76 @@ $@"class C
         [|var|] y = o as string;
         if (x != null)
         {
+        }
+    }
+}");
+        }
+
+        [Fact, Trait(Traits.Feature, Traits.Features.CodeActionsInlineTypeCheck)]
+        public async Task TestInSwitchSection()
+        {
+            await TestInRegularAndScriptAsync(
+@"class C
+{
+    void M()
+    {
+        switch (o)
+        {
+            default:
+                [|var|] x = o as string;
+                if (x != null)
+                {
+                }
+        }
+    }
+}",
+@"class C
+{
+    void M()
+    {
+        switch (o)
+        {
+            default:
+                if (o is string x)
+                {
+                }
+        }
+    }
+}");
+        }
+
+        [WorkItem(33345, "https://github.com/dotnet/roslyn/issues/33345")]
+        [Fact, Trait(Traits.Feature, Traits.Features.CodeActionsInlineTypeCheck)]
+        public async Task TestRemoveNewLinesInSwitchStatement()
+        {
+            await TestInRegularAndScriptAsync(
+                @"class C
+{
+    void M()
+    {
+        switch (o)
+        {
+            default:
+                [|var|] x = o as string;
+
+                //a comment
+                if (x != null)
+                {
+                }
+        }
+    }
+}",
+                @"class C
+{
+    void M()
+    {
+        switch (o)
+        {
+            default:
+                //a comment
+                if (o is string x)
+                {
+                }
         }
     }
 }");
@@ -275,6 +352,96 @@ $@"class C
     {
         // prefix comment
         // suffix comment
+        if (o is string x)
+        {
+        }
+    }
+}");
+        }
+
+        [WorkItem(33345, "https://github.com/dotnet/roslyn/issues/33345")]
+        [Fact, Trait(Traits.Feature, Traits.Features.CodeActionsInlineTypeCheck)]
+        public async Task TestRemoveNewLines()
+        {
+            await TestInRegularAndScriptAsync(
+                @"class C
+{
+    void M()
+    {
+        [|var|] x = o as string;
+
+        //suffix comment
+        if (x != null)
+        {
+        }
+    }
+}",
+                @"class C
+{
+    void M()
+    {
+        //suffix comment
+        if (o is string x)
+        {
+        }
+    }
+}");
+        }
+
+        [WorkItem(33345, "https://github.com/dotnet/roslyn/issues/33345")]
+        [Fact, Trait(Traits.Feature, Traits.Features.CodeActionsInlineTypeCheck)]
+        public async Task TestRemoveNewLinesWhereBlankLineIsNotEmpty()
+        {
+            await TestInRegularAndScriptAsync(
+                @"class C
+{
+    void M()
+    {
+        [|var|] x = o as string;
+         
+        //suffix comment
+        if (x != null)
+        {
+        }
+    }
+}",
+                @"class C
+{
+    void M()
+    {
+        //suffix comment
+        if (o is string x)
+        {
+        }
+    }
+}");
+        }
+
+        [WorkItem(33345, "https://github.com/dotnet/roslyn/issues/33345")]
+        [Fact, Trait(Traits.Feature, Traits.Features.CodeActionsInlineTypeCheck)]
+        public async Task TestRemoveNewLines2()
+        {
+            await TestInRegularAndScriptAsync(
+                @"class C
+{
+    void M()
+    {
+        int a = 0;
+        [|var|] x = o as string;
+
+        //suffix comment
+        if (x != null)
+        {
+        }
+    }
+}",
+                @"class C
+{
+    void M()
+    {
+        int a = 0;
+
+        //suffix comment
         if (o is string x)
         {
         }
@@ -504,6 +671,55 @@ $@"class C
 
         Console.WriteLine(x);
         x = ""writeAfter"";
+    }
+}");
+        }
+
+        [Fact, Trait(Traits.Feature, Traits.Features.CodeActionsInlineTypeCheck)]
+        [WorkItem(28821, "https://github.com/dotnet/roslyn/issues/28821")]
+        public async Task TestDefiniteAssignment8()
+        {
+            await TestMissingInRegularAndScriptAsync(
+@"class Program
+{
+    static void Goo(System.Activator bar)
+    {
+    }
+
+    static void Main(string[] args)
+    {
+        var a = new object();
+        [|var|] b = a as System.Activator;
+        if ((b == null) && false)
+        {
+        }
+        else
+        {
+            Goo(b);
+        }
+    }
+}");
+        }
+
+        [Fact, Trait(Traits.Feature, Traits.Features.CodeActionsInlineTypeCheck)]
+        [WorkItem(28866, "https://github.com/dotnet/roslyn/issues/28866")]
+        public async Task TestWrittenExpressionBeforeNullCheck()
+        {
+            await TestMissingInRegularAndScriptAsync(
+@"class Goo
+{
+    object Data { get; set; }
+
+    void DoGoo()
+    {
+        [|var|] oldData = this.Data as string;
+
+        Data = null;
+
+        if (oldData != null)
+        {
+            // Do something
+        }
     }
 }");
         }
@@ -874,6 +1090,477 @@ public static class C
             return x;
         }
     }
+}");
+        }
+
+        [Fact, Trait(Traits.Feature, Traits.Features.CodeActionsInlineTypeCheck)]
+        [WorkItem(25993, "https://github.com/dotnet/roslyn/issues/25993")]
+        public async Task TestEmbeddedStatement1()
+        {
+            await TestInRegularAndScriptAsync(
+@"class C
+{
+    void M(object e)
+    {
+        var fe = e as C;
+        [|var|] ae = e as C;
+        if (fe != null)
+        {
+            M(fe); // fe is used
+        }
+        else if (ae != null)
+        {
+            M(ae); // ae is used
+        }
+    }
+}",
+@"class C
+{
+    void M(object e)
+    {
+        var fe = e as C;
+        if (fe != null)
+        {
+            M(fe); // fe is used
+        }
+        else if (e is C ae)
+        {
+            M(ae); // ae is used
+        }
+    }
+}");
+        }
+
+        [Fact, Trait(Traits.Feature, Traits.Features.CodeActionsInlineTypeCheck)]
+        [WorkItem(25993, "https://github.com/dotnet/roslyn/issues/25993")]
+        public async Task TestEmbeddedStatement2()
+        {
+            await TestMissingInRegularAndScriptAsync(
+@"class C
+{
+    void M(object e)
+    {
+        var fe = e as C;
+        [|var|] ae = e as C;
+        if (fe != null)
+        {
+            M(ae); // ae is used
+        }
+        else if (ae != null)
+        {
+            M(ae); // ae is used
+        }
+    }
+}");
+        }
+
+        [Fact, Trait(Traits.Feature, Traits.Features.CodeActionsInlineTypeCheck)]
+        public async Task TestUseBeforeDeclaration()
+        {
+            await TestMissingInRegularAndScriptAsync(
+@"class C
+{
+    void M(object e)
+    {
+        [|var|] c = e as C;
+        {
+            {
+                var x1 = c;
+
+                if (c != null)
+                {
+
+                }
+            }
+        }
+    }
+
+}");
+        }
+
+        [Fact, Trait(Traits.Feature, Traits.Features.CodeActionsInlineTypeCheck)]
+        public async Task TestPossiblyUnassigned()
+        {
+            await TestMissingInRegularAndScriptAsync(
+@"class C
+{
+    void M(object e)
+    {
+        [|var|] c = e as C;
+        {
+            {
+                if (c != null)
+                {
+
+                }
+
+                var x2 = c;
+            }
+
+            // out of scope
+            var x3 = c;
+        }
+    }
+}");
+        }
+
+        [Fact, Trait(Traits.Feature, Traits.Features.CodeActionsInlineTypeCheck)]
+        public async Task TestOutOfScope()
+        {
+            await TestMissingInRegularAndScriptAsync(
+@"class C
+{
+    void M(object e)
+    {
+        [|var|] c = e as C;
+        {
+            {
+                if (c != null)
+                {
+
+                }
+            }
+
+            // out of scope
+            var x3 = c;
+        }
+    }
+}");
+        }
+
+        [Fact, Trait(Traits.Feature, Traits.Features.CodeActionsInlineTypeCheck)]
+        public async Task TestDeclarationOnOuterBlock()
+        {
+            await TestInRegularAndScriptAsync(
+@"class C
+{
+    void M(object e)
+    {
+        [|var|] c = e as C;
+        {
+            {
+                if (c != null)
+                {
+
+                }
+            }
+        }
+    }
+}",
+@"class C
+{
+    void M(object e)
+    {
+        {
+            {
+                if (e is C c)
+                {
+
+                }
+            }
+        }
+    }
+}");
+        }
+
+        [Fact, Trait(Traits.Feature, Traits.Features.CodeActionsInlineTypeCheck)]
+        public async Task TestConditionalExpression()
+        {
+            await TestInRegularAndScriptAsync(
+@"class C
+{
+    void M(object e)
+    {
+        [|var|] c = e as C;
+        M(c != null ? c : null);
+    }
+}",
+@"class C
+{
+    void M(object e)
+    {
+        M(e is C c ? c : null);
+    }
+}");
+        }
+
+        [Fact, Trait(Traits.Feature, Traits.Features.CodeActionsInlineTypeCheck)]
+        public async Task TestConditionalExpression_OppositeBranch()
+        {
+            await TestMissingInRegularAndScriptAsync(
+@"class C
+{
+    void M(object e)
+    {
+        [|var|] c = e as C;
+        M(c != null ? c : null, c);
+    }
+}");
+        }
+
+        [Fact, Trait(Traits.Feature, Traits.Features.CodeActionsInlineTypeCheck)]
+        public async Task TestForStatement_NoInlineTypeCheck()
+        {
+            await TestMissingInRegularAndScriptAsync(
+@"class C
+{
+    void M(object e)
+    {
+        [|var|] c = e as C;
+        for (;(c)!=null;) {}
+    }
+}");
+        }
+
+        [Fact, Trait(Traits.Feature, Traits.Features.CodeActionsInlineTypeCheck)]
+        public async Task TestForStatement_InlineTypeCheck()
+        {
+            await TestInRegularAndScriptAsync(
+@"class C
+{
+    void M(object e)
+    {
+        [|C|] c;
+        for (; !((c = e as C)==null);) { }
+    }
+}",
+@"class C
+{
+    void M(object e)
+    {
+        for (; !(!(e is C c));) { }
+    }
+}");
+        }
+
+        [Fact, Trait(Traits.Feature, Traits.Features.CodeActionsInlineTypeCheck)]
+        public async Task TestForStatement_InScope()
+        {
+            await TestInRegularAndScriptAsync(
+@"class C
+{
+    void M(object e)
+    {
+        [|C|] c = null;
+        for (; !((c = e as C)==null);)
+        {
+            M(c);
+        }
+    }
+}",
+@"class C
+{
+    void M(object e)
+    {
+        for (; !(!(e is C c));)
+        {
+            M(c);
+        }
+    }
+}");
+        }
+
+        [Fact, Trait(Traits.Feature, Traits.Features.CodeActionsInlineTypeCheck)]
+        public async Task TestForStatement_NotAssignedBeforeAccess()
+        {
+            await TestMissingInRegularAndScriptAsync(
+@"class C
+{
+    void M(object e)
+    {
+        [|C|] c = null;
+        for (; ((c = e as C)==null);)
+        {
+            if (b) c = null;
+            M(c);
+        }
+    }
+}");
+        }
+
+        [Fact, Trait(Traits.Feature, Traits.Features.CodeActionsInlineTypeCheck)]
+        public async Task TestForStatement_AssignedBeforeAccess()
+        {
+            await TestInRegularAndScriptAsync(
+@"class C
+{
+    void M(object e, bool b)
+    {
+        [|C|] c = null;
+        for (; (c = e as C)==null;)
+        {
+            if (b) c = null;
+            else c = null;
+            M(c);
+        }
+    }
+}",
+@"class C
+{
+    void M(object e, bool b)
+    {
+        for (; !(e is C c);)
+        {
+            if (b) c = null;
+            else c = null;
+            M(c);
+        }
+    }
+}");
+        }
+
+        [Fact, Trait(Traits.Feature, Traits.Features.CodeActionsInlineTypeCheck)]
+        public async Task TestForStatement_MultipleDeclarators()
+        {
+            await TestInRegularAndScriptAsync(
+@"class C
+{
+    void M(object e)
+    {
+        [|C|] c = null, x = null;
+        for (; !((c = e as C)==null);)
+        {
+            M(c);
+        }
+    }
+}",
+@"class C
+{
+    void M(object e)
+    {
+        C x = null;
+        for (; !(!(e is C c));)
+        {
+            M(c);
+        }
+    }
+}");
+        }
+
+        [Fact, Trait(Traits.Feature, Traits.Features.CodeActionsInlineTypeCheck)]
+        public async Task TestForStatement_UseBeforeDeclaration()
+        {
+            await TestMissingInRegularAndScriptAsync(
+@"class C
+{
+    void M(object e)
+    {
+        [|C|] c = null, x = c;
+        for (; !((c = e as C)==null);)
+        {
+            M(c);
+        }
+    }
+}");
+        }
+
+        [Fact, Trait(Traits.Feature, Traits.Features.CodeActionsInlineTypeCheck)]
+        public async Task TestForStatement_Initializer()
+        {
+            await TestMissingInRegularAndScriptAsync(
+@"class C
+{
+    void M(object e)
+    {
+        [|C|] c;
+        for (var i = !((c = e as C)==null); i != null; )
+        {
+            M(c);
+        }
+    }
+}");
+        }
+
+        [Fact, Trait(Traits.Feature, Traits.Features.CodeActionsInlineTypeCheck)]
+        public async Task TestLocalFunction()
+        {
+            await TestInRegularAndScriptAsync(
+@"class C
+{
+    void M(object e)
+    {
+        [||]var c = e as C;
+        C F() => c == null ? null : c;
+    }
+}",
+@"class C
+{
+    void M(object e)
+    {
+        C F() => !(e is C c) ? null : c;
+    }
+}");
+        }
+
+        [Fact, Trait(Traits.Feature, Traits.Features.CodeActionsInlineTypeCheck)]
+        public async Task TestLocalFunction_UseOutOfScope()
+        {
+            await TestMissingInRegularAndScriptAsync(
+@"class C
+{
+    C M(object e)
+    {
+        [||]var c = e as C;
+        C F() => c == null ? null : c;
+        return c;
+    }
+}");
+        }
+
+        [Fact, Trait(Traits.Feature, Traits.Features.CodeActionsInlineTypeCheck)]
+        public async Task TestExpressionLambda()
+        {
+            await TestInRegularAndScriptAsync(
+@"class C
+{
+    void M(object e)
+    {
+        [||]var c = e as C;
+        System.Func<C> f = () => c == null ? null : c;
+    }
+}",
+@"class C
+{
+    void M(object e)
+    {
+        System.Func<C> f = () => !(e is C c) ? null : c;
+    }
+}");
+        }
+
+        [Fact, Trait(Traits.Feature, Traits.Features.CodeActionsInlineTypeCheck)]
+        public async Task TestExpressionLambda_UseOutOfScope()
+        {
+            await TestMissingInRegularAndScriptAsync(
+@"class C
+{
+    C M(object e)
+    {
+        [||]var c = e as C;
+        System.Func<C> f = () => c == null ? null : c;
+        return c;
+    }
+}");
+        }
+
+        [WorkItem(31388, "https://github.com/dotnet/roslyn/issues/31388")]
+        [Fact, Trait(Traits.Feature, Traits.Features.CodeActionsInlineTypeCheck)]
+        public async Task TestUseBetweenAssignmentAndIfCondition()
+        {
+            await TestMissingInRegularAndScriptAsync(
+@"class C
+{
+    void M(object o)
+    {
+        [|var|] c = o as C;
+        M2(c != null);
+        if (c == null)
+        {
+            return;
+        }
+    }
+
+    void M2(bool b) { }
 }");
         }
     }

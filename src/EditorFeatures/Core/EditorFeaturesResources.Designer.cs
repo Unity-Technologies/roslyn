@@ -19,7 +19,7 @@ namespace Microsoft.CodeAnalysis.Editor {
     // class via a tool like ResGen or Visual Studio.
     // To add or remove a member, edit your .ResX file then rerun ResGen
     // with the /str option, or rebuild your VS project.
-    [global::System.CodeDom.Compiler.GeneratedCodeAttribute("System.Resources.Tools.StronglyTypedResourceBuilder", "15.0.0.0")]
+    [global::System.CodeDom.Compiler.GeneratedCodeAttribute("System.Resources.Tools.StronglyTypedResourceBuilder", "16.0.0.0")]
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
     [global::System.Runtime.CompilerServices.CompilerGeneratedAttribute()]
     internal class EditorFeaturesResources {
@@ -57,6 +57,15 @@ namespace Microsoft.CodeAnalysis.Editor {
             }
             set {
                 resourceCulture = value;
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to &apos;{0}&apos; bases.
+        /// </summary>
+        internal static string _0_bases {
+            get {
+                return ResourceManager.GetString("_0_bases", resourceCulture);
             }
         }
         
@@ -189,11 +198,11 @@ namespace Microsoft.CodeAnalysis.Editor {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to An inline rename session is active.
+        ///   Looks up a localized string similar to An inline rename session is active for identifier &apos;{0}&apos;. Invoke inline rename again to access additional options. You may continue to edit the identifier being renamed at any time..
         /// </summary>
-        internal static string An_inline_rename_session_is_active {
+        internal static string An_inline_rename_session_is_active_for_identifier_0 {
             get {
-                return ResourceManager.GetString("An_inline_rename_session_is_active", resourceCulture);
+                return ResourceManager.GetString("An_inline_rename_session_is_active_for_identifier_0", resourceCulture);
             }
         }
         
@@ -432,6 +441,15 @@ namespace Microsoft.CodeAnalysis.Editor {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Change configuration.
+        /// </summary>
+        internal static string Change_configuration {
+            get {
+                return ResourceManager.GetString("Change_configuration", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Change Signature.
         /// </summary>
         internal static string Change_Signature {
@@ -612,11 +630,11 @@ namespace Microsoft.CodeAnalysis.Editor {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Do you still want to proceed? it will generate broken code..
+        ///   Looks up a localized string similar to Do you still want to proceed? This may produce broken code..
         /// </summary>
-        internal static string Do_you_still_want_to_proceed_it_will_generate_broken_code {
+        internal static string Do_you_still_want_to_proceed_This_may_produce_broken_code {
             get {
-                return ResourceManager.GetString("Do_you_still_want_to_proceed_it_will_generate_broken_code", resourceCulture);
+                return ResourceManager.GetString("Do_you_still_want_to_proceed_This_may_produce_broken_code", resourceCulture);
             }
         }
         
@@ -684,6 +702,24 @@ namespace Microsoft.CodeAnalysis.Editor {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to items from unimported namespaces.
+        /// </summary>
+        internal static string Expander_display_text {
+            get {
+                return ResourceManager.GetString("Expander_display_text", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Expander.
+        /// </summary>
+        internal static string Expander_image_element {
+            get {
+                return ResourceManager.GetString("Expander_image_element", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Extract Interface.
         /// </summary>
         internal static string Extract_Interface {
@@ -702,11 +738,20 @@ namespace Microsoft.CodeAnalysis.Editor {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Extract method failed with following reasons :.
+        ///   Looks up a localized string similar to Extract method encountered the following issues:.
         /// </summary>
-        internal static string Extract_method_failed_with_following_reasons_colon {
+        internal static string Extract_method_encountered_the_following_issues {
             get {
-                return ResourceManager.GetString("Extract_method_failed_with_following_reasons_colon", resourceCulture);
+                return ResourceManager.GetString("Extract_method_encountered_the_following_issues", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Filter.
+        /// </summary>
+        internal static string Filter_image_element {
+            get {
+                return ResourceManager.GetString("Filter_image_element", resourceCulture);
             }
         }
         
@@ -801,6 +846,15 @@ namespace Microsoft.CodeAnalysis.Editor {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Format Document performed additional cleanup.
+        /// </summary>
+        internal static string Format_document_performed_additional_cleanup {
+            get {
+                return ResourceManager.GetString("Format_document_performed_additional_cleanup", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Format Paste.
         /// </summary>
         internal static string Format_Paste {
@@ -887,6 +941,15 @@ namespace Microsoft.CodeAnalysis.Editor {
         internal static string Go_To_Adjacent_Member {
             get {
                 return ResourceManager.GetString("Go_To_Adjacent_Member", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Go To Base.
+        /// </summary>
+        internal static string Go_To_Base {
+            get {
+                return ResourceManager.GetString("Go_To_Base", resourceCulture);
             }
         }
         
@@ -1125,6 +1188,33 @@ namespace Microsoft.CodeAnalysis.Editor {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Invalid assembly name.
+        /// </summary>
+        internal static string Invalid_assembly_name {
+            get {
+                return ResourceManager.GetString("Invalid_assembly_name", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Invalid characters in assembly name.
+        /// </summary>
+        internal static string Invalid_characters_in_assembly_name {
+            get {
+                return ResourceManager.GetString("Invalid_characters_in_assembly_name", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Keyword - Control.
+        /// </summary>
+        internal static string Keyword_Control {
+            get {
+                return ResourceManager.GetString("Keyword_Control", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Light bulb session is already dismissed..
         /// </summary>
         internal static string Light_bulb_session_is_already_dismissed {
@@ -1139,6 +1229,15 @@ namespace Microsoft.CodeAnalysis.Editor {
         internal static string Loading_Peek_information {
             get {
                 return ResourceManager.GetString("Loading_Peek_information", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Locating bases....
+        /// </summary>
+        internal static string Locating_bases {
+            get {
+                return ResourceManager.GetString("Locating_bases", resourceCulture);
             }
         }
         
@@ -1260,6 +1359,15 @@ namespace Microsoft.CodeAnalysis.Editor {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Operator - Overloaded.
+        /// </summary>
+        internal static string Operator_Overloaded {
+            get {
+                return ResourceManager.GetString("Operator_Overloaded", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Organize Document.
         /// </summary>
         internal static string Organize_Document {
@@ -1319,6 +1427,15 @@ namespace Microsoft.CodeAnalysis.Editor {
         internal static string Paste_in_Interactive {
             get {
                 return ResourceManager.GetString("Paste_in_Interactive", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Paste Tracking.
+        /// </summary>
+        internal static string Paste_Tracking {
+            get {
+                return ResourceManager.GetString("Paste_Tracking", resourceCulture);
             }
         }
         
@@ -1449,6 +1566,15 @@ namespace Microsoft.CodeAnalysis.Editor {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Removal of document not supported.
+        /// </summary>
+        internal static string Removal_of_document_not_supported {
+            get {
+                return ResourceManager.GetString("Removal_of_document_not_supported", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Removing &apos;{0}&apos; from &apos;{1}&apos; with content:.
         /// </summary>
         internal static string Removing_0_from_1_with_content_colon {
@@ -1517,6 +1643,33 @@ namespace Microsoft.CodeAnalysis.Editor {
         internal static string Rename_colon_0 {
             get {
                 return ResourceManager.GetString("Rename_colon_0", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Rename _file.
+        /// </summary>
+        internal static string Rename_file {
+            get {
+                return ResourceManager.GetString("Rename_file", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Rename _file (type does not match file name).
+        /// </summary>
+        internal static string Rename_file_name_doesnt_match {
+            get {
+                return ResourceManager.GetString("Rename_file_name_doesnt_match", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Rename _file (not allowed on partial types).
+        /// </summary>
+        internal static string Rename_file_partial_type {
+            get {
+                return ResourceManager.GetString("Rename_file_partial_type", resourceCulture);
             }
         }
         
@@ -1657,6 +1810,15 @@ namespace Microsoft.CodeAnalysis.Editor {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to String - Escape Character.
+        /// </summary>
+        internal static string String_Escape_Character {
+            get {
+                return ResourceManager.GetString("String_Escape_Character", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to String - Verbatim.
         /// </summary>
         internal static string String_Verbatim {
@@ -1689,6 +1851,15 @@ namespace Microsoft.CodeAnalysis.Editor {
         internal static string symbol_cannot_be_a_namespace {
             get {
                 return ResourceManager.GetString("symbol_cannot_be_a_namespace", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Symbol - Static.
+        /// </summary>
+        internal static string Symbol_Static {
+            get {
+                return ResourceManager.GetString("Symbol_Static", resourceCulture);
             }
         }
         
@@ -1747,6 +1918,15 @@ namespace Microsoft.CodeAnalysis.Editor {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to The symbol has no base..
+        /// </summary>
+        internal static string The_symbol_has_no_base {
+            get {
+                return ResourceManager.GetString("The_symbol_has_no_base", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to The symbol has no implementations..
         /// </summary>
         internal static string The_symbol_has_no_implementations {
@@ -1788,6 +1968,42 @@ namespace Microsoft.CodeAnalysis.Editor {
         internal static string This_session_has_already_been_dismissed {
             get {
                 return ResourceManager.GetString("This_session_has_already_been_dismissed", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Toggle Block Comment.
+        /// </summary>
+        internal static string Toggle_Block_Comment {
+            get {
+                return ResourceManager.GetString("Toggle_Block_Comment", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Toggle Line Comment.
+        /// </summary>
+        internal static string Toggle_Line_Comment {
+            get {
+                return ResourceManager.GetString("Toggle_Line_Comment", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Toggling block comment....
+        /// </summary>
+        internal static string Toggling_block_comment {
+            get {
+                return ResourceManager.GetString("Toggling_block_comment", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Toggling line comment....
+        /// </summary>
+        internal static string Toggling_line_comment {
+            get {
+                return ResourceManager.GetString("Toggling_line_comment", resourceCulture);
             }
         }
         
@@ -1842,6 +2058,105 @@ namespace Microsoft.CodeAnalysis.Editor {
         internal static string Updating_files {
             get {
                 return ResourceManager.GetString("Updating_files", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to User Members - Constants.
+        /// </summary>
+        internal static string User_Members_Constants {
+            get {
+                return ResourceManager.GetString("User_Members_Constants", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to User Members - Enum Members.
+        /// </summary>
+        internal static string User_Members_Enum_Members {
+            get {
+                return ResourceManager.GetString("User_Members_Enum_Members", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to User Members - Events.
+        /// </summary>
+        internal static string User_Members_Events {
+            get {
+                return ResourceManager.GetString("User_Members_Events", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to User Members - Extension Methods.
+        /// </summary>
+        internal static string User_Members_Extension_Methods {
+            get {
+                return ResourceManager.GetString("User_Members_Extension_Methods", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to User Members - Fields.
+        /// </summary>
+        internal static string User_Members_Fields {
+            get {
+                return ResourceManager.GetString("User_Members_Fields", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to User Members - Labels.
+        /// </summary>
+        internal static string User_Members_Labels {
+            get {
+                return ResourceManager.GetString("User_Members_Labels", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to User Members - Locals.
+        /// </summary>
+        internal static string User_Members_Locals {
+            get {
+                return ResourceManager.GetString("User_Members_Locals", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to User Members - Methods.
+        /// </summary>
+        internal static string User_Members_Methods {
+            get {
+                return ResourceManager.GetString("User_Members_Methods", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to User Members - Namespaces.
+        /// </summary>
+        internal static string User_Members_Namespaces {
+            get {
+                return ResourceManager.GetString("User_Members_Namespaces", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to User Members - Parameters.
+        /// </summary>
+        internal static string User_Members_Parameters {
+            get {
+                return ResourceManager.GetString("User_Members_Parameters", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to User Members - Properties.
+        /// </summary>
+        internal static string User_Members_Properties {
+            get {
+                return ResourceManager.GetString("User_Members_Properties", resourceCulture);
             }
         }
         
@@ -2004,6 +2319,24 @@ namespace Microsoft.CodeAnalysis.Editor {
         internal static string VB_XML_Literals_Text {
             get {
                 return ResourceManager.GetString("VB_XML_Literals_Text", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Waiting for background work to finish....
+        /// </summary>
+        internal static string Waiting_for_background_work_to_finish {
+            get {
+                return ResourceManager.GetString("Waiting_for_background_work_to_finish", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Warning.
+        /// </summary>
+        internal static string Warning_image_element {
+            get {
+                return ResourceManager.GetString("Warning_image_element", resourceCulture);
             }
         }
         

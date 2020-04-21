@@ -1,4 +1,6 @@
-﻿// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+// See the LICENSE file in the project root for more information.
 
 using System;
 using System.Collections.Immutable;
@@ -6,14 +8,26 @@ using System.Collections.Immutable;
 namespace Microsoft.CodeAnalysis.Options
 {
     /// <summary>
+    /// Marker interface for <see cref="Option{T}"/>
+    /// </summary>
+    internal interface ILanguageSpecificOption : IOptionWithGroup
+    {
+    }
+
+    /// <summary>
     /// An global option. An instance of this class can be used to access an option value from an OptionSet.
     /// </summary>
-    public class Option<T> : IOption
+    public class Option<T> : ILanguageSpecificOption
     {
         /// <summary>
         /// Feature this option is associated with.
         /// </summary>
         public string Feature { get; }
+
+        /// <summary>
+        /// Optional group/sub-feature for this option.
+        /// </summary>
+        internal OptionGroup Group { get; }
 
         /// <summary>
         /// The name of the option.
@@ -39,6 +53,16 @@ namespace Microsoft.CodeAnalysis.Options
         }
 
         public Option(string feature, string name, T defaultValue)
+            : this(feature, name, defaultValue, storageLocations: Array.Empty<OptionStorageLocation>())
+        {
+        }
+
+        public Option(string feature, string name, T defaultValue, params OptionStorageLocation[] storageLocations)
+            : this(feature, group: OptionGroup.Default, name, defaultValue, storageLocations)
+        {
+        }
+
+        internal Option(string feature, OptionGroup group, string name, T defaultValue, params OptionStorageLocation[] storageLocations)
         {
             if (string.IsNullOrWhiteSpace(feature))
             {
@@ -51,19 +75,17 @@ namespace Microsoft.CodeAnalysis.Options
             }
 
             this.Feature = feature;
+            this.Group = group ?? throw new ArgumentNullException(nameof(group));
             this.Name = name;
             this.DefaultValue = defaultValue;
-        }
-
-        public Option(string feature, string name, T defaultValue, params OptionStorageLocation[] storageLocations)
-            : this(feature, name, defaultValue)
-        {
-            StorageLocations = storageLocations.ToImmutableArray();
+            this.StorageLocations = storageLocations.ToImmutableArray();
         }
 
         object IOption.DefaultValue => this.DefaultValue;
 
         bool IOption.IsPerLanguage => false;
+
+        OptionGroup IOptionWithGroup.Group => this.Group;
 
         public override string ToString()
         {

@@ -1,4 +1,6 @@
-﻿// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+// See the LICENSE file in the project root for more information.
 
 using System;
 using System.Collections.Generic;
@@ -44,10 +46,12 @@ namespace Microsoft.CodeAnalysis.Editor.Implementation.NavigationBar
         private Workspace _workspace;
 
         public NavigationBarController(
+            IThreadingContext threadingContext,
             INavigationBarPresenter presenter,
             ITextBuffer subjectBuffer,
             IWaitIndicator waitIndicator,
             IAsynchronousOperationListener asyncListener)
+            : base(threadingContext)
         {
             _presenter = presenter;
             _subjectBuffer = subjectBuffer;
@@ -92,8 +96,6 @@ namespace Microsoft.CodeAnalysis.Editor.Implementation.NavigationBar
 
         private void ConnectToWorkspace(Workspace workspace)
         {
-            AssertIsForeground();
-
             // If we disconnected before the workspace ever connected, just disregard
             if (_disconnected)
             {
@@ -103,8 +105,26 @@ namespace Microsoft.CodeAnalysis.Editor.Implementation.NavigationBar
             _workspace = workspace;
             _workspace.WorkspaceChanged += this.OnWorkspaceChanged;
 
-            // For the first time you open the file, we'll start immediately
-            StartModelUpdateAndSelectedItemUpdateTasks(modelUpdateDelay: 0, selectedItemUpdateDelay: 0, updateUIWhenDone: true);
+            void connectToNewWorkspace()
+            {
+                // For the first time you open the file, we'll start immediately
+                StartModelUpdateAndSelectedItemUpdateTasks(modelUpdateDelay: 0, selectedItemUpdateDelay: 0, updateUIWhenDone: true);
+            }
+
+            if (IsForeground())
+            {
+                connectToNewWorkspace();
+            }
+            else
+            {
+                var asyncToken = _asyncListener.BeginAsyncOperation(nameof(ConnectToWorkspace));
+                Task.Run(async () =>
+                {
+                    await ThreadingContext.JoinableTaskFactory.SwitchToMainThreadAsync();
+
+                    connectToNewWorkspace();
+                }).CompletesAsyncOperation(asyncToken);
+            }
         }
 
         private void DisconnectFromWorkspace()
@@ -357,7 +377,7 @@ namespace Microsoft.CodeAnalysis.Editor.Implementation.NavigationBar
         {
             AssertIsForeground();
 
-            if (item is NavigationBarPresentedItem presentedItem)
+            if (item is NavigationBarPresentedItem)
             {
                 // Presented items are not navigable, but they may be selected due to a race
                 // documented in Bug #1174848. Protect all INavigationBarItemService implementers

@@ -1,4 +1,6 @@
-﻿// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+// See the LICENSE file in the project root for more information.
 
 using System;
 using System.Threading;
@@ -23,7 +25,8 @@ namespace Microsoft.CodeAnalysis.Editor.Shared.Extensions
             private double _width;
             private double _height;
 
-            public SizeToFitHelper(IWpfDifferenceViewer diffViewer, double minWidth)
+            public SizeToFitHelper(IThreadingContext threadingContext, IWpfDifferenceViewer diffViewer, double minWidth)
+                : base(threadingContext)
             {
                 _calculationStarted = 0;
                 _diffViewer = diffViewer;
@@ -138,9 +141,9 @@ namespace Microsoft.CodeAnalysis.Editor.Shared.Extensions
             }
         }
 
-        public static Task SizeToFitAsync(this IWpfDifferenceViewer diffViewer, double minWidth = 400.0)
+        public static Task SizeToFitAsync(this IWpfDifferenceViewer diffViewer, IThreadingContext threadingContext, double minWidth = 400.0)
         {
-            var helper = new SizeToFitHelper(diffViewer, minWidth);
+            var helper = new SizeToFitHelper(threadingContext, diffViewer, minWidth);
             return helper.SizeToFitAsync();
         }
     }

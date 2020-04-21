@@ -1,4 +1,10 @@
-﻿using System.Collections;
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+// See the LICENSE file in the project root for more information.
+
+#nullable enable
+
+using System.Collections;
 using System.Collections.Generic;
 
 namespace Microsoft.CodeAnalysis.Utilities
@@ -18,6 +24,19 @@ namespace Microsoft.CodeAnalysis.Utilities
         public static T Last<T>(this IReadOnlyList<T> list)
         {
             return list[list.Count - 1];
+        }
+
+        public static int IndexOf<T>(this IReadOnlyList<T> list, T value, int startIndex = 0)
+        {
+            for (var index = startIndex; index < list.Count; index++)
+            {
+                if (EqualityComparer<T>.Default.Equals(list[index], value))
+                {
+                    return index;
+                }
+            }
+
+            return -1;
         }
 
         private class ReadOnlyList<T> : IReadOnlyList<T>

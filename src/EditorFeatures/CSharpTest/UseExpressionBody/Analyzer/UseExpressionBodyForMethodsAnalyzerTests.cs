@@ -1,4 +1,6 @@
-﻿// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+// See the LICENSE file in the project root for more information.
 
 using System.Collections.Generic;
 using System.Threading.Tasks;
@@ -52,13 +54,13 @@ namespace Microsoft.CodeAnalysis.Editor.CSharp.UnitTests.UseExpressionBody
             var serialized = option.ToXElement();
             var deserialized = CodeStyleOption<bool>.FromXElement(serialized);
 
-            Assert.Equal(false, deserialized.Value);
+            Assert.False(deserialized.Value);
 
             option = new CodeStyleOption<ExpressionBodyPreference>(ExpressionBodyPreference.WhenPossible, NotificationOption.Silent);
             serialized = option.ToXElement();
             deserialized = CodeStyleOption<bool>.FromXElement(serialized);
 
-            Assert.Equal(true, deserialized.Value);
+            Assert.True(deserialized.Value);
 
             // This new values can't actually translate back to a bool.  So we'll just get the default
             // value for this option.
@@ -66,7 +68,7 @@ namespace Microsoft.CodeAnalysis.Editor.CSharp.UnitTests.UseExpressionBody
             serialized = option.ToXElement();
             deserialized = CodeStyleOption<bool>.FromXElement(serialized);
 
-            Assert.Equal(default(bool), deserialized.Value);
+            Assert.Equal(default, deserialized.Value);
         }
 
         [Fact, Trait(Traits.Feature, Traits.Features.CodeActionsUseExpressionBody)]
@@ -503,6 +505,162 @@ class C
 
     int M(bool b) => 0;
 }", options: UseExpressionBody, parseOptions: CSharpParseOptions.Default.WithLanguageVersion(LanguageVersion.CSharp6));
+        }
+
+        [WorkItem(25202, "https://github.com/dotnet/roslyn/issues/25202")]
+        [Fact, Trait(Traits.Feature, Traits.Features.CodeActionsUseExpressionBody)]
+        public async Task TestUseBlockBodyAsync1()
+        {
+            await TestInRegularAndScriptAsync(
+@"using System.Threading.Tasks;
+
+class C
+{
+    async Task Goo() [|=>|] await Bar();
+
+    Task Bar() { }
+}",
+@"using System.Threading.Tasks;
+
+class C
+{
+    async Task Goo()
+    {
+        await Bar();
+    }
+
+    Task Bar() { }
+}", options: UseBlockBody);
+        }
+
+        [WorkItem(25202, "https://github.com/dotnet/roslyn/issues/25202")]
+        [Fact, Trait(Traits.Feature, Traits.Features.CodeActionsUseExpressionBody)]
+        public async Task TestUseBlockBodyAsync2()
+        {
+            await TestInRegularAndScriptAsync(
+@"using System.Threading.Tasks;
+
+class C
+{
+    async void Goo() [|=>|] await Bar();
+
+    Task Bar() { }
+}",
+@"using System.Threading.Tasks;
+
+class C
+{
+    async void Goo()
+    {
+        await Bar();
+    }
+
+    Task Bar() { }
+}", options: UseBlockBody);
+        }
+
+        [WorkItem(25202, "https://github.com/dotnet/roslyn/issues/25202")]
+        [Fact, Trait(Traits.Feature, Traits.Features.CodeActionsUseExpressionBody)]
+        public async Task TestUseBlockBodyAsync3()
+        {
+            await TestInRegularAndScriptAsync(
+@"using System.Threading.Tasks;
+
+class C
+{
+    async void Goo() [|=>|] await Bar();
+
+    Task Bar() { }
+}",
+@"using System.Threading.Tasks;
+
+class C
+{
+    async void Goo()
+    {
+        await Bar();
+    }
+
+    Task Bar() { }
+}", options: UseBlockBody);
+        }
+
+        [WorkItem(25202, "https://github.com/dotnet/roslyn/issues/25202")]
+        [Fact, Trait(Traits.Feature, Traits.Features.CodeActionsUseExpressionBody)]
+        public async Task TestUseBlockBodyAsync4()
+        {
+            await TestInRegularAndScriptAsync(
+@"using System.Threading.Tasks;
+
+class C
+{
+    async ValueTask Goo() [|=>|] await Bar();
+
+    Task Bar() { }
+}",
+@"using System.Threading.Tasks;
+
+class C
+{
+    async ValueTask Goo()
+    {
+        await Bar();
+    }
+
+    Task Bar() { }
+}", options: UseBlockBody);
+        }
+
+        [WorkItem(25202, "https://github.com/dotnet/roslyn/issues/25202")]
+        [Fact, Trait(Traits.Feature, Traits.Features.CodeActionsUseExpressionBody)]
+        public async Task TestUseBlockBodyAsync5()
+        {
+            await TestInRegularAndScriptAsync(
+@"using System.Threading.Tasks;
+
+class C
+{
+    async Task<int> Goo() [|=>|] await Bar();
+
+    Task<int> Bar() { }
+}",
+@"using System.Threading.Tasks;
+
+class C
+{
+    async Task<int> Goo()
+    {
+        return await Bar();
+    }
+
+    Task<int> Bar() { }
+}", options: UseBlockBody);
+        }
+
+        [WorkItem(25202, "https://github.com/dotnet/roslyn/issues/25202")]
+        [Fact, Trait(Traits.Feature, Traits.Features.CodeActionsUseExpressionBody)]
+        public async Task TestUseBlockBodyAsync6()
+        {
+            await TestInRegularAndScriptAsync(
+@"using System.Threading.Tasks;
+
+class C
+{
+    Task Goo() [|=>|] Bar();
+
+    Task Bar() { }
+}",
+@"using System.Threading.Tasks;
+
+class C
+{
+    Task Goo()
+    {
+        return Bar();
+    }
+
+    Task Bar() { }
+}", options: UseBlockBody);
         }
     }
 }

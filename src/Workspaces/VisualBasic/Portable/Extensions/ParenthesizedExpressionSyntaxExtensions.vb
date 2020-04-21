@@ -1,4 +1,6 @@
-﻿' Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
+﻿' Licensed to the .NET Foundation under one or more agreements.
+' The .NET Foundation licenses this file to you under the MIT license.
+' See the LICENSE file in the project root for more information.
 
 Imports System.Runtime.CompilerServices
 Imports System.Threading
@@ -41,6 +43,12 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Extensions
             semanticModel As SemanticModel,
             Optional cancellationToken As CancellationToken = Nothing
         ) As Boolean
+
+            If node.OpenParenToken.IsMissing OrElse node.CloseParenToken.IsMissing Then
+                ' Cases:
+                '   (3
+                Return False
+            End If
 
             Dim expression = node.Expression
 
@@ -338,12 +346,14 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Extensions
             ' Cases:
             '   (1 + 1) * 8
             '   (1 + 1).ToString
+            '   (1 + 1)()
             If TypeOf expression Is BinaryExpressionSyntax OrElse
                TypeOf expression Is UnaryExpressionSyntax Then
 
                 Dim parentExpression = TryCast(node.Parent, ExpressionSyntax)
                 If parentExpression IsNot Nothing Then
-                    If parentExpression.IsKind(SyntaxKind.SimpleMemberAccessExpression) Then
+                    If parentExpression.IsKind(SyntaxKind.SimpleMemberAccessExpression) OrElse
+                       parentExpression.IsKind(SyntaxKind.InvocationExpression) Then
                         Return False
                     End If
 

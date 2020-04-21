@@ -1,4 +1,8 @@
-﻿// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+// See the LICENSE file in the project root for more information.
+
+#nullable enable
 
 using System;
 using System.Collections.Generic;
@@ -15,6 +19,7 @@ namespace Microsoft.CodeAnalysis.Classification
     {
         private struct Worker
         {
+            private readonly Workspace _workspace;
             private readonly SemanticModel _semanticModel;
             private readonly SyntaxTree _syntaxTree;
             private readonly TextSpan _textSpan;
@@ -34,6 +39,7 @@ namespace Microsoft.CodeAnalysis.Classification
                 Func<SyntaxToken, ImmutableArray<ISyntaxClassifier>> getTokenClassifiers,
                 CancellationToken cancellationToken)
             {
+                _workspace = workspace;
                 _getNodeClassifiers = getNodeClassifiers;
                 _getTokenClassifiers = getTokenClassifiers;
                 _semanticModel = semanticModel;
@@ -123,7 +129,7 @@ namespace Microsoft.CodeAnalysis.Classification
                     _cancellationToken.ThrowIfCancellationRequested();
 
                     var result = ArrayBuilder<ClassifiedSpan>.GetInstance();
-                    classifier.AddClassifications(syntax, _semanticModel, result, _cancellationToken);
+                    classifier.AddClassifications(_workspace, syntax, _semanticModel, result, _cancellationToken);
                     AddClassifications(result);
                     result.Free();
                 }
@@ -157,7 +163,7 @@ namespace Microsoft.CodeAnalysis.Classification
                     _cancellationToken.ThrowIfCancellationRequested();
 
                     var result = ArrayBuilder<ClassifiedSpan>.GetInstance();
-                    classifier.AddClassifications(syntax, _semanticModel, result, _cancellationToken);
+                    classifier.AddClassifications(_workspace, syntax, _semanticModel, result, _cancellationToken);
                     AddClassifications(result);
                     result.Free();
                 }

@@ -1,4 +1,6 @@
-﻿' Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
+﻿' Licensed to the .NET Foundation under one or more agreements.
+' The .NET Foundation licenses this file to you under the MIT license.
+' See the LICENSE file in the project root for more information.
 
 Imports Microsoft.CodeAnalysis.CodeFixes
 Imports Microsoft.CodeAnalysis.CodeStyle
@@ -115,6 +117,50 @@ End Class
 CodeStyleOptions.QualifyFieldAccess)
         End Function
 
+        <WorkItem(28509, "https://github.com/dotnet/roslyn/issues/28509")>
+        <Fact, Trait(Traits.Feature, Traits.Features.CodeActionsQualifyMemberAccess)>
+        Public Async Function QualifyFieldAccess_InObjectInitializer() As Task
+            Await TestAsyncWithOption("
+Class C
+    Protected i As Integer = 1
+    Sub M()
+        Dim test = New System.Collections.Generic.List(Of Integer) With { [|i|] }
+    End Sub
+End Class
+",
+"
+Class C
+    Protected i As Integer = 1
+    Sub M()
+        Dim test = New System.Collections.Generic.List(Of Integer) With { Me.i }
+    End Sub
+End Class
+",
+CodeStyleOptions.QualifyFieldAccess)
+        End Function
+
+        <WorkItem(28509, "https://github.com/dotnet/roslyn/issues/28509")>
+        <Fact, Trait(Traits.Feature, Traits.Features.CodeActionsQualifyMemberAccess)>
+        Public Async Function QualifyFieldAccess_InCollectionInitializer() As Task
+            Await TestAsyncWithOption("
+Class C
+    Protected i As Integer = 1
+    Sub M()
+        Dim test = New System.Collections.Generic.List(Of Integer) With { [|i|] }
+    End Sub
+End Class
+",
+"
+Class C
+    Protected i As Integer = 1
+    Sub M()
+        Dim test = New System.Collections.Generic.List(Of Integer) With { Me.i }
+    End Sub
+End Class
+",
+CodeStyleOptions.QualifyFieldAccess)
+        End Function
+
         <WorkItem(7065, "https://github.com/dotnet/roslyn/issues/7065")>
         <Fact, Trait(Traits.Feature, Traits.Features.CodeActionsQualifyMemberAccess)>
         Public Async Function QualifyFieldAccess_NotSuggestedOnInstance() As Task
@@ -144,6 +190,32 @@ CodeStyleOptions.QualifyFieldAccess)
         Public Async Function QualifyFieldAccess_NotSuggestedInModule() As Task
             Await TestMissingAsyncWithOption(
 "Module C : Dim i As Integer : Sub M() : [|i|] = 1 : End Sub : End Module",
+CodeStyleOptions.QualifyFieldAccess)
+        End Function
+
+        <WorkItem(28509, "https://github.com/dotnet/roslyn/issues/28509")>
+        <Fact, Trait(Traits.Feature, Traits.Features.CodeActionsQualifyMemberAccess)>
+        Public Async Function QualifyFieldAccess_NotSuggestedOnLocalVarInObjectInitializer() As Task
+            Await TestMissingAsyncWithOption(
+"Class C
+    Sub M()
+        Dim i = 1
+        Dim test = New System.Collections.Generic.List(Of Integer) With { [|i|] }
+    End Sub
+End Module",
+CodeStyleOptions.QualifyFieldAccess)
+        End Function
+
+        <WorkItem(28509, "https://github.com/dotnet/roslyn/issues/28509")>
+        <Fact, Trait(Traits.Feature, Traits.Features.CodeActionsQualifyMemberAccess)>
+        Public Async Function QualifyFieldAccess_NotSuggestedOnLocalVarInCollectionInitializer() As Task
+            Await TestMissingAsyncWithOption(
+"Class C
+    Sub M()
+        Dim i = 1
+        Dim test = New System.Collections.Generic.List(Of Integer) With { [|i|] }
+    End Sub
+End Module",
 CodeStyleOptions.QualifyFieldAccess)
         End Function
 
@@ -214,6 +286,50 @@ Class Derived
     Inherits Base
     Sub M()
         Me.i = 1
+    End Sub
+End Class
+",
+CodeStyleOptions.QualifyPropertyAccess)
+        End Function
+
+        <WorkItem(28509, "https://github.com/dotnet/roslyn/issues/28509")>
+        <Fact, Trait(Traits.Feature, Traits.Features.CodeActionsQualifyMemberAccess)>
+        Public Async Function QualifyPropertyAccess_InObjectInitializer() As Task
+            Await TestAsyncWithOption("
+Class C
+    Protected Property i As Integer
+    Sub M()
+        Dim test = New System.Collections.Generic.List(Of Integer) With { [|i|] }
+    End Sub
+End Class
+",
+"
+Class C
+    Protected Property i As Integer
+    Sub M()
+        Dim test = New System.Collections.Generic.List(Of Integer) With { Me.i }
+    End Sub
+End Class
+",
+CodeStyleOptions.QualifyPropertyAccess)
+        End Function
+
+        <WorkItem(28509, "https://github.com/dotnet/roslyn/issues/28509")>
+        <Fact, Trait(Traits.Feature, Traits.Features.CodeActionsQualifyMemberAccess)>
+        Public Async Function QualifyPropertyAccess_InCollectionInitializer() As Task
+            Await TestAsyncWithOption("
+Class C
+    Protected Property i As Integer
+    Sub M()
+        Dim test = New System.Collections.Generic.List(Of Integer) With { [|i|] }
+    End Sub
+End Class
+",
+"
+Class C
+    Protected Property i As Integer
+    Sub M()
+        Dim test = New System.Collections.Generic.List(Of Integer) With { Me.i }
     End Sub
 End Class
 ",
@@ -350,6 +466,32 @@ CodeStyleOptions.QualifyMethodAccess)
         Public Async Function QualifyMethodAccess_NotSuggestedOnShared() As Task
             Await TestMissingAsyncWithOption(
 "Class C : Shared Sub Method() : End Sub : Sub M() : [|Method|]() : End Sub : End Class",
+CodeStyleOptions.QualifyMethodAccess)
+        End Function
+
+        <WorkItem(28509, "https://github.com/dotnet/roslyn/issues/28509")>
+        <Fact, Trait(Traits.Feature, Traits.Features.CodeActionsQualifyMemberAccess)>
+        Public Async Function QualifyMethodAccess_NotSuggestedOnLocalVarInObjectInitializer() As Task
+            Await TestMissingAsyncWithOption(
+"Class C
+    Sub M()
+        Dim i = 1
+        Dim test = New System.Collections.Generic.List(Of Integer) With { [|i|] }
+    End Sub
+End Module",
+CodeStyleOptions.QualifyMethodAccess)
+        End Function
+
+        <WorkItem(28509, "https://github.com/dotnet/roslyn/issues/28509")>
+        <Fact, Trait(Traits.Feature, Traits.Features.CodeActionsQualifyMemberAccess)>
+        Public Async Function QualifyMethodAccess_NotSuggestedOnLocalVarInCollectionInitializer() As Task
+            Await TestMissingAsyncWithOption(
+"Class C
+    Sub M()
+        Dim i = 1
+        Dim test = New System.Collections.Generic.List(Of Integer) With { [|i|] }
+    End Sub
+End Module",
 CodeStyleOptions.QualifyMethodAccess)
         End Function
 
@@ -590,6 +732,25 @@ End Class
 CodeStyleOptions.QualifyFieldAccess)
         End Function
 
+        <WorkItem(32093, "https://github.com/dotnet/roslyn/issues/32093")>
+        <Fact, Trait(Traits.Feature, Traits.Features.CodeActionsQualifyMemberAccess)>
+        Public Async Function DoNotReportToQualify_IfInBaseConstructor() As Task
+            Await TestMissingAsyncWithOption("
+Public Class Base
+    Public ReadOnly Property Foo As String
+    Public Sub New(ByVal foo As String)
+    End Sub
+End Class
+
+Public Class Derived
+    Inherits Base
+    Public Sub New()
+        MyBase.New(NameOf([|Foo|]))
+    End Sub
+End Class",
+CodeStyleOptions.QualifyFieldAccess)
+        End Function
+
         <WorkItem(22776, "https://github.com/dotnet/roslyn/issues/22776")>
         <Fact, Trait(Traits.Feature, Traits.Features.CodeActionsQualifyMemberAccess)>
         Public Async Function DoNotReportToQualify_InObjectInitializer1() As Task
@@ -618,6 +779,94 @@ class C
 End Class
 ",
 CodeStyleOptions.QualifyFieldAccess)
+        End Function
+
+        <WorkItem(26893, "https://github.com/dotnet/roslyn/issues/26893")>
+        <Fact, Trait(Traits.Feature, Traits.Features.CodeActionsQualifyMemberAccess)>
+        Public Async Function DoNotReportToQualify_InAttribute1() As Task
+            Await TestMissingAsyncWithOption("
+Imports System
+
+Class MyAttribute
+    Inherits Attribute
+
+    Public Sub New(name as String)
+    End Sub
+End Class
+
+<My(NameOf([|Goo|]))>
+Class C
+    Private Property Goo As String
+End Class
+",
+CodeStyleOptions.QualifyPropertyAccess)
+        End Function
+
+        <WorkItem(26893, "https://github.com/dotnet/roslyn/issues/26893")>
+        <Fact, Trait(Traits.Feature, Traits.Features.CodeActionsQualifyMemberAccess)>
+        Public Async Function DoNotReportToQualify_InAttribute2() As Task
+            Await TestMissingAsyncWithOption("
+Imports System
+
+Class MyAttribute
+    Inherits Attribute
+
+    Public Sub New(name as String)
+    End Sub
+End Class
+
+Class C
+    <My(NameOf([|Goo|]))>
+    Private Property Goo As String
+End Class
+",
+CodeStyleOptions.QualifyPropertyAccess)
+        End Function
+
+        <WorkItem(26893, "https://github.com/dotnet/roslyn/issues/26893")>
+        <Fact, Trait(Traits.Feature, Traits.Features.CodeActionsQualifyMemberAccess)>
+        Public Async Function DoNotReportToQualify_InAttribute3() As Task
+            Await TestMissingAsyncWithOption("
+Imports System
+
+Class MyAttribute
+    Inherits Attribute
+
+    Public Sub New(name as String)
+    End Sub
+End Class
+
+Class C
+    Private Property Goo As String
+
+    <My(NameOf([|Goo|]))>
+    Private Bar As Integer
+End Class
+",
+CodeStyleOptions.QualifyPropertyAccess)
+        End Function
+
+        <WorkItem(26893, "https://github.com/dotnet/roslyn/issues/26893")>
+        <Fact, Trait(Traits.Feature, Traits.Features.CodeActionsQualifyMemberAccess)>
+        Public Async Function DoNotReportToQualify_InAttribute4() As Task
+            Await TestMissingAsyncWithOption("
+Imports System
+
+Class MyAttribute
+    Inherits Attribute
+
+    Public Sub New(name as String)
+    End Sub
+End Class
+
+Class C
+    Private Property Goo As String
+
+    Sub X(<My(NameOf([|Goo|]))>v as integer)
+    End Sub    
+End Class
+",
+CodeStyleOptions.QualifyPropertyAccess)
         End Function
     End Class
 End Namespace

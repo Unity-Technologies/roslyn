@@ -1,15 +1,18 @@
-﻿// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+// See the LICENSE file in the project root for more information.
 
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Threading;
 using Microsoft.CodeAnalysis.CodeStyle;
 using Microsoft.CodeAnalysis.Diagnostics;
+using Microsoft.CodeAnalysis.Shared.Extensions;
 
 namespace Microsoft.CodeAnalysis.UseAutoProperty
 {
     internal abstract class AbstractUseAutoPropertyAnalyzer<
-        TPropertyDeclaration, TFieldDeclaration, TVariableDeclarator, TExpression> : AbstractCodeStyleDiagnosticAnalyzer
+        TPropertyDeclaration, TFieldDeclaration, TVariableDeclarator, TExpression> : AbstractBuiltInCodeStyleDiagnosticAnalyzer
         where TPropertyDeclaration : SyntaxNode
         where TFieldDeclaration : SyntaxNode
         where TVariableDeclarator : SyntaxNode
@@ -20,11 +23,10 @@ namespace Microsoft.CodeAnalysis.UseAutoProperty
                 FeaturesResources.ResourceManager, typeof(FeaturesResources));
 
         protected AbstractUseAutoPropertyAnalyzer()
-            : base(IDEDiagnosticIds.UseAutoPropertyDiagnosticId, s_title, s_title)
+            : base(IDEDiagnosticIds.UseAutoPropertyDiagnosticId, CodeStyleOptions.PreferAutoProperties, s_title, s_title)
         {
         }
 
-        public override bool OpenFileOnly(Workspace workspace) => false;
         public override DiagnosticAnalyzerCategory GetAnalyzerCategory() => DiagnosticAnalyzerCategory.SemanticSpanAnalysis;
 
         protected abstract void AnalyzeCompilationUnit(SemanticModelAnalysisContext context, SyntaxNode root, List<AnalysisResult> analysisResults);
@@ -80,8 +82,7 @@ namespace Microsoft.CodeAnalysis.UseAutoProperty
             var cancellationToken = context.CancellationToken;
             var semanticModel = context.SemanticModel;
 
-            var property = semanticModel.GetDeclaredSymbol(propertyDeclaration, cancellationToken) as IPropertySymbol;
-            if (property == null)
+            if (!(semanticModel.GetDeclaredSymbol(propertyDeclaration, cancellationToken) is IPropertySymbol property))
             {
                 return;
             }
@@ -163,6 +164,12 @@ namespace Microsoft.CodeAnalysis.UseAutoProperty
                 return;
             }
 
+            // Mutable value type fields are mutable unless they are marked read-only
+            if (!getterField.IsReadOnly && getterField.Type.IsMutableValueType() != false)
+            {
+                return;
+            }
+
             // Don't want to remove constants and volatile fields.
             if (getterField.IsConst || getterField.IsVolatile)
             {
@@ -194,8 +201,7 @@ namespace Microsoft.CodeAnalysis.UseAutoProperty
             }
 
             var fieldReference = getterField.DeclaringSyntaxReferences[0];
-            var variableDeclarator = fieldReference.GetSyntax(cancellationToken) as TVariableDeclarator;
-            if (variableDeclarator == null)
+            if (!(fieldReference.GetSyntax(cancellationToken) is TVariableDeclarator variableDeclarator))
             {
                 return;
             }
@@ -206,8 +212,7 @@ namespace Microsoft.CodeAnalysis.UseAutoProperty
                 return;
             }
 
-            var fieldDeclaration = variableDeclarator?.Parent?.Parent as TFieldDeclaration;
-            if (fieldDeclaration == null)
+            if (!(variableDeclarator?.Parent?.Parent is TFieldDeclaration fieldDeclaration))
             {
                 return;
             }

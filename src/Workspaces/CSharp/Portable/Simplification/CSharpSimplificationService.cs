@@ -1,9 +1,12 @@
-﻿// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+// See the LICENSE file in the project root for more information.
 
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Composition;
+using System.Diagnostics;
 using System.Threading;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.CSharp.Utilities;
@@ -22,7 +25,9 @@ namespace Microsoft.CodeAnalysis.CSharp.Simplification
         // 2. Extension method reducer may insert parentheses.  So run it before the parentheses remover.
         private static readonly ImmutableArray<AbstractReducer> s_reducers =
             ImmutableArray.Create<AbstractReducer>(
+                new CSharpVarReducer(),
                 new CSharpNameReducer(),
+                new CSharpNullableAnnotationReducer(),
                 new CSharpCastReducer(),
                 new CSharpExtensionMethodReducer(),
                 new CSharpParenthesesReducer(),
@@ -31,6 +36,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Simplification
                 new CSharpInferredMemberNameReducer(),
                 new CSharpDefaultExpressionReducer());
 
+        [ImportingConstructor]
         public CSharpSimplificationService() : base(s_reducers)
         {
         }
@@ -191,7 +197,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Simplification
         // Is the tuple on either side of a deconstruction (top-level or nested)?
         private static bool IsTupleInDeconstruction(SyntaxNode tuple)
         {
-            Contract.Assert(tuple.IsKind(SyntaxKind.TupleExpression));
+            Debug.Assert(tuple.IsKind(SyntaxKind.TupleExpression));
             var currentTuple = tuple;
             do
             {
