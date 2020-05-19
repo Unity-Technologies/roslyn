@@ -8,6 +8,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.CodeAnalysis.Editor;
 using Microsoft.CodeAnalysis.FindSymbols;
+using Microsoft.CodeAnalysis.MetadataAsSource;
 using Microsoft.CodeAnalysis.Navigation;
 using Microsoft.CodeAnalysis.PooledObjects;
 using LSP = Microsoft.VisualStudio.LanguageServer.Protocol;
@@ -19,9 +20,7 @@ namespace Microsoft.CodeAnalysis.LanguageServer.Handler
         private readonly IMetadataAsSourceFileService _metadataAsSourceFileService;
 
         public GoToDefinitionHandlerBase(IMetadataAsSourceFileService metadataAsSourceFileService)
-        {
-            _metadataAsSourceFileService = metadataAsSourceFileService;
-        }
+            => _metadataAsSourceFileService = metadataAsSourceFileService;
 
         protected async Task<LSP.Location[]> GetDefinitionAsync(Solution solution, LSP.TextDocumentPositionParams request, bool typeOnly, CancellationToken cancellationToken)
         {
