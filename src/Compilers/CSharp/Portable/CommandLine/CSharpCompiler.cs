@@ -401,11 +401,15 @@ namespace Microsoft.CodeAnalysis.CSharp
 
         private protected override Compilation RunGenerators(Compilation input, ParseOptions parseOptions, ImmutableArray<ISourceGenerator> generators, ImmutableArray<AdditionalText> additionalTexts, DiagnosticBag diagnostics)
         {
+            /*
+            LucasMeijer: to evaluate unity using sourcegenerators, we're baking a version that does not require the langversion preview to make it easier to do an evaluation
+
             // https://github.com/dotnet/roslyn/issues/42565: for now we gate behind langver == preview. We'll remove this before final shipping, as the feature is langver agnostic
             if (((CSharpParseOptions)parseOptions).LanguageVersion != LanguageVersion.Preview)
             {
                 return input;
             }
+            */
 
             var driver = new CSharpGeneratorDriver(parseOptions, generators, additionalTexts);
             driver.RunFullGeneration(input, out var compilationOut, out var generatorDiagnostics);
