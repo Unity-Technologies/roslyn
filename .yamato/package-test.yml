@@ -1,0 +1,410 @@
+# This template contains all package validation
+# Required CI templates:
+# - base.yml
+# When using the template for setting up a yamato job, please include the following disclaimer:
+#_________________________________________________
+# If you make changes to this file, please consider making a PR to the templating repo!
+# Please find the source file here: https://github.cds.internal.unity3d.com/unity/yamato-ci-templates/blob/master/.yamato/package-test.yml
+# VERSION 2
+#_________________________________________________
+######################################################
+# Avoid tampering with stuff below here if you can
+{% metadata_file .yamato/template-config.metafile %}
+template_environment_variables:
+  # Do not touch
+  JOB_TEMPLATE_VERSION: 2
+images:
+  windows:
+    type: Unity::VM
+    image: package-ci/win10:stable
+    flavor: b1.large
+  linux:
+    type: Unity::VM
+    image: package-ci/ubuntu:stable
+    flavor: b1.large
+  macos:
+    type: Unity::VM::osx
+    image: buildfarm/mac:stable
+    flavor: m1.mac
+scripting_backends:
+  - mono
+  - il2cpp
+---
+{% for test in testables %}
+{% for platform in platforms %}
+{% for editor in editors %}
+{% if test.type == "project" %}
+{% if test.standalone == "true" -%}
+# Standalone tests
+# Disabled for linux since it requires GPUs
+{% if platform.os != "linux" -%}
+{% for backend in scripting_backends %}
+{{ test.name }}:{{ platform.os }}:{{ editor.version }}:standalone:{{ backend }}:
+  name: Test Standalone {{ backend }} {{ test.name }} for {{ editor.version }} on {{ platform.os }}
+  agent:
+    type: {{ images[platform.os].type }}
+    image: {{ images[platform.os].image }}
+    flavor: {{ images[platform.os].flavor }}
+  variables:
+{% if platform.os == "linux" -%}
+    PATH: /home/bokken/bin:/home/bokken/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/snap/bin:/sbin:/home/bokken/.npm-global/bin
+    DISPLAY: ":0"
+{% endif -%}
+{% for v in template_environment_variables -%}
+    {{ v[0] }}: {{ v[1]}}
+{% endfor -%}
+  commands:
+  - pip install unity-downloader-cli --upgrade --extra-index-url https://artifactory.eu-cph-1.unityops.net/api/pypi/common-python/simple
+  - git clone git@github.cds.internal.unity3d.com:unity/utr.git
+  - unity-downloader-cli --source-file unity_revision.txt {% for component in platform.components %}-c {{ component }} {% endfor %}--wait --published-only
+  - >
+{% if platform.os == "windows" -%}
+    utr\utr --platform=StandaloneWindows64
+{% elsif platform.os == "linux" -%}
+    ./utr/utr --platform=StandaloneLinux64
+{% else -%}
+    ./utr/utr --platform=StandaloneOSX
+{% endif -%}
+    --suite=playmode
+    --testproject={{ test.path }}
+    --editor-location=.Editor
+    --artifacts_path=upm-ci~/test-results
+    --stdout-filter=minimal
+    --scripting-backend={{ backend }}
+  artifacts:
+    logs.zip:
+      paths:
+        - "upm-ci~/test-results/**/*"
+  dependencies:
+    - .yamato/base.yml#editor:priming:{{ editor.version }}:{{ platform.os }}
+{% endfor %} # scripting_backends
+{% endif %} # platform.os
+{% endif %} # standalone
+{{ test.name }}:{{ platform.os }}:{{ editor.version }}:
+  name : Test {{ test.name }} for {{ editor.version }} on {{ platform.os }}
+  agent:
+    type: {{ images[platform.os].type }}
+    image: {{ images[platform.os].image }}
+    flavor: {{ images[platform.os].flavor }}
+  variables:
+{% if platform.os == "linux" -%}  
+    PATH: /home/bokken/bin:/home/bokken/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/snap/bin:/sbin:/home/bokken/.npm-global/bin
+    DISPLAY: ":0"
+{% endif -%}
+{% for v in template_environment_variables -%}
+    {{ v[0] }}: {{ v[1]}}
+{% endfor -%}
+  commands:
+      - pip install unity-downloader-cli --upgrade --extra-index-url https://artifactory.eu-cph-1.unityops.net/api/pypi/common-python/simple
+      - npm install upm-ci-utils@stable --registry https://api.bintray.com/npm/unity/unity-npm -g
+      - unity-downloader-cli --source-file unity_revision.txt {% for component in platform.components %}-c {{ component }} {% endfor %}--wait --published-only
+{% if test.standalone == "true" -%}
+      - upm-ci project test -u .Editor --project-path {{ test.path }}
+{% else -%}
+      - upm-ci project test -u .Editor --project-path {{ test.path }} --platform editmode
+{% endif -%}
+  artifacts:
+    logs.zip:
+      paths:
+        - "upm-ci~/test-results/**/*"
+  dependencies:
+  - .yamato/base.yml#editor:priming:{{ editor.version }}:{{ platform.os }}
+  - .yamato/package-test.yml#pack:{{ test.name }}
+{% elsif test.type == "package" %}
+{{ test.name }}:{{ platform.os }}:{{ editor.version }}:
+  name : Test {{ test.name }} for {{ editor.version }} on {{ platform.os }}
+  agent:
+    type: {{ images[platform.os].type }}
+    image: {{ images[platform.os].image }}
+    flavor: {{ images[platform.os].flavor }}
+  variables:
+{% if platform.os == "linux" -%}
+    PATH: /home/bokken/bin:/home/bokken/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/snap/bin:/sbin:/home/bokken/.npm-global/bin
+    DISPLAY: ":0"
+{% endif -%}
+{% for v in template_environment_variables -%}
+    {{ v[0] }}: {{ v[1]}}
+{% endfor -%}
+  commands:
+      - pip install unity-downloader-cli --upgrade --extra-index-url https://artifactory.eu-cph-1.unityops.net/api/pypi/common-python/simple
+      - npm install upm-ci-utils@stable --registry https://api.bintray.com/npm/unity/unity-npm -g
+      - unity-downloader-cli --source-file unity_revision.txt {% for component in platform.components %}-c {{ component }} {% endfor %}--wait --published-only
+      - upm-ci package test -u .Editor --package-path {{ test.path }}
+  artifacts:
+    logs.zip:
+      paths:
+        - "upm-ci~/test-results/**/*"
+  dependencies:
+  - .yamato/base.yml#editor:priming:{{ editor.version }}:{{ platform.os }}
+  - .yamato/package-test.yml#pack:{{ test.name }}
+{% endif %}
+{% endfor %}
+{% if test.type == "project" %}
+{{ test.name }}:{{ platform.os }}:project:
+  name : Test {{ test.name }} for project version on {{ platform.os }}
+  agent:
+    type: {{ images[platform.os].type }}
+    image: {{ images[platform.os].image }}
+    flavor: {{ images[platform.os].flavor }}
+  variables:
+{% if platform.os == "linux" -%}
+    PATH: /home/bokken/bin:/home/bokken/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/snap/bin:/sbin:/home/bokken/.npm-global/bin
+    DISPLAY: ":0"
+{% endif -%}
+{% for v in template_environment_variables -%}
+    {{ v[0] }}: {{ v[1]}}
+{% endfor -%}
+  commands:
+    - pip install unity-downloader-cli --upgrade --extra-index-url https://artifactory.eu-cph-1.unityops.net/api/pypi/common-python/simple
+    - npm install upm-ci-utils@stable --registry https://api.bintray.com/npm/unity/unity-npm -g
+    - unity-downloader-cli --source-file unity_revision.txt {% for component in platform.components %}-c {{ component }} {% endfor %}--wait --published-only
+{% if test.standalone == "true" -%}
+    - upm-ci project test -u .Editor --project-path {{ test.path }}
+{% else -%}
+    - upm-ci project test -u .Editor --project-path {{ test.path }} --platform editmode
+{% endif -%}
+  artifacts:
+    logs.zip:
+      paths:
+        - "upm-ci~/test-results/**/*"
+  dependencies:
+  - .yamato/base.yml#editor:priming:{{ test.name }}:{{ platform.os }}
+  - .yamato/package-test.yml#pack:{{ test.name }}
+{% elsif test.type == "package" %}
+{{ test.name }}:{{ platform.os }}:package:
+  name : Test {{ test.name }} for package version on {{ platform.os }}
+  agent:
+    type: {{ images[platform.os].type }}
+    image: {{ images[platform.os].image }}
+    flavor: {{ images[platform.os].flavor }}
+  variables:
+{% if platform.os == "linux" -%}
+    PATH: /home/bokken/bin:/home/bokken/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/snap/bin:/sbin:/home/bokken/.npm-global/bin
+    DISPLAY: ":0"
+{% endif -%}
+{% for v in template_environment_variables -%}
+    {{ v[0] }}: {{ v[1]}}
+{% endfor -%}
+  commands:
+      - pip install unity-downloader-cli --upgrade --extra-index-url https://artifactory.eu-cph-1.unityops.net/api/pypi/common-python/simple
+      - npm install upm-ci-utils@stable --registry https://api.bintray.com/npm/unity/unity-npm -g
+      - unity-downloader-cli --source-file unity_revision.txt {% for component in platform.components %}-c {{ component }} {% endfor %}--wait --published-only
+      - upm-ci package test -u .Editor --package-path {{ test.path }}
+  artifacts:
+    logs.zip:
+      paths:
+        - "upm-ci~/test-results/**/*"
+  dependencies:
+  - .yamato/base.yml#editor:priming:{{ test.name }}:{{ platform.os }}
+  - .yamato/package-test.yml#pack:{{ test.name }}
+{% endif %}
+{% endfor %}
+{% endfor %}
+{% for test in testables %}
+pack:{{ test.name }}:
+  name: Pack {{ test.name }}
+  agent:
+    type: {{ images.linux.type }}
+    image: {{ images.linux.image }}
+    flavor: {{ images.linux.flavor }}
+  variables:
+    PATH: /home/bokken/bin:/home/bokken/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/snap/bin:/sbin:/home/bokken/.npm-global/bin
+    DISPLAY: ":0"
+{% for v in template_environment_variables -%}
+    {{ v[0] }}: {{ v[1]}}
+{% endfor -%}
+  commands:
+  - npm install upm-ci-utils@stable --registry https://api.bintray.com/npm/unity/unity-npm -g
+{% if test.type == "project" %}
+  - upm-ci project pack --project-path {{ test.path }}
+{% elsif test.type == "package" %}
+  - upm-ci package pack --package-path {{ test.path }}
+{% endif %}
+  artifacts:
+    packages:
+      paths:
+        - "upm-ci~/packages/**/*"
+{% endfor %}
+test:trigger:
+  name: Tests Trigger
+  agent:
+    type: Unity::VM
+    image: package-ci/win10:stable
+    flavor: b1.large
+  commands:
+    - npm install upm-ci-utils@stable -g --registry https://api.bintray.com/npm/unity/unity-npm
+    - upm-ci package izon --tests-complete
+  artifacts:
+    logs:
+      paths:
+        - "upm-ci~/test-results/**/*"
+    packages:
+      paths:
+        - "upm-ci~/packages/**/*"
+  dependencies:
+{% for test in testables %}
+{% for editor in editors %}
+{% for platform in platforms %}
+    - .yamato/package-test.yml#{{ test.name }}:{{ platform.os }}:{{ editor.version }}
+{% if test.type == "package" %}
+    - .yamato/package-test.yml#{{ test.name }}:{{ platform.os }}:package
+{% elsif test.type == "project" %}
+    - .yamato/package-test.yml#{{ test.name }}:{{ platform.os }}:project
+{% endif %}
+{% endfor %}
+{% endfor %}
+{% endfor %}
+{% for test in testables %}
+{% for editor in editors %}
+{% for platform in platforms %}
+dependency:{{ test.name }}:{{ platform.os }}:{{ editor.version }}:
+  name : Dependency Test {{ editor.version }} on {{ platform.os }}
+  agent:
+    type: {{ images[platform.os].type }}
+    image: {{ images[platform.os].image }}
+    flavor: {{ images[platform.os].flavor }}
+{% if platform.os == "linux" -%}
+  variables:
+    PATH: /home/bokken/bin:/home/bokken/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/snap/bin:/sbin:/home/bokken/.npm-global/bin
+    DISPLAY: ":0"
+{% endif -%}
+  commands:
+    - pip install unity-downloader-cli --upgrade --extra-index-url https://artifactory.eu-cph-1.unityops.net/api/pypi/common-python/simple
+    - unity-downloader-cli --source-file unity_revision.txt {% for component in platform.components %}-c {{ component }} {% endfor %}--wait --published-only
+    - npm install upm-ci-utils@stable -g --registry https://api.bintray.com/npm/unity/unity-npm
+{% if test.type == "package" %}
+    - upm-ci package test -u {{ editor.version }} --type updated-dependencies-tests --package-path {{ test.path }}
+{% elsif test.type == "project" %}
+    - upm-ci project test -u {{ editor.version }} --type updated-dependencies-tests --project-path {{ test.path }}
+{% endif %}
+  artifacts:
+    logs:
+      paths:
+        - "upm-ci~/test-results/**/*"
+  triggers:
+    recurring:
+      - branch: master
+        frequency: 20 * * ?
+  dependencies:
+    - .yamato/package-test.yml#pack:{{ test.name }}
+    - .yamato/base.yml#editor:priming:{{ editor.version }}:{{ platform.os }}
+{% endfor %}
+{% endfor %}
+{% endfor %}
+#{% for test in testables %}
+#dependency:test:trigger:{{ test.name }}:
+#  name: Dependency Tests Trigger for {{ test.name }}
+#  agent:
+#    type: Unity::VM
+#    image: package-ci/win10:stable
+#    flavor: b1.large
+#  commands:
+#    - npm install upm-ci-utils@stable -g --registry https://api.bintray.com/npm/unity/unity-npm
+#{% if test.type == "package" %}
+#    - upm-ci package izon -d
+#{% elsif test.type == "project" %}
+#    - upm-ci project izon -d
+#{% endif %}   
+#  artifacts:
+#    logs:
+#      paths:
+#        - "upm-ci~/test-results/**/*"
+#    packages:
+#      paths:
+#        - "upm-ci~/packages/**/*"
+#  triggers:
+#    recurring:
+#      - branch: master
+#        frequency: 22 * * ?
+#  dependencies:
+#    - .yamato/package-test.yml#pack:{{ test.name }}
+#{% for editor in editors %}
+#{% for platform in platforms %}
+#    - .yamato/package-test.yml#dependency:{{ test.name }}:{{ platform.os }}:{{ editor.version }}
+#{% endfor %}
+#{% endfor %}
+#{% endfor %}
+auto-version:
+  name: Auto version {{ test.name }}
+  agent:
+    type: {{ images.linux.type }}
+    image: {{ images.linux.image }}
+    flavor: {{ images.linux.flavor }}
+  variables:
+    PATH: /home/bokken/bin:/home/bokken/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/snap/bin:/sbin:/home/bokken/.npm-global/bin
+    DISPLAY: ":0"
+{% for v in template_environment_variables -%}
+    {{ v[0] }}: {{ v[1]}}
+{% endfor -%}
+  commands:
+    - npm install git+ssh://git@github.cds.internal.unity3d.com/unity/upm-ci-utils#auto-publish -g
+    - >
+      upm-ci auto-version bump
+{% for test in testables -%}
+{% if test.type == "project" -%}
+      --project-path {{ test.path }}
+{% elsif test.type == "package" -%}
+      --package-path {{ test.path }}
+{% endif -%}
+{% endfor -%}
+    - upm-ci auto-version commit --push
+  artifacts:
+    packages:
+      paths:
+        - "upm-ci~/**/*"
+{% for test in testables %}
+{% for editor in editors %}
+{% for platform in platforms %}
+promotion:test:{{ test.name }}:{{ platform.os }}:{{ editor.version }}:
+  name : Promotion Test {{ test.name }} for {{ editor.version }} on {{ platform.os }}
+  agent:
+    type: {{ images[platform.os].type }}
+    image: {{ images[platform.os].image }}
+    flavor: {{ images[platform.os].flavor }}
+  variables:
+    UPMCI_PROMOTION: 1
+{% if platform.os == "linux" -%}
+    PATH: /home/bokken/bin:/home/bokken/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/snap/bin:/sbin:/home/bokken/.npm-global/bin
+    DISPLAY: ":0"
+{% endif -%}
+  commands:
+    - pip install unity-downloader-cli --upgrade --extra-index-url https://artifactory.eu-cph-1.unityops.net/api/pypi/common-python/simple
+    - unity-downloader-cli --source-file unity_revision.txt {% for component in platform.components %}-c {{ component }} {% endfor %}--wait --published-only
+    - npm install upm-ci-utils@stable -g --registry https://api.bintray.com/npm/unity/unity-npm
+{% if test.type == "package" %}
+    - upm-ci package test -u {{ editor.version }} --package-path {{ test.path }}
+{% elsif test.type == "project" %}
+    - upm-ci project test -u {{ editor.version }} --project-path {{ test.path }}
+{% endif %}
+  artifacts:
+    logs:
+      paths:
+        - "upm-ci~/test-results/**/*"
+  dependencies:
+    - .yamato/package-test.yml#pack:{{ test.name }}
+    - .yamato/base.yml#editor:priming:{{ editor.version }}:{{ platform.os }}
+{% endfor %}
+{% endfor %}
+{% endfor %}
+{% for test in testables %}
+promotion:test:trigger:{{ test.name }}:
+  name: Promotion Tests Trigger for {{ test.name }}
+  agent:
+    type: Unity::VM
+    image: package-ci/win10:stable
+    flavor: b1.large
+  artifacts:
+    logs:
+      paths:
+        - "upm-ci~/test-results/**/*"
+    packages:
+      paths:
+        - "upm-ci~/packages/**/*"
+  dependencies:
+    - .yamato/package-test.yml#pack:{{ test.name }}
+{% for editor in editors %}
+{% for platform in platforms %}
+    - .yamato/package-test.yml#promotion:test:{{ test.name }}:{{ platform.os }}:{{ editor.version }}
+{% endfor %}
+{% endfor %}
+{% endfor %}

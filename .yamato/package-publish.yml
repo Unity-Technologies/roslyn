@@ -1,0 +1,96 @@
+# This template contains all package publishing jobs to candidates, including nightly auto-publishing
+{% metadata_file .yamato/template-config.metafile %}
+
+template_environment_variables:
+  # Do not touch
+  JOB_TEMPLATE_VERSION: 1
+
+scripting_backends:
+  - mono
+  - il2cpp
+---
+
+{% for test in testables -%}
+{% if test.publish_source == "true" -%}
+publish:{{ test.name }}:
+  name: Publish {{ test.name }} to Candidates
+  agent:
+    type: Unity::VM
+    image: package-ci/win10:stable
+    flavor: b1.large
+  variables:
+    {% for v in template_environment_variables %}
+    {{ v[0] }}: {{ v[1]}}
+    {% endfor %}
+  commands:
+    - npm install upm-ci-utils@stable --registry https://artifactory.prd.cds.internal.unity3d.com/artifactory/api/npm/upm-npm -g
+    - >
+{% if test.type == "package" -%}
+      upm-ci package publish
+      --package-path {{ test.path }}
+{% elsif test.type == "project" -%}
+      upm-ci project publish
+      --project-path {{ test.path }}
+{% endif -%}
+  artifacts:
+    packages:
+        paths:
+            - "upm-ci~/packages/*.tgz"
+  triggers:
+    branches:
+      only:
+        - /^\d+\.\d+\.\d+-preview(\.\d+)?$/
+  dependencies:
+    - .yamato/package-test.yml#pack:{{ test.name }}
+{% for editor in editors -%}
+{% for platform in platforms -%}
+    - .yamato/package-test.yml#{{ test.name }}:{{ platform.os }}:{{ editor.version }}
+{% if test.type == "project" -%}
+# Disabled for linux since it requires GPUs
+{% if platform.os != "linux" -%}
+{% if test.standalone == "true" -%}
+{% for backend in scripting_backends -%}
+    - .yamato/package-test.yml#{{ test.name }}:{{ platform.os }}:{{ editor.version }}:standalone:{{ backend }}
+{% endfor -%}
+{% endif -%} # test.standalone
+{% endif -%} # platform.os
+{% endif -%} # project
+{% endfor -%}
+{% endfor -%}
+{% endif -%} # publish_source
+{% endfor -%}
+    
+
+{% for test in testables -%}
+{% if test.publish_source == "true" -%}
+promote:{{ test.name }}:
+  name: Promote {{ test.name }} to Production
+  agent:
+    type: Unity::VM
+    image: package-ci/win10:stable
+    flavor: b1.large
+  variables:
+    UPMCI_PROMOTION: 1
+  commands:
+    - npm install upm-ci-utils@stable -g --registry https://artifactory.prd.cds.internal.unity3d.com/artifactory/api/npm/upm-npm
+    - >
+{% if test.type == "package" -%}
+      upm-ci package promote
+      --package-path {{ test.path }}
+{% elsif test.type == "project" -%}
+      upm-ci project promote
+      --project-path {{ test.path }}
+{% endif -%}
+  triggers:
+    tags:
+      only:
+        - /^(r|R)elease-\d+\.\d+\.\d+(-preview(\.\d+)?)?$/
+  artifacts:
+    packages:
+        paths:
+            - "upm-ci~/packages/*.tgz"
+  dependencies:
+    - .yamato/package-test.yml#pack:{{ test.name }}
+    - .yamato/package-test.yml#promotion:test:trigger:{{ test.name }}
+{% endif -%} # publish_source
+{% endfor %}
