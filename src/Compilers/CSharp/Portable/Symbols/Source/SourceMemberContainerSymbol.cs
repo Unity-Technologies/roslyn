@@ -327,6 +327,22 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
             var partCount = declaration.Declarations.Length;
             var missingPartial = false;
 
+            // @davidmo On a class declaration where one has partial and the other does not, treat the other
+            // as if it did.  This is to get around adding code to classes needing partial class on any user class
+            // we want to extend as a part of our Source Generation step.
+            var hasCompilerGenAttribute = false;
+            foreach (var decl in declaration.Declarations)
+            {
+                if (decl.HasAnyAttributes)
+                {
+                    hasCompilerGenAttribute = decl.SyntaxReference.GetSyntax().ChildNodes().OfType<AttributeListSyntax>()
+                        .Where((attribList => attribList.ToString().Contains("CompilerGenerated"))).Any();
+                }
+
+                if (hasCompilerGenAttribute)
+                    break;
+            }
+
             for (var i = 0; i < partCount; i++)
             {
                 var decl = declaration.Declarations[i];
@@ -334,7 +350,9 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
 
                 if (partCount > 1 && (mods & DeclarationModifiers.Partial) == 0)
                 {
-                    missingPartial = true;
+                    // @davidmo instead of just failing we compare against the hasCompilerGenAttribute
+                    // and if so then we still consider this MergedTypeDeclaration as partial and valid.
+                    missingPartial = !hasCompilerGenAttribute;
                 }
 
                 if (!modifierErrors)
