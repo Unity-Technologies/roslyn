@@ -39,8 +39,8 @@ platforms:
 
 testables:
   # Add any package and/or project folders here - upm ci will automatically grab both packages referenced in the project
-  - name: project
+  - name: package
     path: .
-    type: project
+    type: package
     publish_source: true
     standalone: false
