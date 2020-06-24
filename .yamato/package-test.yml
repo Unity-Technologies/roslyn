@@ -54,7 +54,7 @@ scripting_backends:
     {{ v[0] }}: {{ v[1]}}
 {% endfor -%}
   commands:
-  - pip install unity-downloader-cli --upgrade --extra-index-url https://artifactory.eu-cph-1.unityops.net/api/pypi/common-python/simple
+  - pip install unity-downloader-cli --upgrade --extra-index-url https://artifactory.internal.unity3d.com/api/pypi/common-python/simple
   - git clone git@github.cds.internal.unity3d.com:unity/utr.git
   - unity-downloader-cli --source-file unity_revision.txt {% for component in platform.components %}-c {{ component }} {% endfor %}--wait --published-only
   - >
@@ -96,7 +96,7 @@ scripting_backends:
 {% endfor -%}
   commands:
       - pip install unity-downloader-cli --upgrade --extra-index-url https://artifactory.eu-cph-1.unityops.net/api/pypi/common-python/simple
-      - npm install upm-ci-utils@stable --registry https://api.bintray.com/npm/unity/unity-npm -g
+      - npm install upm-ci-utils@stable --registry https://artifactory.prd.cds.internal.unity3d.com/artifactory/api/npm/upm-npm -g
       - unity-downloader-cli --source-file unity_revision.txt {% for component in platform.components %}-c {{ component }} {% endfor %}--wait --published-only
 {% if test.standalone == "true" -%}
       - upm-ci project test -u .Editor --project-path {{ test.path }}
@@ -127,7 +127,7 @@ scripting_backends:
 {% endfor -%}
   commands:
       - pip install unity-downloader-cli --upgrade --extra-index-url https://artifactory.eu-cph-1.unityops.net/api/pypi/common-python/simple
-      - npm install upm-ci-utils@stable --registry https://api.bintray.com/npm/unity/unity-npm -g
+      - npm install upm-ci-utils@stable --registry https://artifactory.prd.cds.internal.unity3d.com/artifactory/api/npm/upm-npm -g
       - unity-downloader-cli --source-file unity_revision.txt {% for component in platform.components %}-c {{ component }} {% endfor %}--wait --published-only
       - upm-ci package test -u .Editor --package-path {{ test.path }}
   artifacts:
@@ -156,7 +156,7 @@ scripting_backends:
 {% endfor -%}
   commands:
     - pip install unity-downloader-cli --upgrade --extra-index-url https://artifactory.eu-cph-1.unityops.net/api/pypi/common-python/simple
-    - npm install upm-ci-utils@stable --registry https://api.bintray.com/npm/unity/unity-npm -g
+    - npm install upm-ci-utils@stable --registry https://artifactory.prd.cds.internal.unity3d.com/artifactory/api/npm/upm-npm -g
     - unity-downloader-cli --source-file unity_revision.txt {% for component in platform.components %}-c {{ component }} {% endfor %}--wait --published-only
 {% if test.standalone == "true" -%}
     - upm-ci project test -u .Editor --project-path {{ test.path }}
@@ -187,7 +187,7 @@ scripting_backends:
 {% endfor -%}
   commands:
       - pip install unity-downloader-cli --upgrade --extra-index-url https://artifactory.eu-cph-1.unityops.net/api/pypi/common-python/simple
-      - npm install upm-ci-utils@stable --registry https://api.bintray.com/npm/unity/unity-npm -g
+      - npm install upm-ci-utils@stable --registry https://artifactory.prd.cds.internal.unity3d.com/artifactory/api/npm/upm-npm -g
       - unity-downloader-cli --source-file unity_revision.txt {% for component in platform.components %}-c {{ component }} {% endfor %}--wait --published-only
       - upm-ci package test -u .Editor --package-path {{ test.path }}
   artifacts:
@@ -214,7 +214,7 @@ pack:{{ test.name }}:
     {{ v[0] }}: {{ v[1]}}
 {% endfor -%}
   commands:
-  - npm install upm-ci-utils@stable --registry https://api.bintray.com/npm/unity/unity-npm -g
+  - npm install upm-ci-utils@stable -g --registry https://artifactory.prd.cds.internal.unity3d.com/artifactory/api/npm/upm-npm
 {% if test.type == "project" %}
   - upm-ci project pack --project-path {{ test.path }}
 {% elsif test.type == "package" %}
@@ -232,7 +232,7 @@ test:trigger:
     image: package-ci/win10:stable
     flavor: b1.large
   commands:
-    - npm install upm-ci-utils@stable -g --registry https://api.bintray.com/npm/unity/unity-npm
+    - npm install upm-ci-utils@stable -g --registry https://artifactory.prd.cds.internal.unity3d.com/artifactory/api/npm/upm-npm
     - upm-ci package izon --tests-complete
   artifacts:
     logs:
@@ -271,7 +271,7 @@ dependency:{{ test.name }}:{{ platform.os }}:{{ editor.version }}:
   commands:
     - pip install unity-downloader-cli --upgrade --extra-index-url https://artifactory.eu-cph-1.unityops.net/api/pypi/common-python/simple
     - unity-downloader-cli --source-file unity_revision.txt {% for component in platform.components %}-c {{ component }} {% endfor %}--wait --published-only
-    - npm install upm-ci-utils@stable -g --registry https://api.bintray.com/npm/unity/unity-npm
+    - npm install upm-ci-utils@stable -g --registry https://artifactory.prd.cds.internal.unity3d.com/artifactory/api/npm/upm-npm
 {% if test.type == "package" %}
     - upm-ci package test -u {{ editor.version }} --type updated-dependencies-tests --package-path {{ test.path }}
 {% elsif test.type == "project" %}
@@ -299,7 +299,7 @@ dependency:{{ test.name }}:{{ platform.os }}:{{ editor.version }}:
 #    image: package-ci/win10:stable
 #    flavor: b1.large
 #  commands:
-#    - npm install upm-ci-utils@stable -g --registry https://api.bintray.com/npm/unity/unity-npm
+#    - npm install upm-ci-utils@stable -g --registry https://artifactory.prd.cds.internal.unity3d.com/artifactory/api/npm/upm-npm
 #{% if test.type == "package" %}
 #    - upm-ci package izon -d
 #{% elsif test.type == "project" %}
@@ -368,9 +368,9 @@ promotion:test:{{ test.name }}:{{ platform.os }}:{{ editor.version }}:
     DISPLAY: ":0"
 {% endif -%}
   commands:
-    - pip install unity-downloader-cli --upgrade --extra-index-url https://artifactory.eu-cph-1.unityops.net/api/pypi/common-python/simple
+    - pip install unity-downloader-cli --upgrade --extra-index-url https://artifactory.internal.unity3d.com/api/pypi/common-python/simple
     - unity-downloader-cli --source-file unity_revision.txt {% for component in platform.components %}-c {{ component }} {% endfor %}--wait --published-only
-    - npm install upm-ci-utils@stable -g --registry https://api.bintray.com/npm/unity/unity-npm
+    - npm install upm-ci-utils@stable -g --registry https://artifactory.prd.cds.internal.unity3d.com/artifactory/api/npm/upm-npm
 {% if test.type == "package" %}
     - upm-ci package test -u {{ editor.version }} --package-path {{ test.path }}
 {% elsif test.type == "project" %}
