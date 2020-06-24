@@ -1,0 +1,18 @@
+{
+  "name": "com.unity.roslyn",
+  "displayName": "Roslyn",
+  "version": "0.1.0-preview.1",
+  "unity": "2020.1",
+  "unityRelease": "0b9",
+  "description": "The Roslyn package bla bla bla",
+  "dependencies": {
+    "com.unity.mathematics": "1.1.0",
+    "com.unity.entities": "0.12.0-preview.13",
+    "com.unity.collections": "0.10.0-preview.12",
+    "com.unity.jobs": "0.3.0-preview.12",
+    "com.unity.burst": "1.3.0",
+    "com.unity.test-framework": "1.1.13",
+    "com.unity.dataflowgraph": "0.15.0-preview.2",
+    "com.unity.test-framework.performance": "2.0.8-preview"
+  }
+}
