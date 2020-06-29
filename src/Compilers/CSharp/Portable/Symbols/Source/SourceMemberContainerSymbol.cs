@@ -330,18 +330,13 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
             // @davidmo On a class declaration where one has partial and the other does not, treat the other
             // as if it did.  This is to get around adding code to classes needing partial class on any user class
             // we want to extend as a part of our Source Generation step.
-            var hasCompilerGenAttribute = false;
-            foreach (var decl in declaration.Declarations)
-            {
-                if (decl.HasAnyAttributes)
-                {
-                    hasCompilerGenAttribute = decl.SyntaxReference.GetSyntax().ChildNodes().OfType<AttributeListSyntax>()
-                        .Where((attribList => attribList.ToString().Contains("CompilerGenerated"))).Any();
-                }
-
-                if (hasCompilerGenAttribute)
-                    break;
-            }
+var hasCompilerGenAttribute = declaration.Declarations
+    .Any(decl =>
+    {
+        return decl.HasAnyAttributes &&
+                decl.SyntaxReference.GetSyntax().ChildNodes().OfType<AttributeListSyntax>()
+                .Where((attribList => attribList.ToString().Contains("CompilerGenerated"))).Any();
+    });
 
             for (var i = 0; i < partCount; i++)
             {
