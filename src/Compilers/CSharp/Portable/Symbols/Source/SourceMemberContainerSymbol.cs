@@ -335,9 +335,10 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
             var partCount = declaration.Declarations.Length;
             var missingPartial = false;
 
-            // @davidmo On a class declaration where one has partial and the other does not, treat the other
-            // as if it did.  This is to get around adding code to classes needing partial class on any user class
-            // we want to extend as a part of our Source Generation step.
+            // @davidmo If any class declaration has another definition within the namespace that 
+            // has the attribute "[CompilerGenerated]" applied to it, we ignore the partial keyword
+            // requirement.  This is to get around the limitation of being unable to add to user
+            // classes during compilation.
 var hasCompilerGenAttribute = declaration.Declarations
     .Any(decl =>
     {
