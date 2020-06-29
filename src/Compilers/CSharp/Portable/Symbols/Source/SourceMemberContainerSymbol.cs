@@ -339,13 +339,16 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
             // has the attribute "[CompilerGenerated]" applied to it, we ignore the partial keyword
             // requirement.  This is to get around the limitation of being unable to add to user
             // classes during compilation.
-var hasCompilerGenAttribute = declaration.Declarations
-    .Any(decl =>
-    {
-        return decl.HasAnyAttributes &&
-                decl.SyntaxReference.GetSyntax().ChildNodes().OfType<AttributeListSyntax>()
-                .Where((attribList => attribList.ToString().Contains("CompilerGenerated"))).Any();
-    });
+            var hasCompilerGenAttribute = 
+                declaration.Declarations.Any(
+                    decl =>
+                    {
+                        return decl.HasAnyAttributes && 
+                        decl.SyntaxReference.GetSyntax().ChildNodes().OfType<AttributeListSyntax>().Where(
+                            (attribList => attribList.ToString().Contains("CompilerGenerated"))
+                        ).Any();
+                    }
+                );
 
             for (var i = 0; i < partCount; i++)
             {
