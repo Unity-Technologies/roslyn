@@ -12,6 +12,7 @@ namespace RoslynBuilder
 				new CleanOldBuildArtifactsStep(),
 				new PrepareStep(),
 				new BuildCscStep(),
+				new ReplaceCoreCLRStep(),
 				new MakeSureCompilerWorksStep(),
 				new PrepareArtifactsForBuildsZipStep(),
 			};
