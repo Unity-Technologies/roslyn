@@ -50,6 +50,7 @@
     <Compile Include="MakeSureCompilerWorksStep.cs" />
     <Compile Include="PrepareArtifactsForBuildsZipStep.cs" />
     <Compile Include="PrepareStep.cs" />
+    <Compile Include="ReplaceCoreCLRStep.cs" />
     <Compile Include="Shell.cs" />
     <Compile Include="NiceIO\NiceIO.cs" />
     <Compile Include="Program.cs" />

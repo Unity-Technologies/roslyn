@@ -36,7 +36,10 @@ namespace RoslynBuilder
 		public static NPath CscWindowsBinariesDirectory => CscBinariesDirectory.Combine("Windows");
 		public static NPath CscMacBinariesDirectory => CscBinariesDirectory.Combine("Mac");
 		public static NPath CscLinuxBinariesDirectory => CscBinariesDirectory.Combine("Linux");
-		public static NPath BuildsZipDirectory => RoslynRoot.Combine("Artifacts", "Builds");
+		public static NPath ArtifactsDirectory => RoslynRoot.Combine("Artifacts");
+		public static NPath BuildsZipDirectory => ArtifactsDirectory.Combine("Builds");
+		public static NPath SevenZip => RoslynRoot.Combine("external", "7z", "win64", "7za.exe");
+		public static NPath CustomCoreClrBuildsZip => RoslynRoot.Combine("external", "CoreCLR", "builds.7z");
 
 		public static NPath MSBuild
 		{
