@@ -13,6 +13,7 @@ Imports Microsoft.CodeAnalysis.Editor.UnitTests.RenameTracking
 Imports Microsoft.CodeAnalysis.Editor.UnitTests.Utilities.GoToHelpers
 Imports Microsoft.CodeAnalysis.Editor.UnitTests.Workspaces
 Imports Microsoft.CodeAnalysis.Experiments
+Imports Microsoft.CodeAnalysis.Remote.Testing
 Imports Microsoft.CodeAnalysis.Shared.TestHooks
 Imports Microsoft.CodeAnalysis.Text
 Imports Microsoft.CodeAnalysis.Text.Shared.Extensions
@@ -36,7 +37,7 @@ Namespace Microsoft.CodeAnalysis.Editor.UnitTests.Rename
             End Get
         End Property
 
-        Private Function GetSessionInfo(workspace As TestWorkspace) As Tuple(Of Document, TextSpan)
+        Private Function GetSessionInfo(workspace As TestWorkspace) As (document As Document, textSpan As TextSpan)
             Dim hostdoc = workspace.DocumentWithCursor
             Dim caretPosition = hostdoc.CursorPosition.Value
 
@@ -49,22 +50,21 @@ Namespace Microsoft.CodeAnalysis.Editor.UnitTests.Rename
             Dim solution = workspace.CurrentSolution
             Dim token = solution.GetDocument(hostdoc.Id).GetSyntaxRootAsync().Result.FindToken(caretPosition)
 
-            Return Tuple.Create(solution.GetDocument(hostdoc.Id), token.Span)
+            Return (solution.GetDocument(hostdoc.Id), token.Span)
         End Function
 
         Public Function StartSession(workspace As TestWorkspace) As InlineRenameSession
             Dim renameService = workspace.GetService(Of IInlineRenameService)()
             Dim sessionInfo = GetSessionInfo(workspace)
 
-            Return DirectCast(renameService.StartInlineSession(sessionInfo.Item1, sessionInfo.Item2).Session, InlineRenameSession)
+            Return DirectCast(renameService.StartInlineSession(sessionInfo.document, sessionInfo.textSpan).Session, InlineRenameSession)
         End Function
 
         Public Sub AssertTokenRenamable(workspace As TestWorkspace)
             Dim renameService = DirectCast(workspace.GetService(Of IInlineRenameService)(), InlineRenameService)
             Dim sessionInfo = GetSessionInfo(workspace)
 
-            Dim editorService = sessionInfo.Item1.GetLanguageService(Of IEditorInlineRenameService)
-            Dim result = editorService.GetRenameInfoAsync(sessionInfo.Item1, sessionInfo.Item2.Start, CancellationToken.None).WaitAndGetResult(CancellationToken.None)
+            Dim result = renameService.StartInlineSession(sessionInfo.document, sessionInfo.textSpan, CancellationToken.None)
             Assert.True(result.CanRename)
             Assert.Null(result.LocalizedErrorMessage)
         End Sub
@@ -73,8 +73,7 @@ Namespace Microsoft.CodeAnalysis.Editor.UnitTests.Rename
             Dim renameService = DirectCast(workspace.GetService(Of IInlineRenameService)(), InlineRenameService)
             Dim sessionInfo = GetSessionInfo(workspace)
 
-            Dim editorService = sessionInfo.Item1.GetLanguageService(Of IEditorInlineRenameService)
-            Dim result = editorService.GetRenameInfoAsync(sessionInfo.Item1, sessionInfo.Item2.Start, CancellationToken.None).WaitAndGetResult(CancellationToken.None)
+            Dim result = renameService.StartInlineSession(sessionInfo.document, sessionInfo.textSpan, CancellationToken.None)
             Assert.False(result.CanRename)
             Assert.NotNull(result.LocalizedErrorMessage)
         End Sub
@@ -112,7 +111,9 @@ Namespace Microsoft.CodeAnalysis.Editor.UnitTests.Rename
             VerifyFileName(workspace.CurrentSolution.GetDocument(documentId), newIdentifierName)
         End Sub
 
-        Public Function CreateWorkspaceWithWaiter(element As XElement) As TestWorkspace
+#Disable Warning IDE0060 ' Remove unused parameter - https://github.com/dotnet/roslyn/issues/45890
+        Public Function CreateWorkspaceWithWaiter(element As XElement, host As RenameTestHost) As TestWorkspace
+#Enable Warning IDE0060 ' Remove unused parameter
             Dim workspace = TestWorkspace.CreateWorkspace(
                 element,
                 exportProvider:=ExportProviderFactory.CreateExportProvider())
@@ -128,11 +129,8 @@ Namespace Microsoft.CodeAnalysis.Editor.UnitTests.Rename
         Public Function CreateRenameTrackingTagger(workspace As TestWorkspace, document As TestHostDocument) As ITagger(Of RenameTrackingTag)
             Dim tracker = New RenameTrackingTaggerProvider(
                 workspace.ExportProvider.GetExportedValue(Of IThreadingContext),
-                workspace.ExportProvider.GetExport(Of ITextUndoHistoryRegistry)().Value,
-                workspace.ExportProvider.GetExport(Of IWaitIndicator)().Value,
                 workspace.ExportProvider.GetExport(Of IInlineRenameService)().Value,
                 workspace.ExportProvider.GetExport(Of IDiagnosticAnalyzerService)().Value,
-                {New MockRefactorNotifyService()},
                 workspace.ExportProvider.GetExportedValue(Of IAsynchronousOperationListenerProvider))
 
             Return tracker.CreateTagger(Of RenameTrackingTag)(document.GetTextBuffer())

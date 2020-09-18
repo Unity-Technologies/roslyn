@@ -20,21 +20,21 @@ using Microsoft.CodeAnalysis.Text;
 using Microsoft.CodeAnalysis.Text.Shared.Extensions;
 using Microsoft.VisualStudio.Text;
 using Xunit;
+using Xunit.Abstractions;
 
 namespace Microsoft.CodeAnalysis.Editor.CSharp.UnitTests.Formatting.Indentation
 {
     [UseExportProvider]
-    public class CSharpFormatterTestsBase : CoreFormatterTestsBase
+    public class CSharpFormatterTestsBase : CSharpFormattingEngineTestBase
     {
+        public CSharpFormatterTestsBase(ITestOutputHelper output) : base(output) { }
+
         protected const string HtmlMarkup = @"<html>
     <body>
         <%{|S1:|}%>
     </body>
 </html>";
         protected const int BaseIndentationOfNugget = 8;
-
-        internal override string GetLanguageName()
-            => LanguageNames.CSharp;
 
         protected static async Task<int> GetSmartTokenFormatterIndentationWorkerAsync(
             TestWorkspace workspace,
@@ -94,7 +94,7 @@ namespace Microsoft.CodeAnalysis.Editor.CSharp.UnitTests.Formatting.Indentation
             edit.Apply();
         }
 
-        protected async Task<int> GetSmartTokenFormatterIndentationAsync(
+        protected static async Task<int> GetSmartTokenFormatterIndentationAsync(
             string code,
             int indentationLine,
             char ch,
@@ -105,7 +105,7 @@ namespace Microsoft.CodeAnalysis.Editor.CSharp.UnitTests.Formatting.Indentation
             // create tree service
             using var workspace = TestWorkspace.CreateCSharp(code);
             workspace.TryApplyChanges(workspace.CurrentSolution.WithOptions(workspace.Options
-                .WithChangedOption(FormattingOptions.UseTabs, LanguageNames.CSharp, useTabs)));
+                .WithChangedOption(FormattingOptions2.UseTabs, LanguageNames.CSharp, useTabs)));
 
             if (baseIndentation.HasValue)
             {

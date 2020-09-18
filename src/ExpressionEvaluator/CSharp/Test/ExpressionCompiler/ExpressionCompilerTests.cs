@@ -23,7 +23,6 @@ using Roslyn.Test.PdbUtilities;
 using static Roslyn.Test.Utilities.SigningTestHelpers;
 using Roslyn.Test.Utilities;
 using Xunit;
-using CommonResources = Microsoft.CodeAnalysis.ExpressionEvaluator.UnitTests.Resources;
 
 namespace Microsoft.CodeAnalysis.CSharp.ExpressionEvaluator.UnitTests
 {
@@ -5286,7 +5285,7 @@ class C
                     EnsureEnglishUICulture.PreferredOrNull,
                     testData);
                 Assert.Equal(new AssemblyIdentity("System.Core"), missingAssemblyIdentities.Single());
-                Assert.Equal("error CS1935: Could not find an implementation of the query pattern for source type 'string'.  'Select' not found.  Are you missing a reference to 'System.Core.dll' or a using directive for 'System.Linq'?", error);
+                Assert.Equal("error CS1935: Could not find an implementation of the query pattern for source type 'string'.  'Select' not found.  Are you missing required assembly references or a using directive for 'System.Linq'?", error);
             });
         }
 
@@ -5480,9 +5479,7 @@ class C
 }";
             var comp = CreateCompilation(source, options: TestOptions.DebugDll);
 
-            var modulesBuilder = ArrayBuilder<ModuleInstance>.GetInstance();
-
-            using (var pinnedMetadata = new PinnedBlob(CommonResources.NoValidTables))
+            using (var pinnedMetadata = new PinnedBlob(TestResources.ExpressionCompiler.NoValidTables))
             {
                 var corruptMetadata = ModuleInstance.Create(pinnedMetadata.Pointer, pinnedMetadata.Size, default(Guid));
 

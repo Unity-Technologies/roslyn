@@ -34,9 +34,7 @@ namespace Microsoft.CodeAnalysis.Editor.CSharp.UnitTests.Diagnostics.SimplifyTyp
             }
 
             public override void Initialize(AnalysisContext context)
-            {
-                context.RegisterSyntaxNodeAction<SyntaxKind>(AnalyzeNode, SyntaxKind.IdentifierName);
-            }
+                => context.RegisterSyntaxNodeAction<SyntaxKind>(AnalyzeNode, SyntaxKind.IdentifierName);
 
             private static void AnalyzeNode(SyntaxNodeAnalysisContext context)
             {
@@ -62,7 +60,7 @@ namespace Microsoft.CodeAnalysis.Editor.CSharp.UnitTests.Diagnostics.SimplifyTyp
                 }
             }
 
-            public async override Task RegisterCodeFixesAsync(CodeFixContext context)
+            public override async Task RegisterCodeFixesAsync(CodeFixContext context)
             {
                 var root = await context.Document.GetSyntaxRootAsync(context.CancellationToken).ConfigureAwait(false);
                 if (root.FindNode(context.Span, getInnermostNodeForTie: true) is SimpleNameSyntax node)
@@ -87,9 +85,7 @@ namespace Microsoft.CodeAnalysis.Editor.CSharp.UnitTests.Diagnostics.SimplifyTyp
             }
 
             public override FixAllProvider GetFixAllProvider()
-            {
-                return WellKnownFixAllProviders.BatchFixer;
-            }
+                => WellKnownFixAllProviders.BatchFixer;
         }
 
         #region "Fix all occurrences tests"

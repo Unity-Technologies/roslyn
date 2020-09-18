@@ -4,18 +4,19 @@
 
 using System.ComponentModel.Composition;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
+using System.IO;
 using System.Runtime.CompilerServices;
 using System.Windows;
+using Microsoft.VisualStudio.Commanding;
+using Microsoft.VisualStudio.InteractiveWindow;
+using Microsoft.VisualStudio.Language.Intellisense.AsyncCompletion;
 using Microsoft.VisualStudio.Text;
 using Microsoft.VisualStudio.Text.Editor;
+using Microsoft.VisualStudio.Text.Editor.Commanding.Commands;
 using Microsoft.VisualStudio.Text.Editor.OptionsExtensionMethods;
 using Microsoft.VisualStudio.Text.Operations;
 using Microsoft.VisualStudio.Utilities;
-using System.IO;
-using Microsoft.VisualStudio.InteractiveWindow;
-using Microsoft.VisualStudio.Text.Editor.Commanding.Commands;
-using Microsoft.VisualStudio.Commanding;
-using Microsoft.VisualStudio.Language.Intellisense.AsyncCompletion;
 
 namespace Microsoft.CodeAnalysis.Editor.CommandHandlers
 {
@@ -54,6 +55,7 @@ namespace Microsoft.CodeAnalysis.Editor.CommandHandlers
         public string DisplayName => EditorFeaturesResources.Paste_in_Interactive;
 
         [ImportingConstructor]
+        [SuppressMessage("RoslynDiagnosticsReliability", "RS0033:Importing constructor should be [Obsolete]", Justification = "Used in test code: https://github.com/dotnet/roslyn/issues/42814")]
         public InteractivePasteCommandHandler(IEditorOperationsFactoryService editorOperationsFactoryService, ITextUndoHistoryRegistry textUndoHistoryRegistry)
         {
             _editorOperationsFactoryService = editorOperationsFactoryService;
@@ -77,9 +79,7 @@ namespace Microsoft.CodeAnalysis.Editor.CommandHandlers
         }
 
         public CommandState GetCommandState(PasteCommandArgs args)
-        {
-            return CommandState.Unspecified;
-        }
+            => CommandState.Unspecified;
 
         [MethodImpl(MethodImplOptions.NoInlining)]  // Avoid loading InteractiveWindow unless necessary
         private void PasteInteractiveFormat(ITextView textView)
@@ -89,11 +89,8 @@ namespace Microsoft.CodeAnalysis.Editor.CommandHandlers
             var data = RoslynClipboard.GetDataObject();
             Debug.Assert(data != null);
 
-            var dataHasLineCutCopyTag = false;
-            var dataHasBoxCutCopyTag = false;
-
-            dataHasLineCutCopyTag = data.GetDataPresent(ClipboardLineBasedCutCopyTag);
-            dataHasBoxCutCopyTag = data.GetDataPresent(BoxSelectionCutCopyTag);
+            var dataHasLineCutCopyTag = data.GetDataPresent(ClipboardLineBasedCutCopyTag);
+            var dataHasBoxCutCopyTag = data.GetDataPresent(BoxSelectionCutCopyTag);
             Debug.Assert(!(dataHasLineCutCopyTag && dataHasBoxCutCopyTag));
 
             string text;
@@ -124,7 +121,7 @@ namespace Microsoft.CodeAnalysis.Editor.CommandHandlers
                 }
                 else
                 {
-                    editorOperations.InsertTextAsBox(text, out var unusedStart, out var unusedEnd);
+                    editorOperations.InsertTextAsBox(text, out _, out _);
                 }
             }
             else
@@ -163,19 +160,13 @@ namespace Microsoft.CodeAnalysis.Editor.CommandHandlers
         private class SystemClipboardWrapper : IRoslynClipboard
         {
             public bool ContainsData(string format)
-            {
-                return Clipboard.ContainsData(format);
-            }
+                => Clipboard.ContainsData(format);
 
             public object GetData(string format)
-            {
-                return Clipboard.GetData(format);
-            }
+                => Clipboard.GetData(format);
 
             public IDataObject GetDataObject()
-            {
-                return Clipboard.GetDataObject();
-            }
+                => Clipboard.GetDataObject();
         }
     }
 }

@@ -5,7 +5,6 @@
 Imports System.Collections.Immutable
 Imports Microsoft.CodeAnalysis.CSharp
 Imports Microsoft.CodeAnalysis.Diagnostics
-Imports Microsoft.CodeAnalysis.Editor.UnitTests
 Imports Microsoft.CodeAnalysis.Editor.UnitTests.Workspaces
 Imports Microsoft.CodeAnalysis.Shared.Options
 Imports Microsoft.CodeAnalysis.SolutionCrawler
@@ -38,7 +37,7 @@ Namespace Microsoft.CodeAnalysis.Editor.Implementation.Diagnostics.UnitTests
                            <Project Language="C#" CommonReferences="true">
                                <Document FilePath="Test.cs">
                                         class Goo { }
-                                    </Document>
+                               </Document>
                            </Project>
                        </Workspace>
 
@@ -51,7 +50,7 @@ Namespace Microsoft.CodeAnalysis.Editor.Implementation.Diagnostics.UnitTests
                            <Project Language="C#" CommonReferences="true">
                                <Document FilePath="Test.cs">
                                         class Goo { dontcompile }
-                                    </Document>
+                               </Document>
                            </Project>
                        </Workspace>
             Dim diagnostics = <Diagnostics>
@@ -72,7 +71,7 @@ Namespace Microsoft.CodeAnalysis.Editor.Implementation.Diagnostics.UnitTests
                                         class Goo2 { dontcompile }
                                         #line default
                                         class Goo4 { dontcompile }
-                                    </Document>
+                               </Document>
                            </Project>
                        </Workspace>
             Dim diagnostics = <Diagnostics>
@@ -93,7 +92,7 @@ Namespace Microsoft.CodeAnalysis.Editor.Implementation.Diagnostics.UnitTests
                            <Project Language="C#" CommonReferences="true">
                                <Document FilePath="Test.cs">
                                         class Goo { int a = "test"; }
-                                    </Document>
+                               </Document>
                            </Project>
                        </Workspace>
 
@@ -114,7 +113,7 @@ Namespace Microsoft.CodeAnalysis.Editor.Implementation.Diagnostics.UnitTests
                                         class Goo2 { as; }
                                         class Goo3 { long q = 1l; }
                                         #pragma disable 9999999"
-                                    </Document>
+                               </Document>
                            </Project>
                        </Workspace>
 
@@ -142,7 +141,7 @@ Namespace Microsoft.CodeAnalysis.Editor.Implementation.Diagnostics.UnitTests
                            <Project Language="C#" CommonReferences="true">
                                <Document FilePath="Test.cs">
                                         class Program { void Main() { - } }
-                                    </Document>
+                               </Document>
                            </Project>
                        </Workspace>
 
@@ -170,14 +169,14 @@ Namespace Microsoft.CodeAnalysis.Editor.Implementation.Diagnostics.UnitTests
                                                 int a = 5 - "2";
                                             }
                                         }
-                                    </Document>
+                               </Document>
                            </Project>
                            <Project Language="Visual Basic" CommonReferences="true">
                                <Document FilePath="Test.vb">
                                         Class GooClass
                                             Sub Blah() End Sub
                                         End Class
-                                   </Document>
+                               </Document>
                            </Project>
                        </Workspace>
 
@@ -187,9 +186,9 @@ Namespace Microsoft.CodeAnalysis.Editor.Implementation.Diagnostics.UnitTests
                                   <Error Code="19" Id="CS0019" MappedFile="Test.cs" MappedLine="6" MappedColumn="56" OriginalFile="Test.cs" OriginalLine="6" OriginalColumn="56"
                                       Message=<%= String.Format(CSharpResources.ERR_BadBinaryOps, "-", "int", "string") %>/>
                                   <Error Code="30026" Id="BC30026" MappedFile="Test.vb" MappedLine="2" MappedColumn="44" OriginalFile="Test.vb" OriginalLine="2" OriginalColumn="44"
-                                      Message=<%= ERR_EndSubExpected %>/>
+                                      Message=<%= VBResources.ERR_EndSubExpected %>/>
                                   <Error Code="30205" Id="BC30205" MappedFile="Test.vb" MappedLine="2" MappedColumn="55" OriginalFile="Test.vb" OriginalLine="2" OriginalColumn="55"
-                                      Message=<%= ERR_ExpectedEOS %>/>
+                                      Message=<%= VBResources.ERR_ExpectedEOS %>/>
                               </Diagnostics>
 
             VerifyAllAvailableDiagnostics(test, diagnostics, ordered:=False)
@@ -208,14 +207,14 @@ Namespace Microsoft.CodeAnalysis.Editor.Implementation.Diagnostics.UnitTests
                                                 int a = 5 - "2";
                                             }
                                         }
-                                    </Document>
+                               </Document>
                            </Project>
                            <Project Language="Visual Basic" CommonReferences="true">
                                <Document FilePath="Test.vb">
                                         Class GooClass
                                             Sub Blah() End Sub
                                         End Class
-                                   </Document>
+                               </Document>
                            </Project>
                        </Workspace>
 
@@ -275,7 +274,7 @@ Namespace Microsoft.CodeAnalysis.Editor.Implementation.Diagnostics.UnitTests
             VerifyAllAvailableDiagnostics(test, diagnostics)
         End Sub
 
-        Private Sub VerifyAllAvailableDiagnostics(test As XElement, diagnostics As XElement, Optional ordered As Boolean = True, Optional enabled As Boolean = True)
+        Private Shared Sub VerifyAllAvailableDiagnostics(test As XElement, diagnostics As XElement, Optional ordered As Boolean = True, Optional enabled As Boolean = True)
             Using workspace = TestWorkspace.CreateWorkspace(test)
 
                 ' turn off diagnostic
@@ -308,15 +307,14 @@ Namespace Microsoft.CodeAnalysis.Editor.Implementation.Diagnostics.UnitTests
             End Using
         End Sub
 
-        Private Function GetDiagnosticProvider(workspace As TestWorkspace) As DiagnosticAnalyzerService
-            Dim snapshot = workspace.CurrentSolution
-
-            Dim notificationService = New TestForegroundNotificationService()
-
+        Private Shared Function GetDiagnosticProvider(workspace As TestWorkspace) As DiagnosticAnalyzerService
             Dim compilerAnalyzersMap = DiagnosticExtensions.GetCompilerDiagnosticAnalyzersMap().Add(
                 NoCompilationConstants.LanguageName, ImmutableArray.Create(Of DiagnosticAnalyzer)(New NoCompilationDocumentDiagnosticAnalyzer()))
 
-            Dim analyzerService = New TestDiagnosticAnalyzerService(compilerAnalyzersMap)
+            Dim analyzerReference = New TestAnalyzerReferenceByLanguage(compilerAnalyzersMap)
+            workspace.TryApplyChanges(workspace.CurrentSolution.WithAnalyzerReferences({analyzerReference}))
+
+            Dim analyzerService = New TestDiagnosticAnalyzerService()
 
             ' CollectErrors generates interleaved background and foreground tasks.
             Dim service = DirectCast(workspace.Services.GetService(Of ISolutionCrawlerRegistrationService)(), SolutionCrawlerRegistrationService)
@@ -325,7 +323,7 @@ Namespace Microsoft.CodeAnalysis.Editor.Implementation.Diagnostics.UnitTests
             Return analyzerService
         End Function
 
-        Private Function GetExpectedDiagnostics(workspace As TestWorkspace, diagnostics As XElement) As List(Of DiagnosticData)
+        Private Shared Function GetExpectedDiagnostics(workspace As TestWorkspace, diagnostics As XElement) As List(Of DiagnosticData)
             Dim result As New List(Of DiagnosticData)
             Dim mappedLine As Integer, mappedColumn As Integer, originalLine As Integer, originalColumn As Integer
             Dim Id As String, message As String, originalFile As String, mappedFile As String
@@ -352,29 +350,29 @@ Namespace Microsoft.CodeAnalysis.Editor.Implementation.Diagnostics.UnitTests
             Return result
         End Function
 
-        Private Function GetProjectId(workspace As TestWorkspace, projectName As String) As ProjectId
+        Private Shared Function GetProjectId(workspace As TestWorkspace, projectName As String) As ProjectId
             Return (From doc In workspace.Documents
                     Where doc.Project.AssemblyName.Equals(projectName)
                     Select doc.Project.Id).Single()
         End Function
 
-        Private Function GetDocumentId(workspace As TestWorkspace, document As String) As DocumentId
+        Private Shared Function GetDocumentId(workspace As TestWorkspace, document As String) As DocumentId
             Return (From doc In workspace.Documents
                     Where doc.FilePath.Equals(document)
                     Select doc.Id).Single()
         End Function
 
-        Private Function SourceError(id As String, message As String, docId As DocumentId, projId As ProjectId, mappedLine As Integer, originalLine As Integer, mappedColumn As Integer,
+        Private Shared Function SourceError(id As String, message As String, docId As DocumentId, projId As ProjectId, mappedLine As Integer, originalLine As Integer, mappedColumn As Integer,
             originalColumn As Integer, mappedFile As String, originalFile As String) As DiagnosticData
             Return CreateDiagnostic(id, message, DiagnosticSeverity.Error, docId, projId, mappedLine, originalLine, mappedColumn, originalColumn, mappedFile, originalFile)
         End Function
 
-        Private Function SourceWarning(id As String, message As String, docId As DocumentId, projId As ProjectId, mappedLine As Integer, originalLine As Integer, mappedColumn As Integer,
+        Private Shared Function SourceWarning(id As String, message As String, docId As DocumentId, projId As ProjectId, mappedLine As Integer, originalLine As Integer, mappedColumn As Integer,
             originalColumn As Integer, mappedFile As String, originalFile As String) As DiagnosticData
             Return CreateDiagnostic(id, message, DiagnosticSeverity.Warning, docId, projId, mappedLine, originalLine, mappedColumn, originalColumn, mappedFile, originalFile)
         End Function
 
-        Private Function CreateDiagnostic(id As String, message As String, severity As DiagnosticSeverity, docId As DocumentId, projId As ProjectId, mappedLine As Integer, originalLine As Integer, mappedColumn As Integer,
+        Private Shared Function CreateDiagnostic(id As String, message As String, severity As DiagnosticSeverity, docId As DocumentId, projId As ProjectId, mappedLine As Integer, originalLine As Integer, mappedColumn As Integer,
             originalColumn As Integer, mappedFile As String, originalFile As String) As DiagnosticData
             Return New DiagnosticData(
                 id:=id,

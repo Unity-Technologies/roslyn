@@ -861,7 +861,7 @@ class DeclaringClass2 : NonDeclaringClass2, Interface
             var assemblies = MetadataTestHelpers.GetSymbolsForReferences(
                 new[]
                 {
-                    TestReferences.NetFx.v4_0_30319.mscorlib,
+                    TestMetadata.Net451.mscorlib,
                     TestReferences.SymbolsTests.ExplicitInterfaceImplementation.Methods.IL,
                 });
 
@@ -2451,6 +2451,52 @@ class Derived : Base, IDerived
 g_P1
 s_P2
 get_P2");
+        }
+
+        [Fact]
+        [WorkItem(42340, "https://github.com/dotnet/roslyn/issues/42340")]
+        public void Issue42340()
+        {
+            var text = @"
+#nullable enable
+class StringComparer : System.Collections.Generic.IEqualityComparer<string?>
+{
+    public bool Equals(string? x, string? y)
+    {
+        throw null;
+    }
+
+    public int GetHashCode(string obj)
+    {
+        throw null;
+    }
+}
+
+class OneToOneUnicodeComparer : StringComparer
+{
+
+}
+";
+            var comp = CreateCompilation(text);
+
+            comp.VerifyDiagnostics(
+                // (7,15): warning CS8597: Thrown value may be null.
+                //         throw null;
+                Diagnostic(ErrorCode.WRN_ThrowPossibleNull, "null").WithLocation(7, 15),
+                // (10,16): warning CS8767: Nullability of reference types in type of parameter 'obj' of 'int StringComparer.GetHashCode(string obj)' doesn't match implicitly implemented member 'int IEqualityComparer<string?>.GetHashCode(string? obj)' (possibly because of nullability attributes).
+                //     public int GetHashCode(string obj)
+                Diagnostic(ErrorCode.WRN_TopLevelNullabilityMismatchInParameterTypeOnImplicitImplementation, "GetHashCode").WithArguments("obj", "int StringComparer.GetHashCode(string obj)", "int IEqualityComparer<string?>.GetHashCode(string? obj)").WithLocation(10, 16),
+                // (12,15): warning CS8597: Thrown value may be null.
+                //         throw null;
+                Diagnostic(ErrorCode.WRN_ThrowPossibleNull, "null").WithLocation(12, 15)
+                );
+
+            var baseType = comp.GetTypeByMetadataName("StringComparer");
+            var derivedType = comp.GetTypeByMetadataName("OneToOneUnicodeComparer");
+
+            var implementation = derivedType.FindImplementationForInterfaceMember(baseType.Interfaces().Single().GetMember("GetHashCode"));
+
+            Assert.Equal("System.Int32 StringComparer.GetHashCode(System.String obj)", implementation.ToTestDisplayString());
         }
     }
 }

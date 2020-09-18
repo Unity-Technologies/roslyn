@@ -2,6 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+#nullable enable
+
 using System;
 
 namespace Microsoft.CodeAnalysis.Diagnostics.Telemetry
@@ -30,6 +32,11 @@ namespace Microsoft.CodeAnalysis.Diagnostics.Telemetry
         /// Count of registered syntax tree actions.
         /// </summary>
         public int SyntaxTreeActionsCount { get; set; } = 0;
+
+        /// <summary>
+        /// Count of registered additional file actions.
+        /// </summary>
+        public int AdditionalFileActionsCount { get; set; } = 0;
 
         /// <summary>
         /// Count of registered semantic model actions.
@@ -115,6 +122,7 @@ namespace Microsoft.CodeAnalysis.Diagnostics.Telemetry
             CompilationActionsCount = actionCounts.CompilationActionsCount;
 
             SyntaxTreeActionsCount = actionCounts.SyntaxTreeActionsCount;
+            AdditionalFileActionsCount = actionCounts.AdditionalFileActionsCount;
             SemanticModelActionsCount = actionCounts.SemanticModelActionsCount;
             SymbolActionsCount = actionCounts.SymbolActionsCount;
             SymbolStartActionsCount = actionCounts.SymbolStartActionsCount;

@@ -9,7 +9,7 @@ using Microsoft.CodeAnalysis.Editor.Shared.Utilities;
 using Microsoft.CodeAnalysis.LanguageServices;
 using Microsoft.CodeAnalysis.Shared.Extensions;
 using Microsoft.VisualStudio.Commanding;
-using Microsoft.VisualStudio.LanguageServices.Implementation.Extensions;
+using Microsoft.VisualStudio.LanguageServices.Utilities;
 using Microsoft.VisualStudio.Shell;
 using Microsoft.VisualStudio.Shell.Interop;
 using Microsoft.VisualStudio.Text.Editor.Commanding.Commands;
@@ -117,8 +117,6 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.Library.ClassVi
             symbol.Kind == SymbolKind.Property;
 
         public CommandState GetCommandState(SyncClassViewCommandArgs args)
-        {
-            return Commanding.CommandState.Available;
-        }
+            => Commanding.CommandState.Available;
     }
 }

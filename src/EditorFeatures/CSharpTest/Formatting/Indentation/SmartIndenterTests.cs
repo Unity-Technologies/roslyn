@@ -10,12 +10,16 @@ using Microsoft.CodeAnalysis.Test.Utilities;
 using Microsoft.VisualStudio.Text;
 using Roslyn.Test.Utilities;
 using Xunit;
-using static Microsoft.CodeAnalysis.Formatting.FormattingOptions;
+using Xunit.Abstractions;
+using static Microsoft.CodeAnalysis.Formatting.FormattingOptions2;
+using IndentStyle = Microsoft.CodeAnalysis.Formatting.FormattingOptions.IndentStyle;
 
 namespace Microsoft.CodeAnalysis.Editor.CSharp.UnitTests.Formatting.Indentation
 {
     public partial class SmartIndenterTests : CSharpFormatterTestsBase
     {
+        public SmartIndenterTests(ITestOutputHelper output) : base(output) { }
+
         [WpfFact]
         [Trait(Traits.Feature, Traits.Features.SmartIndent)]
         public void EmptyFile()
@@ -64,7 +68,7 @@ namespace Microsoft.CodeAnalysis.Editor.CSharp.UnitTests.Formatting.Indentation
             AssertSmartIndent(
                 code,
                 indentationLine: 4,
-                expectedIndentation: 4);
+                expectedIndentation: 0);
         }
 
         [WpfFact]
@@ -2795,6 +2799,62 @@ class C
                 expectedIndentation: 12);
         }
 
+        [WorkItem(28752, "https://github.com/dotnet/roslyn/issues/28752")]
+        [WpfFact, Trait(Traits.Feature, Traits.Features.SmartIndent)]
+        public void EnterAfterBlankLineAfterCommentedOutCode1()
+        {
+            var code = @"class Test
+{
+    public void Test()
+    {
+        // comment
+
+
+    }
+}";
+
+            AssertSmartIndent(
+                code: code,
+                indentationLine: 5,
+                expectedIndentation: 8);
+
+            AssertSmartIndent(
+                code: code,
+                indentationLine: 6,
+                expectedIndentation: 8);
+        }
+
+        [WorkItem(28752, "https://github.com/dotnet/roslyn/issues/28752")]
+        [WpfFact, Trait(Traits.Feature, Traits.Features.SmartIndent)]
+        public void EnterAfterBlankLineAfterCommentedOutCode2()
+        {
+            var code = @"
+class T
+{
+    // comment
+
+
+
+    // comment
+    int i = 1;
+}";
+
+            AssertSmartIndent(
+                code: code,
+                indentationLine: 4,
+                expectedIndentation: 4);
+
+            AssertSmartIndent(
+                code: code,
+                indentationLine: 5,
+                expectedIndentation: 4);
+
+            AssertSmartIndent(
+                code: code,
+                indentationLine: 6,
+                expectedIndentation: 4);
+        }
+
         [WorkItem(38819, "https://github.com/dotnet/roslyn/issues/38819")]
         [WpfFact]
         [Trait(Traits.Feature, Traits.Features.SmartIndent)]
@@ -2820,7 +2880,7 @@ return;
                 indentStyle: IndentStyle.Smart);
         }
 
-        private void AssertSmartIndentInProjection(
+        private static void AssertSmartIndentInProjection(
             string markup,
             int expectedIndentation,
             CSharpParseOptions options = null,
@@ -2830,7 +2890,7 @@ return;
             AssertSmartIndentInProjection(markup.Replace("    ", "\t"), expectedIndentation, useTabs: true, options, indentStyle);
         }
 
-        private void AssertSmartIndentInProjection(
+        private static void AssertSmartIndentInProjection(
             string markup,
             int expectedIndentation,
             bool useTabs,
@@ -2868,7 +2928,7 @@ return;
             }
         }
 
-        private void AssertSmartIndent(
+        private static void AssertSmartIndent(
             string code,
             int indentationLine,
             int? expectedIndentation,
@@ -2879,7 +2939,7 @@ return;
             AssertSmartIndent(code.Replace("    ", "\t"), indentationLine, expectedIndentation, useTabs: true, options, indentStyle);
         }
 
-        private void AssertSmartIndent(
+        private static void AssertSmartIndent(
             string code,
             int indentationLine,
             int? expectedIndentation,
@@ -2902,7 +2962,7 @@ return;
             }
         }
 
-        private void AssertSmartIndent(
+        private static void AssertSmartIndent(
             string code,
             int? expectedIndentation,
             CSharpParseOptions options = null,
@@ -2912,7 +2972,7 @@ return;
             AssertSmartIndent(code.Replace("    ", "\t"), expectedIndentation, useTabs: true, options, indentStyle);
         }
 
-        private void AssertSmartIndent(
+        private static void AssertSmartIndent(
             string code,
             int? expectedIndentation,
             bool useTabs,

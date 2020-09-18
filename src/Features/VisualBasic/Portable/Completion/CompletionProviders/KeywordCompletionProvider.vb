@@ -9,18 +9,24 @@ Imports Microsoft.CodeAnalysis.Options
 Imports Microsoft.CodeAnalysis.Text
 Imports Microsoft.CodeAnalysis.VisualBasic.Extensions.ContextQuery
 Imports Microsoft.CodeAnalysis.Completion
+Imports System.Composition
+Imports Microsoft.CodeAnalysis.Host.Mef
 
 Namespace Microsoft.CodeAnalysis.VisualBasic.Completion.Providers
+    <ExportCompletionProvider(NameOf(KeywordCompletionProvider), LanguageNames.VisualBasic)>
+    <ExtensionOrder(After:=NameOf(FirstBuiltInCompletionProvider))>
+    <[Shared]>
     Friend Class KeywordCompletionProvider
         Inherits AbstractKeywordCompletionProvider(Of VisualBasicSyntaxContext)
 
+        <ImportingConstructor>
+        <Obsolete(MefConstruction.ImportingConstructorMessage, True)>
         Public Sub New()
             MyBase.New(GetKeywordRecommenders())
         End Sub
 
         Protected Overrides Async Function CreateContextAsync(document As Document, position As Integer, cancellationToken As CancellationToken) As Task(Of VisualBasicSyntaxContext)
-            Dim span = New TextSpan(position, length:=0)
-            Dim semanticModel = Await document.GetSemanticModelForSpanAsync(span, cancellationToken).ConfigureAwait(False)
+            Dim semanticModel = Await document.ReuseExistingSpeculativeModelAsync(position, cancellationToken).ConfigureAwait(False)
             Return Await VisualBasicSyntaxContext.CreateContextAsync(document.Project.Solution.Workspace, semanticModel, position, cancellationToken).ConfigureAwait(False)
         End Function
 
@@ -28,6 +34,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Completion.Providers
             ' We show 'Of' after dim x as new list(
             Return CompletionUtilities.IsDefaultTriggerCharacterOrParen(text, characterPosition, options)
         End Function
+
+        Friend Overrides ReadOnly Property TriggerCharacters As ImmutableHashSet(Of Char) = CompletionUtilities.CommonTriggerCharsAndParen
 
         Private Shared ReadOnly s_tupleRules As CompletionItemRules = CompletionItemRules.Default.
             WithCommitCharacterRule(CharacterSetModificationRule.Create(CharacterSetModificationKind.Remove, ":"c))

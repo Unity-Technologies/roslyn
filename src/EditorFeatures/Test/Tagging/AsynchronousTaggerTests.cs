@@ -69,7 +69,6 @@ namespace Microsoft.CodeAnalysis.Editor.CSharp.UnitTests.Tagging
                 workspace.ExportProvider.GetExportedValue<IThreadingContext>(),
                 tagProducer,
                 eventSource,
-                workspace,
                 asyncListener,
                 notificationService);
 
@@ -84,7 +83,7 @@ namespace Microsoft.CodeAnalysis.Editor.CSharp.UnitTests.Tagging
 
             eventSource.SendUpdateEvent();
 
-            await asyncListener.CreateExpeditedWaitTask();
+            await asyncListener.ExpeditedWaitAsync();
 
             var tags = tagger.GetTags(snapshotSpans);
 
@@ -116,9 +115,7 @@ namespace Microsoft.CodeAnalysis.Editor.CSharp.UnitTests.Tagging
         }
 
         private static TestTaggerEventSource CreateEventSource()
-        {
-            return new TestTaggerEventSource();
-        }
+            => new TestTaggerEventSource();
 
         private sealed class TestTag : TextMarkerTag
         {
@@ -134,29 +131,21 @@ namespace Microsoft.CodeAnalysis.Editor.CSharp.UnitTests.Tagging
         {
             private readonly Callback _callback;
             private readonly ITaggerEventSource _eventSource;
-            private readonly Workspace _workspace;
-            private readonly bool _disableCancellation;
 
             public TestTaggerProvider(
                 IThreadingContext threadingContext,
                 Callback callback,
                 ITaggerEventSource eventSource,
-                Workspace workspace,
                 IAsynchronousOperationListener asyncListener,
-                IForegroundNotificationService notificationService,
-                bool disableCancellation = false)
+                IForegroundNotificationService notificationService)
                     : base(threadingContext, asyncListener, notificationService)
             {
                 _callback = callback;
                 _eventSource = eventSource;
-                _workspace = workspace;
-                _disableCancellation = disableCancellation;
             }
 
             protected override ITaggerEventSource CreateEventSource(ITextView textViewOpt, ITextBuffer subjectBuffer)
-            {
-                return _eventSource;
-            }
+                => _eventSource;
 
             protected override Task ProduceTagsAsync(TaggerContext<TestTag> context, DocumentSnapshotSpan snapshotSpan, int? caretPosition)
             {
@@ -181,9 +170,7 @@ namespace Microsoft.CodeAnalysis.Editor.CSharp.UnitTests.Tagging
             }
 
             public void SendUpdateEvent()
-            {
-                this.RaiseChanged();
-            }
+                => this.RaiseChanged();
 
             public override void Connect()
             {

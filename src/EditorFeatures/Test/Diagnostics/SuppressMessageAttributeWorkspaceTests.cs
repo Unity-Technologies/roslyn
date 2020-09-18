@@ -4,6 +4,8 @@
 
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
+using System.Runtime.ExceptionServices;
 using System.Threading.Tasks;
 using Microsoft.CodeAnalysis.Diagnostics;
 using Microsoft.CodeAnalysis.Editor.UnitTests.Workspaces;
@@ -18,17 +20,16 @@ namespace Microsoft.CodeAnalysis.UnitTests.Diagnostics
         protected override async Task VerifyAsync(string source, string language, DiagnosticAnalyzer[] analyzers, DiagnosticDescription[] expectedDiagnostics, string rootNamespace = null)
         {
             using var workspace = CreateWorkspaceFromFile(source, language, rootNamespace);
+            workspace.TryApplyChanges(workspace.CurrentSolution.WithAnalyzerReferences(new[]
+            {
+                new AnalyzerImageReference(analyzers.ToImmutableArray())
+            }));
+
             var documentId = workspace.Documents[0].Id;
             var document = workspace.CurrentSolution.GetDocument(documentId);
             var span = (await document.GetSyntaxRootAsync()).FullSpan;
 
-            var actualDiagnostics = new List<Diagnostic>();
-            foreach (var analyzer in analyzers)
-            {
-                actualDiagnostics.AddRange(
-                    await DiagnosticProviderTestUtilities.GetAllDiagnosticsAsync(analyzer, document, span));
-            }
-
+            var actualDiagnostics = await DiagnosticProviderTestUtilities.GetAllDiagnosticsAsync(document, span);
             actualDiagnostics.Verify(expectedDiagnostics);
         }
 
@@ -74,7 +75,7 @@ public class C2
 {
 }
 ",
-                new[] { new ThrowExceptionForEachNamedTypeAnalyzer() },
+                new[] { new ThrowExceptionForEachNamedTypeAnalyzer(ExceptionDispatchInfo.Capture(new Exception())) },
                 diagnostics: new[] { diagnostic, diagnostic, diagnostic });
         }
 
@@ -84,7 +85,7 @@ public class C2
             var diagnostic = Diagnostic("AD0001", null);
 
             await VerifyCSharpAsync("public class C { }",
-                new[] { new ThrowExceptionFromSupportedDiagnostics() },
+                new[] { new ThrowExceptionFromSupportedDiagnostics(new Exception()) },
                 diagnostics: new[] { diagnostic });
         }
     }

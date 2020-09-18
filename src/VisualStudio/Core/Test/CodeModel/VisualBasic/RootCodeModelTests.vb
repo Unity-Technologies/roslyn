@@ -24,7 +24,7 @@ Class Goo
 End Class
 </code>
 
-            TestChildren(code, "MS", "My", "Microsoft", "System", "Goo", "FxResources", "Windows")
+            TestChildren(code, "MS", "My", "Microsoft", "System", "Goo", "FxResources")
         End Sub
 
         ' This test depends on the version of mscorlib used by the TestWorkspace and may
@@ -37,7 +37,7 @@ Module Goo
 End Module
 </code>
 
-            TestChildren(code, "MS", "My", "Microsoft", "System", "Goo", "FxResources", "Windows")
+            TestChildren(code, "MS", "My", "Microsoft", "System", "Goo", "FxResources")
         End Sub
 
 #End Region
@@ -115,7 +115,6 @@ End Namespace
                 End Sub)
 
         End Sub
-
 
         <WorkItem(1107453, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/1107453")>
         <ConditionalWpfFact(GetType(x86)), Trait(Traits.Feature, Traits.Features.CodeModel)>

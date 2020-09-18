@@ -226,7 +226,7 @@ namespace Microsoft.CodeAnalysis.Editor.Tagging
                     : new TagSpanIntervalTree<TTag>(snapshot.TextBuffer, _dataSource.SpanTrackingMode);
             }
 
-            private bool TryStealTagsFromRelatedTagSource(TextContentChangedEventArgs e)
+            private static bool TryStealTagsFromRelatedTagSource(TextContentChangedEventArgs e)
             {
                 // see bug 778731
 #if INTERACTIVE
@@ -364,7 +364,7 @@ namespace Microsoft.CodeAnalysis.Editor.Tagging
             }
 
             [Conditional("DEBUG")]
-            private void CheckSnapshot(ITextSnapshot snapshot)
+            private static void CheckSnapshot(ITextSnapshot snapshot)
             {
                 var container = snapshot.TextBuffer.AsTextContainer();
                 if (Workspace.TryGetWorkspace(container, out _))
@@ -473,8 +473,8 @@ namespace Microsoft.CodeAnalysis.Editor.Tagging
 
             private bool ShouldSkipTagProduction()
             {
-                var options = _dataSource.Options ?? SpecializedCollections.EmptyEnumerable<Option<bool>>();
-                var perLanguageOptions = _dataSource.PerLanguageOptions ?? SpecializedCollections.EmptyEnumerable<PerLanguageOption<bool>>();
+                var options = _dataSource.Options ?? SpecializedCollections.EmptyEnumerable<Option2<bool>>();
+                var perLanguageOptions = _dataSource.PerLanguageOptions ?? SpecializedCollections.EmptyEnumerable<PerLanguageOption2<bool>>();
 
                 return options.Any(option => !_subjectBuffer.GetFeatureOnOffOption(option)) ||
                        perLanguageOptions.Any(option => !_subjectBuffer.GetFeatureOnOffOption(option));

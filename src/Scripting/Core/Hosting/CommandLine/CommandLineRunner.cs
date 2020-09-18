@@ -78,6 +78,12 @@ namespace Microsoft.CodeAnalysis.Scripting.Hosting
                 return 0;
             }
 
+            if (_compiler.Arguments.DisplayLangVersions)
+            {
+                _compiler.PrintLangVersions(_console.Out);
+                return 0;
+            }
+
             if (sourceFiles.IsEmpty && _compiler.Arguments.DisplayLogo)
             {
                 _compiler.PrintLogo(_console.Out);
@@ -109,7 +115,6 @@ namespace Microsoft.CodeAnalysis.Scripting.Hosting
                     code = _compiler.TryReadFileContent(sourceFiles[0], diagnosticsInfos);
                 }
             }
-
 
             // only emit symbols for non-interactive mode,
             var emitDebugInformation = !_compiler.Arguments.InteractiveMode;
@@ -162,16 +167,14 @@ namespace Microsoft.CodeAnalysis.Scripting.Hosting
                 allowUnsafe: true,
                 checkOverflow: false,
                 warningLevel: 4,
-                parseOptions: null);
+                parseOptions: arguments.ParseOptions);
         }
 
         internal static MetadataReferenceResolver GetMetadataReferenceResolver(CommandLineArguments arguments, TouchedFileLogger loggerOpt)
         {
-            return new RuntimeMetadataReferenceResolver(
-                pathResolver: new RelativePathResolver(arguments.ReferencePaths, arguments.BaseDirectory),
-                packageResolver: null,
-                gacFileResolver: GacFileResolver.IsAvailable ? new GacFileResolver(preferredCulture: CultureInfo.CurrentCulture) : null,
-                useCoreResolver: !GacFileResolver.IsAvailable,
+            return RuntimeMetadataReferenceResolver.CreateCurrentPlatformResolver(
+                arguments.ReferencePaths,
+                arguments.BaseDirectory,
                 fileReferenceProvider: (path, properties) =>
                 {
                     loggerOpt?.AddRead(path);

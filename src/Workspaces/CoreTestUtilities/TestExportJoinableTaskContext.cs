@@ -111,8 +111,8 @@ namespace Microsoft.CodeAnalysis.Test.Utilities
                 var type = assembly.GetType("Microsoft.VisualStudio.Language.Intellisense.Implementation.ForegroundThreadAffinitizedObject", throwOnError: false);
                 if (type != null)
                 {
-                    type.GetField("foregroundThread", BindingFlags.Static | BindingFlags.NonPublic).SetValue(null, thread);
-                    type.GetField("ForegroundTaskScheduler", BindingFlags.Static | BindingFlags.NonPublic).SetValue(null, taskScheduler);
+                    type.GetField("foregroundThread", BindingFlags.Static | BindingFlags.NonPublic)!.SetValue(null, thread);
+                    type.GetField("ForegroundTaskScheduler", BindingFlags.Static | BindingFlags.NonPublic)!.SetValue(null, taskScheduler);
 
                     break;
                 }
@@ -125,9 +125,7 @@ namespace Microsoft.CodeAnalysis.Test.Utilities
             private readonly JoinableTaskFactory _joinableTaskFactory;
 
             public JoinableTaskFactoryTaskScheduler(JoinableTaskFactory joinableTaskFactory)
-            {
-                _joinableTaskFactory = joinableTaskFactory;
-            }
+                => _joinableTaskFactory = joinableTaskFactory;
 
             public override int MaximumConcurrencyLevel => 1;
 

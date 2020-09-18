@@ -274,6 +274,7 @@ class X
                         case ErrorCode.WRN_DisallowNullAttributeForbidsMaybeNullAssignment:
                         case ErrorCode.WRN_NullabilityMismatchInTypeOnOverride:
                         case ErrorCode.WRN_NullabilityMismatchInReturnTypeOnOverride:
+                        case ErrorCode.WRN_NullabilityMismatchInReturnTypeOnPartial:
                         case ErrorCode.WRN_NullabilityMismatchInParameterTypeOnOverride:
                         case ErrorCode.WRN_NullabilityMismatchInParameterTypeOnPartial:
                         case ErrorCode.WRN_NullabilityMismatchInConstraintsOnPartialImplementation:
@@ -309,6 +310,22 @@ class X
                         case ErrorCode.WRN_NullReferenceInitializer:
                         case ErrorCode.WRN_ParameterConditionallyDisallowsNull:
                         case ErrorCode.WRN_ShouldNotReturn:
+                        case ErrorCode.WRN_DoesNotReturnMismatch:
+                        case ErrorCode.WRN_TopLevelNullabilityMismatchInReturnTypeOnImplicitImplementation:
+                        case ErrorCode.WRN_TopLevelNullabilityMismatchInParameterTypeOnImplicitImplementation:
+                        case ErrorCode.WRN_TopLevelNullabilityMismatchInReturnTypeOnExplicitImplementation:
+                        case ErrorCode.WRN_TopLevelNullabilityMismatchInParameterTypeOnExplicitImplementation:
+                        case ErrorCode.WRN_TopLevelNullabilityMismatchInReturnTypeOnOverride:
+                        case ErrorCode.WRN_TopLevelNullabilityMismatchInParameterTypeOnOverride:
+                        case ErrorCode.WRN_ConstOutOfRangeChecked:
+                        case ErrorCode.WRN_MemberNotNull:
+                        case ErrorCode.WRN_MemberNotNullWhen:
+                        case ErrorCode.WRN_MemberNotNullBadMember:
+                        case ErrorCode.WRN_GeneratorFailedDuringInitialization:
+                        case ErrorCode.WRN_GeneratorFailedDuringGeneration:
+                        case ErrorCode.WRN_ParameterDisallowsNull:
+                        case ErrorCode.WRN_GivenExpressionAlwaysMatchesPattern:
+                        case ErrorCode.WRN_IsPatternAlways:
                             Assert.Equal(1, ErrorFacts.GetWarningLevel(errorCode));
                             break;
                         case ErrorCode.WRN_InvalidVersionFormat:
@@ -351,6 +368,11 @@ class X
                     ErrorCode.WRN_MissingNonNullTypesContextForAnnotation,
                     ErrorCode.WRN_MissingNonNullTypesContextForAnnotationInGeneratedCode,
                     ErrorCode.WRN_ImplicitCopyInReadOnlyMember,
+                    ErrorCode.WRN_GeneratorFailedDuringInitialization,
+                    ErrorCode.WRN_GeneratorFailedDuringGeneration,
+                    ErrorCode.WRN_GivenExpressionAlwaysMatchesPattern,
+                    ErrorCode.WRN_IsPatternAlways,
+                    ErrorCode.WRN_ConstOutOfRangeChecked,
                 };
 
                 Assert.Contains(error, nullableUnrelatedWarnings);

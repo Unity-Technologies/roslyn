@@ -3,6 +3,7 @@
 ' See the LICENSE file in the project root for more information.
 
 Imports System.ComponentModel.Composition
+Imports System.Diagnostics.CodeAnalysis
 Imports System.Threading
 Imports Microsoft.CodeAnalysis.Editor.Host
 Imports Microsoft.CodeAnalysis.Editor.Implementation.DocumentationComments
@@ -22,6 +23,7 @@ Namespace Microsoft.CodeAnalysis.Editor.VisualBasic.DocumentationComments
         Inherits AbstractDocumentationCommentCommandHandler(Of DocumentationCommentTriviaSyntax, DeclarationStatementSyntax)
 
         <ImportingConstructor()>
+        <SuppressMessage("RoslynDiagnosticsReliability", "RS0033:Importing constructor should be [Obsolete]", Justification:="Used in test code: https://github.com/dotnet/roslyn/issues/42814")>
         Public Sub New(
             waitIndicator As IWaitIndicator,
             undoHistoryRegistry As ITextUndoHistoryRegistry,
@@ -35,7 +37,6 @@ Namespace Microsoft.CodeAnalysis.Editor.VisualBasic.DocumentationComments
                 Return "'''"
             End Get
         End Property
-
 
         Protected Overrides Function GetContainingMember(syntaxTree As SyntaxTree, position As Integer, cancellationToken As CancellationToken) As DeclarationStatementSyntax
             Return syntaxTree.GetRoot(cancellationToken).FindToken(position).GetContainingMember()
@@ -89,7 +90,7 @@ Namespace Microsoft.CodeAnalysis.Editor.VisualBasic.DocumentationComments
             Return member.GetFirstToken().LeadingTrivia.Any(SyntaxKind.DocumentationCommentTrivia)
         End Function
 
-        Private Function SupportsDocumentationCommentReturnsClause(member As DeclarationStatementSyntax) As Boolean
+        Private Shared Function SupportsDocumentationCommentReturnsClause(member As DeclarationStatementSyntax) As Boolean
             If member Is Nothing Then
                 Return False
             End If
@@ -193,7 +194,7 @@ Namespace Microsoft.CodeAnalysis.Editor.VisualBasic.DocumentationComments
                    lastTextToken.TrailingTrivia.Count = 0
         End Function
 
-        Private Function GetTextTokensFollowingExteriorTrivia(xmlText As XmlTextSyntax) As IList(Of SyntaxToken)
+        Private Shared Function GetTextTokensFollowingExteriorTrivia(xmlText As XmlTextSyntax) As IList(Of SyntaxToken)
             Dim result = New List(Of SyntaxToken)
 
             Dim tokenList = xmlText.TextTokens

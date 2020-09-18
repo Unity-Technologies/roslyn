@@ -160,14 +160,10 @@ namespace Microsoft.CodeAnalysis.Editor.Implementation.InlineRename
         }
 
         internal void FocusNextElement()
-        {
-            FocusElement(_tabNavigableChildren.First(), i => i == _tabNavigableChildren.Count - 1 ? 0 : i + 1);
-        }
+            => FocusElement(_tabNavigableChildren.First(), i => i == _tabNavigableChildren.Count - 1 ? 0 : i + 1);
 
         internal void FocusPreviousElement()
-        {
-            FocusElement(_tabNavigableChildren.Last(), i => i == 0 ? _tabNavigableChildren.Count - 1 : i - 1);
-        }
+            => FocusElement(_tabNavigableChildren.Last(), i => i == 0 ? _tabNavigableChildren.Count - 1 : i - 1);
 
         private void OnPresentationSourceChanged(object sender, SourceChangedEventArgs args)
         {
@@ -252,9 +248,7 @@ namespace Microsoft.CodeAnalysis.Editor.Implementation.InlineRename
         }
 
         protected override AutomationPeer OnCreateAutomationPeer()
-        {
-            return new DashboardAutomationPeer(this, _model.OriginalName);
-        }
+            => new DashboardAutomationPeer(this, _model.OriginalName);
 
         private void DisconnectFromPresentationSource()
         {
@@ -274,10 +268,9 @@ namespace Microsoft.CodeAnalysis.Editor.Implementation.InlineRename
         }
 
         private void FindAdornmentCanvas_LayoutUpdated(object sender, EventArgs e)
-        {
-            PositionDashboard();
-        }
+            => PositionDashboard();
 
+#pragma warning disable CA1822 // Mark members as static - used in xaml
         public string RenameOverloads => EditorFeaturesResources.Include_overload_s;
         public Visibility RenameOverloadsVisibility => _model.RenameOverloadsVisibility;
         public bool IsRenameOverloadsEditable => _model.IsRenameOverloadsEditable;
@@ -289,6 +282,7 @@ namespace Microsoft.CodeAnalysis.Editor.Implementation.InlineRename
         public string RenameInstructions => EditorFeaturesResources.Modify_any_highlighted_location_to_begin_renaming;
         public string ApplyToolTip { get { return EditorFeaturesResources.Apply3 + " (Enter)"; } }
         public string CancelToolTip { get { return EditorFeaturesResources.Cancel + " (Esc)"; } }
+#pragma warning restore CA1822 // Mark members as static
 
         private void OnElementSizeChanged(object sender, SizeChangedEventArgs e)
         {
@@ -318,9 +312,7 @@ namespace Microsoft.CodeAnalysis.Editor.Implementation.InlineRename
         }
 
         private void OnTextViewLostAggregateFocus(object sender, EventArgs e)
-        {
-            this.Visibility = Visibility.Collapsed;
-        }
+            => this.Visibility = Visibility.Collapsed;
 
         private void CloseButton_Click(object sender, RoutedEventArgs e)
         {
@@ -329,9 +321,7 @@ namespace Microsoft.CodeAnalysis.Editor.Implementation.InlineRename
         }
 
         private void Apply_Click(object sender, RoutedEventArgs e)
-        {
-            Commit();
-        }
+            => Commit();
 
         private void Commit()
         {
@@ -404,9 +394,7 @@ namespace Microsoft.CodeAnalysis.Editor.Implementation.InlineRename
         }
 
         protected override void OnMouseUp(MouseButtonEventArgs e)
-        {
-            e.Handled = true;
-        }
+            => e.Handled = true;
 
         protected override void OnIsKeyboardFocusWithinChanged(DependencyPropertyChangedEventArgs e)
         {

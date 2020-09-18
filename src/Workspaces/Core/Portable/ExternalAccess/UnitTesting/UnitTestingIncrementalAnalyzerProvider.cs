@@ -8,6 +8,7 @@ using Microsoft.CodeAnalysis.SolutionCrawler;
 
 namespace Microsoft.CodeAnalysis.ExternalAccess.UnitTesting
 {
+    [Obsolete]
     internal class UnitTestingIncrementalAnalyzerProvider : IIncrementalAnalyzerProvider
     {
         private readonly IUnitTestingIncrementalAnalyzerProviderImplementation _incrementalAnalyzerProvider;

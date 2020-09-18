@@ -155,6 +155,17 @@ namespace Microsoft.CodeAnalysis.CSharp
         }
 
         /// <summary>
+        /// Gets a binder for a node that must be not null, and asserts
+        /// if it is not.
+        /// </summary>
+        internal Binder GetRequiredBinder(SyntaxNode node)
+        {
+            var binder = GetBinder(node);
+            RoslynDebug.Assert(binder is object);
+            return binder;
+        }
+
+        /// <summary>
         /// Get locals declared immediately in scope designated by the node.
         /// </summary>
         internal virtual ImmutableArray<LocalSymbol> GetDeclaredLocalsForScope(SyntaxNode scopeDesignator)
@@ -376,7 +387,7 @@ namespace Microsoft.CodeAnalysis.CSharp
             }
         }
 
-        internal virtual Imports GetImports(ConsList<TypeSymbol> basesBeingResolved)
+        internal virtual Imports GetImports(ConsList<TypeSymbol>? basesBeingResolved)
         {
             RoslynDebug.Assert(Next is object);
             return Next.GetImports(basesBeingResolved);
@@ -557,6 +568,20 @@ namespace Microsoft.CodeAnalysis.CSharp
         /// information to report diagnostics, then store the symbols so that diagnostics
         /// can be reported at a later stage.
         /// </summary>
+        /// <remarks>
+        /// This method is introduced to move the implicit conversion operator call from the caller
+        /// so as to reduce the caller stack frame size
+        /// </remarks>
+        internal void ReportDiagnosticsIfObsolete(DiagnosticBag diagnostics, Symbol symbol, SyntaxNode node, bool hasBaseReceiver)
+        {
+            ReportDiagnosticsIfObsolete(diagnostics, symbol, (SyntaxNodeOrToken)node, hasBaseReceiver);
+        }
+
+        /// <summary>
+        /// Issue an error or warning for a symbol if it is Obsolete. If there is not enough
+        /// information to report diagnostics, then store the symbols so that diagnostics
+        /// can be reported at a later stage.
+        /// </summary>
         internal void ReportDiagnosticsIfObsolete(DiagnosticBag diagnostics, Symbol symbol, SyntaxNodeOrToken node, bool hasBaseReceiver)
         {
             switch (symbol.Kind)
@@ -674,7 +699,7 @@ namespace Microsoft.CodeAnalysis.CSharp
         internal static bool IsSymbolAccessibleConditional(
             Symbol symbol,
             AssemblySymbol within,
-            ref HashSet<DiagnosticInfo> useSiteDiagnostics)
+            ref HashSet<DiagnosticInfo>? useSiteDiagnostics)
         {
             return AccessCheck.IsSymbolAccessible(symbol, within, ref useSiteDiagnostics);
         }
@@ -682,7 +707,7 @@ namespace Microsoft.CodeAnalysis.CSharp
         internal bool IsSymbolAccessibleConditional(
             Symbol symbol,
             NamedTypeSymbol within,
-            ref HashSet<DiagnosticInfo> useSiteDiagnostics,
+            ref HashSet<DiagnosticInfo>? useSiteDiagnostics,
             TypeSymbol? throughTypeOpt = null)
         {
             return this.Flags.Includes(BinderFlags.IgnoreAccessibility) || AccessCheck.IsSymbolAccessible(symbol, within, ref useSiteDiagnostics, throughTypeOpt);
@@ -693,7 +718,7 @@ namespace Microsoft.CodeAnalysis.CSharp
             NamedTypeSymbol within,
             TypeSymbol throughTypeOpt,
             out bool failedThroughTypeCheck,
-            ref HashSet<DiagnosticInfo> useSiteDiagnostics,
+            ref HashSet<DiagnosticInfo>? useSiteDiagnostics,
             ConsList<TypeSymbol>? basesBeingResolved = null)
         {
             if (this.Flags.Includes(BinderFlags.IgnoreAccessibility))

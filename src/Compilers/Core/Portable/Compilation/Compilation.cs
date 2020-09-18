@@ -114,12 +114,14 @@ namespace Microsoft.CodeAnalysis
             return set;
         }
 
-        internal abstract AnalyzerDriver AnalyzerForLanguage(ImmutableArray<DiagnosticAnalyzer> analyzers, AnalyzerManager analyzerManager);
+        internal abstract AnalyzerDriver CreateAnalyzerDriver(ImmutableArray<DiagnosticAnalyzer> analyzers, AnalyzerManager analyzerManager, SeverityFilter severityFilter);
 
         /// <summary>
         /// Gets the source language ("C#" or "Visual Basic").
         /// </summary>
         public abstract string Language { get; }
+
+        internal abstract void SerializePdbEmbeddedCompilationOptions(BlobBuilder builder);
 
         internal static void ValidateScriptCompilationParameters(Compilation? previousScriptCompilation, Type? returnType, ref Type? globalsType)
         {
@@ -850,8 +852,15 @@ namespace Microsoft.CodeAnalysis
         /// <summary>
         /// The TypeSymbol for the type 'dynamic' in this Compilation.
         /// </summary>
+        /// <exception cref="NotSupportedException">If the compilation is a VisualBasic compilation.</exception>
         public ITypeSymbol DynamicType { get { return CommonDynamicType; } }
         protected abstract ITypeSymbol CommonDynamicType { get; }
+
+        /// <summary>
+        /// A symbol representing the script globals type.
+        /// </summary>
+        internal ITypeSymbol? ScriptGlobalsType => CommonScriptGlobalsType;
+        protected abstract ITypeSymbol? CommonScriptGlobalsType { get; }
 
         /// <summary>
         /// A symbol representing the implicit Script class. This is null if the class is not
@@ -874,7 +883,7 @@ namespace Microsoft.CodeAnalysis
 
             for (int i = 0; i < parts.Length - 1; i++)
             {
-                INamespaceSymbol next = container.GetNestedNamespace(parts[i]);
+                INamespaceSymbol? next = container.GetNestedNamespace(parts[i]);
                 if (next == null)
                 {
                     AssertNoScriptTrees();
@@ -927,15 +936,49 @@ namespace Microsoft.CodeAnalysis
         protected abstract IArrayTypeSymbol CommonCreateArrayTypeSymbol(ITypeSymbol elementType, int rank, NullableAnnotation elementNullableAnnotation);
 
         /// <summary>
-        /// Returns a new PointerTypeSymbol representing a pointer type tied to a type in this
+        /// Returns a new IPointerTypeSymbol representing a pointer type tied to a type in this
         /// Compilation.
         /// </summary>
+        /// <exception cref="NotSupportedException">If the compilation is a VisualBasic compilation.</exception>
         public IPointerTypeSymbol CreatePointerTypeSymbol(ITypeSymbol pointedAtType)
         {
             return CommonCreatePointerTypeSymbol(pointedAtType);
         }
 
         protected abstract IPointerTypeSymbol CommonCreatePointerTypeSymbol(ITypeSymbol elementType);
+
+
+        /// <summary>
+        /// Returns a new IFunctionPointerTypeSymbol representing a function pointer type tied to types in this
+        /// Compilation.
+        /// </summary>
+        /// <exception cref="NotSupportedException">If the compilation is a VisualBasic compilation.</exception>
+        /// <exception cref="ArgumentException">
+        /// If:
+        ///  * <see cref="RefKind.Out"/> is passed as the returnRefKind.
+        ///  * parameterTypes and parameterRefKinds do not have the same length.
+        /// </exception>
+        /// <exception cref="ArgumentNullException">
+        /// If returnType is <see langword="null"/>, or if parameterTypes or parameterRefKinds are default,
+        /// or if any of the types in parameterTypes are null.</exception>
+         // https://github.com/dotnet/roslyn/issues/39865 allow setting calling convention in creation
+        public IFunctionPointerTypeSymbol CreateFunctionPointerTypeSymbol(ITypeSymbol returnType, RefKind returnRefKind, ImmutableArray<ITypeSymbol> parameterTypes, ImmutableArray<RefKind> parameterRefKinds)
+        {
+            return CommonCreateFunctionPointerTypeSymbol(returnType, returnRefKind, parameterTypes, parameterRefKinds);
+        }
+
+        protected abstract IFunctionPointerTypeSymbol CommonCreateFunctionPointerTypeSymbol(ITypeSymbol returnType, RefKind returnRefKind, ImmutableArray<ITypeSymbol> parameterTypes, ImmutableArray<RefKind> parameterRefKinds);
+
+        /// <summary>
+        /// Returns a new INamedTypeSymbol representing a native integer.
+        /// </summary>
+        /// <exception cref="NotSupportedException">If the compilation is a VisualBasic compilation.</exception>
+        public INamedTypeSymbol CreateNativeIntegerTypeSymbol(bool signed)
+        {
+            return CommonCreateNativeIntegerTypeSymbol(signed);
+        }
+
+        protected abstract INamedTypeSymbol CommonCreateNativeIntegerTypeSymbol(bool signed);
 
         // PERF: ETW Traces show that analyzers may use this method frequently, often requesting
         // the same symbol over and over again. XUnit analyzers, in particular, were consuming almost
@@ -975,7 +1018,7 @@ namespace Microsoft.CodeAnalysis
         public INamedTypeSymbol CreateTupleTypeSymbol(
             ImmutableArray<ITypeSymbol> elementTypes,
             ImmutableArray<string?> elementNames = default,
-            ImmutableArray<Location> elementLocations = default,
+            ImmutableArray<Location?> elementLocations = default,
             ImmutableArray<NullableAnnotation> elementNullableAnnotations = default)
         {
             if (elementTypes.IsDefault)
@@ -1017,7 +1060,7 @@ namespace Microsoft.CodeAnalysis
         public INamedTypeSymbol CreateTupleTypeSymbol(
             ImmutableArray<ITypeSymbol> elementTypes,
             ImmutableArray<string?> elementNames,
-            ImmutableArray<Location> elementLocations)
+            ImmutableArray<Location?> elementLocations)
         {
             return CreateTupleTypeSymbol(elementTypes, elementNames, elementLocations, elementNullableAnnotations: default);
         }
@@ -1067,7 +1110,7 @@ namespace Microsoft.CodeAnalysis
 
         protected static void CheckTupleElementLocations(
             int cardinality,
-            ImmutableArray<Location> elementLocations)
+            ImmutableArray<Location?> elementLocations)
         {
             if (!elementLocations.IsDefault)
             {
@@ -1081,7 +1124,7 @@ namespace Microsoft.CodeAnalysis
         protected abstract INamedTypeSymbol CommonCreateTupleTypeSymbol(
             ImmutableArray<ITypeSymbol> elementTypes,
             ImmutableArray<string?> elementNames,
-            ImmutableArray<Location> elementLocations,
+            ImmutableArray<Location?> elementLocations,
             ImmutableArray<NullableAnnotation> elementNullableAnnotations);
 
 #pragma warning disable RS0026 // Do not add multiple public overloads with optional parameters
@@ -1093,7 +1136,7 @@ namespace Microsoft.CodeAnalysis
         public INamedTypeSymbol CreateTupleTypeSymbol(
             INamedTypeSymbol underlyingType,
             ImmutableArray<string?> elementNames = default,
-            ImmutableArray<Location> elementLocations = default,
+            ImmutableArray<Location?> elementLocations = default,
             ImmutableArray<NullableAnnotation> elementNullableAnnotations = default)
         {
             if ((object)underlyingType == null)
@@ -1113,7 +1156,7 @@ namespace Microsoft.CodeAnalysis
         public INamedTypeSymbol CreateTupleTypeSymbol(
             INamedTypeSymbol underlyingType,
             ImmutableArray<string?> elementNames,
-            ImmutableArray<Location> elementLocations)
+            ImmutableArray<Location?> elementLocations)
         {
             return CreateTupleTypeSymbol(underlyingType, elementNames, elementLocations, elementNullableAnnotations: default);
         }
@@ -1121,7 +1164,7 @@ namespace Microsoft.CodeAnalysis
         protected abstract INamedTypeSymbol CommonCreateTupleTypeSymbol(
             INamedTypeSymbol underlyingType,
             ImmutableArray<string?> elementNames,
-            ImmutableArray<Location> elementLocations,
+            ImmutableArray<Location?> elementLocations,
             ImmutableArray<NullableAnnotation> elementNullableAnnotations);
 
         /// <summary>
@@ -1282,8 +1325,7 @@ namespace Microsoft.CodeAnalysis
 
             void checkInCompilationReferences(ISymbol s, string parameterName)
             {
-                var containingAssembly = computeContainingAssembly(s);
-                if (!assemblyIsInReferences(containingAssembly))
+                if (!isContainingAssemblyInReferences(s))
                 {
                     throw new ArgumentException(string.Format(CodeAnalysisResources.IsSymbolAccessibleWrongAssembly, parameterName), parameterName);
                 }
@@ -1331,14 +1373,14 @@ namespace Microsoft.CodeAnalysis
                 return false;
             }
 
-            IAssemblySymbol computeContainingAssembly(ISymbol s)
+            bool isContainingAssemblyInReferences(ISymbol s)
             {
                 while (true)
                 {
                     switch (s.Kind)
                     {
                         case SymbolKind.Assembly:
-                            return (IAssemblySymbol)s;
+                            return assemblyIsInReferences((IAssemblySymbol)s);
                         case SymbolKind.PointerType:
                             s = ((IPointerTypeSymbol)s).PointedAtType;
                             continue;
@@ -1351,15 +1393,31 @@ namespace Microsoft.CodeAnalysis
                         case SymbolKind.Discard:
                             s = ((IDiscardSymbol)s).Type;
                             continue;
+                        case SymbolKind.FunctionPointerType:
+                            var funcPtr = (IFunctionPointerTypeSymbol)s;
+                            if (!isContainingAssemblyInReferences(funcPtr.Signature.ReturnType))
+                            {
+                                return false;
+                            }
+
+                            foreach (var param in funcPtr.Signature.Parameters)
+                            {
+                                if (!isContainingAssemblyInReferences(param.Type))
+                                {
+                                    return false;
+                                }
+                            }
+
+                            return true;
                         case SymbolKind.DynamicType:
                         case SymbolKind.ErrorType:
                         case SymbolKind.Preprocessing:
                         case SymbolKind.Namespace:
                             // these symbols are not restricted in where they can be accessed, so unless they report
                             // a containing assembly, we treat them as in the current assembly for access purposes
-                            return s.ContainingAssembly ?? this.Assembly;
+                            return assemblyIsInReferences(s.ContainingAssembly ?? this.Assembly);
                         default:
-                            return s.ContainingAssembly;
+                            return assemblyIsInReferences(s.ContainingAssembly);
                     }
                 }
             }
@@ -1370,7 +1428,7 @@ namespace Microsoft.CodeAnalysis
             ISymbol within,
             ITypeSymbol? throughType);
 
-        internal abstract IConvertibleConversion ClassifyConvertibleConversion(IOperation source, ITypeSymbol destination, out Optional<object> constantValue);
+        internal abstract IConvertibleConversion ClassifyConvertibleConversion(IOperation source, ITypeSymbol destination, out ConstantValue? constantValue);
 
         #endregion
 
@@ -2136,7 +2194,7 @@ namespace Microsoft.CodeAnalysis
             CommonPEModuleBuilder moduleBeingBuilt,
             Stream? xmlDocumentationStream,
             Stream? win32ResourcesStream,
-            string outputNameOverride,
+            string? outputNameOverride,
             DiagnosticBag diagnostics,
             CancellationToken cancellationToken);
 
@@ -2268,8 +2326,8 @@ namespace Microsoft.CodeAnalysis
                 manifestResources,
                 options,
                 debugEntryPoint,
-                default(Stream),
-                default(IEnumerable<EmbeddedText>),
+                sourceLinkStream: null,
+                embeddedTexts: null,
                 cancellationToken);
         }
 
@@ -2464,6 +2522,7 @@ namespace Microsoft.CodeAnalysis
             CancellationToken cancellationToken)
         {
             options = options ?? EmitOptions.Default.WithIncludePrivateMembers(metadataPEStream == null);
+
             bool embedPdb = options.DebugInformationFormat == DebugInformationFormat.Embedded;
             Debug.Assert(!embedPdb || pdbStream == null);
             Debug.Assert(metadataPEStream == null || !options.IncludePrivateMembers); // you may not use a secondary stream and include private members together
@@ -2541,10 +2600,7 @@ namespace Microsoft.CodeAnalysis
                         (pdbStream != null) ? new SimpleEmitStreamProvider(pdbStream) : null,
                         testData?.SymWriterFactory,
                         diagnostics,
-                        metadataOnly: options.EmitMetadataOnly,
-                        includePrivateMembers: options.IncludePrivateMembers,
-                        emitTestCoverageData: options.EmitTestCoverageData,
-                        pePdbFilePath: options.PdbFilePath,
+                        emitOptions: options,
                         privateKeyOpt: privateKeyOpt,
                         cancellationToken: cancellationToken);
                 }
@@ -2679,7 +2735,7 @@ namespace Microsoft.CodeAnalysis
             if (IsSubmission && !HasCodeToEmit())
             {
                 // Still report diagnostics since downstream submissions will assume there are no errors.
-                diagnostics.AddRange(this.GetDiagnostics());
+                diagnostics.AddRange(this.GetDiagnostics(cancellationToken));
                 return null;
             }
 
@@ -2705,10 +2761,7 @@ namespace Microsoft.CodeAnalysis
             EmitStreamProvider? pdbStreamProvider,
             Func<ISymWriterMetadataProvider, SymUnmanagedWriter>? testSymWriterFactory,
             DiagnosticBag diagnostics,
-            bool metadataOnly,
-            bool includePrivateMembers,
-            bool emitTestCoverageData,
-            string? pePdbFilePath,
+            EmitOptions emitOptions,
             RSAParameters? privateKeyOpt,
             CancellationToken cancellationToken)
         {
@@ -2723,6 +2776,8 @@ namespace Microsoft.CodeAnalysis
             // PDB Stream provider should not be given if PDB is to be embedded into the PE file:
             Debug.Assert(moduleBeingBuilt.DebugInformationFormat != DebugInformationFormat.Embedded || pdbStreamProvider == null);
 
+            string? pePdbFilePath = emitOptions.PdbFilePath;
+
             if (moduleBeingBuilt.DebugInformationFormat == DebugInformationFormat.Embedded || pdbStreamProvider != null)
             {
                 pePdbFilePath = pePdbFilePath ?? FileNameUtilities.ChangeExtension(SourceModule.Name, "pdb");
@@ -2732,7 +2787,7 @@ namespace Microsoft.CodeAnalysis
                 pePdbFilePath = null;
             }
 
-            if (moduleBeingBuilt.DebugInformationFormat == DebugInformationFormat.Embedded && !string.IsNullOrEmpty(pePdbFilePath))
+            if (moduleBeingBuilt.DebugInformationFormat == DebugInformationFormat.Embedded && !RoslynString.IsNullOrEmpty(pePdbFilePath))
             {
                 pePdbFilePath = PathUtilities.GetFileName(pePdbFilePath);
             }
@@ -2777,10 +2832,10 @@ namespace Microsoft.CodeAnalysis
                         getPortablePdbStream,
                         nativePdbWriter,
                         pePdbFilePath,
-                        metadataOnly,
-                        includePrivateMembers,
+                        emitOptions.EmitMetadataOnly,
+                        emitOptions.IncludePrivateMembers,
                         deterministic,
-                        emitTestCoverageData,
+                        emitOptions.EmitTestCoverageData,
                         privateKeyOpt,
                         cancellationToken))
                     {
@@ -2803,12 +2858,12 @@ namespace Microsoft.CodeAnalysis
                 }
                 catch (Cci.PeWritingException e)
                 {
-                    diagnostics.Add(MessageProvider.CreateDiagnostic(MessageProvider.ERR_PeWritingFailure, Location.None, e.InnerException.ToString()));
+                    diagnostics.Add(MessageProvider.CreateDiagnostic(MessageProvider.ERR_PeWritingFailure, Location.None, e.InnerException?.ToString() ?? ""));
                     return false;
                 }
                 catch (ResourceException e)
                 {
-                    diagnostics.Add(MessageProvider.CreateDiagnostic(MessageProvider.ERR_CantReadResource, Location.None, e.Message, e.InnerException.Message));
+                    diagnostics.Add(MessageProvider.CreateDiagnostic(MessageProvider.ERR_CantReadResource, Location.None, e.Message, e.InnerException?.Message ?? ""));
                     return false;
                 }
                 catch (PermissionSetFileReadException e)
@@ -2967,7 +3022,7 @@ namespace Microsoft.CodeAnalysis
                 }
                 catch (Cci.PeWritingException e)
                 {
-                    diagnostics.Add(MessageProvider.CreateDiagnostic(MessageProvider.ERR_PeWritingFailure, Location.None, e.InnerException.ToString()));
+                    diagnostics.Add(MessageProvider.CreateDiagnostic(MessageProvider.ERR_PeWritingFailure, Location.None, e.InnerException?.ToString() ?? ""));
                     return null;
                 }
                 catch (PermissionSetFileReadException e)
@@ -2980,7 +3035,7 @@ namespace Microsoft.CodeAnalysis
 
         internal string? Feature(string p)
         {
-            string v;
+            string? v;
             return _features.TryGetValue(p, out v) ? v : null;
         }
 
@@ -3020,7 +3075,7 @@ namespace Microsoft.CodeAnalysis
                 return true;
             }
 
-            SmallConcurrentSetOfInts usedImports;
+            SmallConcurrentSetOfInts? usedImports;
             return syntaxTree != null &&
                 TreeToUsedImportDirectivesMap.TryGetValue(syntaxTree, out usedImports) &&
                 usedImports.Contains(position);

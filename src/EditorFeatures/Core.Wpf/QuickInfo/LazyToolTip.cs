@@ -17,7 +17,6 @@ namespace Microsoft.CodeAnalysis.Editor.QuickInfo
         /// </summary>
         private class LazyToolTip : ForegroundThreadAffinitizedObject
         {
-            private readonly IThreadingContext _threadingContext;
             private readonly Func<DisposableToolTip> _createToolTip;
             private readonly FrameworkElement _element;
 
@@ -29,7 +28,6 @@ namespace Microsoft.CodeAnalysis.Editor.QuickInfo
                 Func<DisposableToolTip> createToolTip)
                 : base(threadingContext, assertIsForeground: true)
             {
-                _threadingContext = threadingContext;
                 _element = element;
                 _createToolTip = createToolTip;
 
@@ -46,9 +44,7 @@ namespace Microsoft.CodeAnalysis.Editor.QuickInfo
             }
 
             public static void AttachTo(FrameworkElement element, IThreadingContext threadingContext, Func<DisposableToolTip> createToolTip)
-            {
-                new LazyToolTip(threadingContext, element, createToolTip);
-            }
+                => new LazyToolTip(threadingContext, element, createToolTip);
 
             private void OnToolTipOpening(object sender, ToolTipEventArgs e)
             {

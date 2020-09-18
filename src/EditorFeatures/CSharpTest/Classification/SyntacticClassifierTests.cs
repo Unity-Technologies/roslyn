@@ -9,6 +9,7 @@ using Microsoft.CodeAnalysis.Classification;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Test.Utilities;
 using Microsoft.CodeAnalysis.Editor.UnitTests.Workspaces;
+using Microsoft.CodeAnalysis.Remote.Testing;
 using Microsoft.CodeAnalysis.Test.Utilities;
 using Microsoft.CodeAnalysis.Text;
 using Roslyn.Test.Utilities;
@@ -19,9 +20,9 @@ namespace Microsoft.CodeAnalysis.Editor.CSharp.UnitTests.Classification
 {
     public partial class SyntacticClassifierTests : AbstractCSharpClassifierTests
     {
-        protected override Task<ImmutableArray<ClassifiedSpan>> GetClassificationSpansAsync(string code, TextSpan span, ParseOptions options)
+        protected override Task<ImmutableArray<ClassifiedSpan>> GetClassificationSpansAsync(string code, TextSpan span, ParseOptions options, TestHost testHost)
         {
-            using var workspace = TestWorkspace.CreateCSharp(code, parseOptions: options);
+            using var workspace = CreateWorkspace(code, options, testHost);
             var document = workspace.CurrentSolution.Projects.First().Documents.First();
 
             return GetSyntacticClassificationsAsync(document, span);
@@ -347,13 +348,22 @@ on a new line """),
                 Local("stuff"));
         }
 
-        [Fact, Trait(Traits.Feature, Traits.Features.Classification)]
-        public async Task VerbatimStringLiteral6()
+        [Theory, Trait(Traits.Feature, Traits.Features.Classification)]
+        [WorkItem(44423, "https://github.com/dotnet/roslyn/issues/44423")]
+        [CombinatorialData]
+        public async Task VerbatimStringLiteral6(bool script, TestHost testHost)
         {
+            var code = @"string s = @""""""/*"";";
+
+            var parseOptions = script ? Options.Script : null;
+
             await TestAsync(
-@"string s = @""""""/*"";",
+                code,
+                code,
+                parseOptions,
+                testHost,
                 Keyword("string"),
-                Field("s"),
+                script ? Field("s") : Local("s"),
                 Operators.Equals,
                 Verbatim(@"@""""""/*"""),
                 Punctuation.Semicolon);
@@ -458,33 +468,49 @@ on a new line """),
                 String(@"""bar"""));
         }
 
-        [Fact, Trait(Traits.Feature, Traits.Features.Classification)]
-        public async Task VarContextualKeywordAtNamespaceLevel()
+        [Theory, Trait(Traits.Feature, Traits.Features.Classification)]
+        [WorkItem(44423, "https://github.com/dotnet/roslyn/issues/44423")]
+        [CombinatorialData]
+        public async Task VarContextualKeywordAtNamespaceLevel(bool script, TestHost testHost)
         {
             var code = @"var goo = 2;";
+
+            var parseOptions = script ? Options.Script : null;
+
             await TestAsync(code,
                 code,
-                Identifier("var"),
-                Field("goo"),
+                parseOptions,
+                testHost,
+                script ? Identifier("var") : Keyword("var"),
+                script ? Field("goo") : Local("goo"),
                 Operators.Equals,
                 Number("2"),
                 Punctuation.Semicolon);
         }
 
-        [Fact, Trait(Traits.Feature, Traits.Features.Classification)]
-        public async Task LinqKeywordsAtNamespaceLevel()
+        [Theory, Trait(Traits.Feature, Traits.Features.Classification)]
+        [WorkItem(44423, "https://github.com/dotnet/roslyn/issues/44423")]
+        [CombinatorialData]
+        public async Task LinqKeywordsAtNamespaceLevel(bool script, TestHost testHost)
         {
             // the contextual keywords are actual keywords since we parse top level field declaration and only give a semantic error
-            await TestAsync(
-@"object goo = from goo in goo
+            var code = @"object goo = from goo in goo
              join goo in goo on goo equals goo
              group goo by goo into goo
              let goo = goo
              where goo
              orderby goo ascending, goo descending
-             select goo;",
+             select goo;";
+
+            var parseOptions = script ? Options.Script : null;
+
+            await TestAsync(
+                code,
+                code,
+                parseOptions,
+                testHost,
                 Keyword("object"),
-                Field("goo"),
+                script ? Field("goo") : Local("goo"),
                 Operators.Equals,
                 Keyword("from"),
                 Identifier("goo"),
@@ -3115,6 +3141,7 @@ public class Goo<T>
         i ^= i;
         i <<= i;
         i >>= i;
+        i ??= i;
         object s = x => x + 1;
         Point point;
         unsafe
@@ -3346,6 +3373,10 @@ public class Goo<T>
                 Punctuation.Semicolon,
                 Identifier("i"),
                 Operators.GreaterThanGreaterThanEquals,
+                Identifier("i"),
+                Punctuation.Semicolon,
+                Identifier("i"),
+                Operators.QuestionQuestionEquals,
                 Identifier("i"),
                 Punctuation.Semicolon,
                 Keyword("object"),

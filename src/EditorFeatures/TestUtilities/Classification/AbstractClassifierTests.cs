@@ -10,8 +10,8 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.CodeAnalysis.Classification;
-using Microsoft.CodeAnalysis.Extensions;
 using Microsoft.CodeAnalysis.PooledObjects;
+using Microsoft.CodeAnalysis.Remote.Testing;
 using Microsoft.CodeAnalysis.Shared.Extensions;
 using Microsoft.CodeAnalysis.Test.Utilities;
 using Microsoft.CodeAnalysis.Text;
@@ -25,14 +25,20 @@ namespace Microsoft.CodeAnalysis.Editor.UnitTests.Classification
     {
         protected AbstractClassifierTests() { }
 
-        protected abstract Task<ImmutableArray<ClassifiedSpan>> GetClassificationSpansAsync(string text, TextSpan span, ParseOptions parseOptions);
+        protected abstract Task<ImmutableArray<ClassifiedSpan>> GetClassificationSpansAsync(string text, TextSpan span, ParseOptions parseOptions, TestHost testHost);
 
         protected abstract string WrapInClass(string className, string code);
         protected abstract string WrapInExpression(string code);
         protected abstract string WrapInMethod(string className, string methodName, string code);
         protected abstract string WrapInNamespace(string code);
 
-        protected abstract Task DefaultTestAsync(string code, string allCode, FormattedClassification[] expected);
+        protected async Task DefaultTestAsync(string code, string allCode, FormattedClassification[] expected)
+        {
+            await DefaultTestAsync(code, allCode, TestHost.InProcess, expected);
+            await DefaultTestAsync(code, allCode, TestHost.OutOfProcess, expected);
+        }
+
+        protected abstract Task DefaultTestAsync(string code, string allCode, TestHost testHost, FormattedClassification[] expected);
 
         protected async Task TestAsync(
            string code,
@@ -40,10 +46,21 @@ namespace Microsoft.CodeAnalysis.Editor.UnitTests.Classification
            ParseOptions parseOptions,
            params FormattedClassification[] expected)
         {
+            await TestAsync(code, allCode, parseOptions, TestHost.InProcess, expected);
+            await TestAsync(code, allCode, parseOptions, TestHost.OutOfProcess, expected);
+        }
+
+        protected async Task TestAsync(
+           string code,
+           string allCode,
+           ParseOptions parseOptions,
+           TestHost testHost,
+           params FormattedClassification[] expected)
+        {
             var start = allCode.IndexOf(code, StringComparison.Ordinal);
             var length = code.Length;
             var span = new TextSpan(start, length);
-            var actual = await GetClassificationSpansAsync(allCode, span, parseOptions);
+            var actual = await GetClassificationSpansAsync(allCode, span, parseOptions, testHost);
 
             actual = actual.Sort((t1, t2) => t1.TextSpan.Start - t2.TextSpan.Start);
 
@@ -57,9 +74,20 @@ namespace Microsoft.CodeAnalysis.Editor.UnitTests.Classification
            ParseOptions[] parseOptionsSet,
            params FormattedClassification[] expected)
         {
+            await TestAsync(code, allCode, parseOptionsSet, TestHost.InProcess, expected);
+            await TestAsync(code, allCode, parseOptionsSet, TestHost.OutOfProcess, expected);
+        }
+
+        private async Task TestAsync(
+           string code,
+           string allCode,
+           ParseOptions[] parseOptionsSet,
+           TestHost testHost,
+           params FormattedClassification[] expected)
+        {
             foreach (var parseOptions in parseOptionsSet)
             {
-                await TestAsync(code, allCode, parseOptions, expected);
+                await TestAsync(code, allCode, parseOptions, testHost, expected);
             }
         }
 
@@ -68,9 +96,19 @@ namespace Microsoft.CodeAnalysis.Editor.UnitTests.Classification
            ParseOptions[] parseOptionsSet,
            params FormattedClassification[] expected)
         {
+            await TestAsync(code, parseOptionsSet, TestHost.InProcess, expected);
+            await TestAsync(code, parseOptionsSet, TestHost.OutOfProcess, expected);
+        }
+
+        private async Task TestAsync(
+           string code,
+           ParseOptions[] parseOptionsSet,
+           TestHost testHost,
+           params FormattedClassification[] expected)
+        {
             foreach (var parseOptions in parseOptionsSet)
             {
-                await TestAsync(code, code, parseOptions, expected);
+                await TestAsync(code, code, parseOptions, testHost, expected);
             }
         }
 
@@ -226,21 +264,11 @@ namespace Microsoft.CodeAnalysis.Editor.UnitTests.Classification
 
         protected static async Task<ImmutableArray<ClassifiedSpan>> GetSemanticClassificationsAsync(Document document, TextSpan span)
         {
-            var tree = await document.GetSyntaxTreeAsync();
+            var service = document.GetRequiredLanguageService<IClassificationService>();
 
-            var service = document.GetLanguageService<ISyntaxClassificationService>();
-            var classifiers = service.GetDefaultSyntaxClassifiers();
-            var extensionManager = document.Project.Solution.Workspace.Services.GetService<IExtensionManager>();
-
-            var results = ArrayBuilder<ClassifiedSpan>.GetInstance();
-
-            await service.AddSemanticClassificationsAsync(document, span,
-                extensionManager.CreateNodeExtensionGetter(classifiers, c => c.SyntaxNodeTypes),
-                extensionManager.CreateTokenExtensionGetter(classifiers, c => c.SyntaxTokenKinds),
-                results,
-                CancellationToken.None);
-
-            return results.ToImmutableAndFree();
+            var result = new List<ClassifiedSpan>();
+            await service.AddSemanticClassificationsAsync(document, span, result, CancellationToken.None);
+            return result.ToImmutableArray();
         }
 
         protected static async Task<ImmutableArray<ClassifiedSpan>> GetSyntacticClassificationsAsync(Document document, TextSpan span)

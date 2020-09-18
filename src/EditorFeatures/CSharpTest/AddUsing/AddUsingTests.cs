@@ -13,13 +13,13 @@ using Microsoft.CodeAnalysis.CSharp.Test.Utilities;
 using Microsoft.CodeAnalysis.Diagnostics;
 using Microsoft.CodeAnalysis.Editing;
 using Microsoft.CodeAnalysis.Editor.CSharp.UnitTests.Diagnostics;
-using Microsoft.CodeAnalysis.Options;
-using Microsoft.CodeAnalysis.Remote;
+using Microsoft.CodeAnalysis.Editor.UnitTests.CodeActions;
+using Microsoft.CodeAnalysis.Remote.Testing;
 using Microsoft.CodeAnalysis.Tags;
 using Microsoft.CodeAnalysis.Test.Utilities;
-using Microsoft.CodeAnalysis.Test.Utilities.RemoteHost;
 using Roslyn.Test.Utilities;
 using Xunit;
+using static Roslyn.Test.Utilities.TestMetadata;
 
 namespace Microsoft.CodeAnalysis.Editor.CSharp.UnitTests.AddUsing
 {
@@ -27,6 +27,8 @@ namespace Microsoft.CodeAnalysis.Editor.CSharp.UnitTests.AddUsing
     {
         internal override (DiagnosticAnalyzer, CodeFixProvider) CreateDiagnosticProviderAndFixer(Workspace workspace)
             => (null, new CSharpAddImportCodeFixProvider());
+
+        private protected OptionsCollection SeparateGroups => Option(GenerationOptions.SeparateImportDirectiveGroups, true);
 
         protected async Task TestAsync(
             string initialMarkup,
@@ -44,10 +46,10 @@ namespace Microsoft.CodeAnalysis.Editor.CSharp.UnitTests.AddUsing
             string expectedMarkup,
             int index = 0,
             CodeActionPriority? priority = null,
-            IDictionary<OptionKey, object> options = null)
+            OptionsCollection options = null)
         {
-            await TestAsync(initialMarkup, expectedMarkup, index, priority, options, outOfProcess: false);
-            await TestAsync(initialMarkup, expectedMarkup, index, priority, options, outOfProcess: true);
+            await TestAsync(initialMarkup, expectedMarkup, index, priority, options, TestHost.OutOfProcess);
+            await TestAsync(initialMarkup, expectedMarkup, index, priority, options, TestHost.InProcess);
         }
 
         internal async Task TestAsync(
@@ -55,12 +57,12 @@ namespace Microsoft.CodeAnalysis.Editor.CSharp.UnitTests.AddUsing
             string expectedMarkup,
             int index,
             CodeActionPriority? priority,
-            IDictionary<OptionKey, object> options,
-            bool outOfProcess)
+            OptionsCollection options,
+            TestHost testHost)
         {
             await TestInRegularAndScript1Async(
-                initialMarkup, expectedMarkup, index, priority,
-                parameters: new TestParameters(options: options, fixProviderData: outOfProcess));
+                initialMarkup, expectedMarkup, index,
+                parameters: new TestParameters(options: options, testHost: testHost, priority: priority));
         }
     }
 
@@ -69,9 +71,8 @@ namespace Microsoft.CodeAnalysis.Editor.CSharp.UnitTests.AddUsing
         internal override (DiagnosticAnalyzer, CodeFixProvider) CreateDiagnosticProviderAndFixer(
             Workspace workspace, TestParameters parameters)
         {
-            var outOfProcess = (bool)parameters.fixProviderData;
             workspace.TryApplyChanges(workspace.CurrentSolution.WithOptions(
-                workspace.CurrentSolution.Options.WithChangedOption(RemoteHostOptions.RemoteHostTest, outOfProcess)));
+                workspace.CurrentSolution.Options.WithChangedOption(RemoteTestHostOptions.RemoteHostTest, parameters.testHost)));
 
             return base.CreateDiagnosticProviderAndFixer(workspace, parameters);
         }
@@ -2036,7 +2037,7 @@ class Program
         {
             var resolver = new TestMetadataReferenceResolver(assemblyNames: new Dictionary<string, PortableExecutableReference>()
             {
-                { "exprs", AssemblyMetadata.CreateFromImage(TestResources.NetFX.v4_0_30319.System_Core).GetReference() }
+                { "exprs", AssemblyMetadata.CreateFromImage(ResourcesNet451.SystemCore).GetReference() }
             });
 
             await TestAsync(
@@ -3905,7 +3906,6 @@ namespace X
 }");
         }
 
-
         [Fact, Trait(Traits.Feature, Traits.Features.CodeActionsAddImport)]
         public async Task TestAddUsingOrdinalUppercase()
         {
@@ -4991,7 +4991,6 @@ namespace B
 }");
         }
 
-
         [WorkItem(745490, "https://devdiv.visualstudio.com/DevDiv/_workitems/edit/745490")]
         [Fact, Trait(Traits.Feature, Traits.Features.CodeActionsAddImport)]
         public async Task TestAddUsingForAwaitableReturningExtensionMethod()
@@ -5332,7 +5331,6 @@ namespace N
 ");
         }
 
-
         [WorkItem(30734, "https://github.com/dotnet/roslyn/issues/30734")]
         [Fact, Trait(Traits.Feature, Traits.Features.CodeActionsAddImport)]
         public async Task UsingPlacedWithUsingAliasInOuterNestedNamespace_WhenNoExistingUsing()
@@ -5481,6 +5479,49 @@ namespace N
     }
 }
 ");
+        }
+
+        [WorkItem(25003, "https://github.com/dotnet/roslyn/issues/25003")]
+        [Fact, Trait(Traits.Feature, Traits.Features.CodeActionsAddImport)]
+        public async Task KeepUsingsGrouped1()
+        {
+            await TestAsync(
+@"
+using System;
+
+class Program
+{
+    static void Main(string[] args)
+    {
+        [|Goo|]
+    }
+}
+
+namespace Microsoft
+{
+    public class Goo
+    {
+    }
+}",
+@"
+using System;
+
+using Microsoft;
+
+class Program
+{
+    static void Main(string[] args)
+    {
+        Goo
+    }
+}
+
+namespace Microsoft
+{
+    public class Goo
+    {
+    }
+}", options: SeparateGroups);
         }
     }
 }

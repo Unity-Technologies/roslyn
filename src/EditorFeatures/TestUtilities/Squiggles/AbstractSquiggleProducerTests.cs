@@ -23,41 +23,38 @@ namespace Microsoft.CodeAnalysis.Editor.UnitTests.Squiggles
     {
         internal static async Task<(ImmutableArray<DiagnosticData>, ImmutableArray<ITagSpan<IErrorTag>>)> GetDiagnosticsAndErrorSpansAsync<TProvider>(
             TestWorkspace workspace,
-            Dictionary<string, DiagnosticAnalyzer[]> analyzerMap = null)
+            IReadOnlyDictionary<string, ImmutableArray<DiagnosticAnalyzer>> analyzerMap = null)
             where TProvider : AbstractDiagnosticsAdornmentTaggerProvider<IErrorTag>
         {
-            using (var wrapper = new DiagnosticTaggerWrapper<TProvider>(workspace, analyzerMap))
-            {
-                var tagger = wrapper.TaggerProvider.CreateTagger<IErrorTag>(workspace.Documents.First().GetTextBuffer());
-                using (var disposable = tagger as IDisposable)
-                {
-                    await wrapper.WaitForTags();
+            using var wrapper = new DiagnosticTaggerWrapper<TProvider, IErrorTag>(workspace, analyzerMap);
+            var tagger = wrapper.TaggerProvider.CreateTagger<IErrorTag>(workspace.Documents.First().GetTextBuffer());
 
-                    var analyzerDiagnostics = await wrapper.AnalyzerService.GetDiagnosticsAsync(workspace.CurrentSolution);
+            using var disposable = tagger as IDisposable;
+            await wrapper.WaitForTags();
 
-                    var snapshot = workspace.Documents.First().GetTextBuffer().CurrentSnapshot;
-                    var spans = tagger.GetTags(snapshot.GetSnapshotSpanCollection()).ToImmutableArray();
+            var analyzerDiagnostics = await wrapper.AnalyzerService.GetDiagnosticsAsync(workspace.CurrentSolution);
 
-                    return (analyzerDiagnostics, spans);
-                }
-            }
+            var snapshot = workspace.Documents.First().GetTextBuffer().CurrentSnapshot;
+            var spans = tagger.GetTags(snapshot.GetSnapshotSpanCollection()).ToImmutableArray();
+
+            return (analyzerDiagnostics, spans);
         }
     }
 
     internal sealed class DiagnosticTagProducer<TProvider>
         where TProvider : AbstractDiagnosticsAdornmentTaggerProvider<IErrorTag>
     {
-        internal Task<(ImmutableArray<DiagnosticData>, ImmutableArray<ITagSpan<IErrorTag>>)> GetDiagnosticsAndErrorSpans(
+        internal static Task<(ImmutableArray<DiagnosticData>, ImmutableArray<ITagSpan<IErrorTag>>)> GetDiagnosticsAndErrorSpans(
             TestWorkspace workspace,
-            Dictionary<string, DiagnosticAnalyzer[]> analyzerMap = null)
+            IReadOnlyDictionary<string, ImmutableArray<DiagnosticAnalyzer>> analyzerMap = null)
         {
             return SquiggleUtilities.GetDiagnosticsAndErrorSpansAsync<TProvider>(workspace, analyzerMap);
         }
 
-        internal async Task<IList<ITagSpan<IErrorTag>>> GetErrorsFromUpdateSource(TestWorkspace workspace, TestHostDocument document, DiagnosticsUpdatedArgs updateArgs)
+        internal static async Task<IList<ITagSpan<IErrorTag>>> GetErrorsFromUpdateSource(TestWorkspace workspace, DiagnosticsUpdatedArgs updateArgs)
         {
             var source = new TestDiagnosticUpdateSource();
-            using (var wrapper = new DiagnosticTaggerWrapper<TProvider>(workspace, source))
+            using (var wrapper = new DiagnosticTaggerWrapper<TProvider, IErrorTag>(workspace, updateSource: source))
             {
                 var tagger = wrapper.TaggerProvider.CreateTagger<IErrorTag>(workspace.Documents.First().GetTextBuffer());
                 using (var disposable = tagger as IDisposable)
@@ -74,7 +71,7 @@ namespace Microsoft.CodeAnalysis.Editor.UnitTests.Squiggles
             }
         }
 
-        internal DiagnosticData CreateDiagnosticData(TestHostDocument document, TextSpan span)
+        internal static DiagnosticData CreateDiagnosticData(TestHostDocument document, TextSpan span)
         {
             return new DiagnosticData(
                 id: "test",
@@ -108,9 +105,7 @@ namespace Microsoft.CodeAnalysis.Editor.UnitTests.Squiggles
             public bool SupportGetDiagnostics => false;
 
             public ImmutableArray<DiagnosticData> GetDiagnostics(Workspace workspace, ProjectId projectId, DocumentId documentId, object id, bool includeSuppressedDiagnostics = false, CancellationToken cancellationToken = default)
-            {
-                return includeSuppressedDiagnostics ? _diagnostics : _diagnostics.WhereAsArray(d => !d.IsSuppressed);
-            }
+                => includeSuppressedDiagnostics ? _diagnostics : _diagnostics.WhereAsArray(d => !d.IsSuppressed);
         }
     }
 }

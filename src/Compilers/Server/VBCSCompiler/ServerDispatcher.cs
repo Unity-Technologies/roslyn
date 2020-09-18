@@ -18,7 +18,7 @@ namespace Microsoft.CodeAnalysis.CompilerServer
 {
     internal interface IClientConnectionHost
     {
-        Task<IClientConnection> CreateListenTask(CancellationToken cancellationToken);
+        Task<IClientConnection> ListenAsync(CancellationToken cancellationToken);
     }
 
     /// <summary>
@@ -197,7 +197,7 @@ namespace Microsoft.CodeAnalysis.CompilerServer
             Debug.Assert(_listenTask == null);
             Debug.Assert(_timeoutTask == null);
             _listenCancellationTokenSource = new CancellationTokenSource();
-            _listenTask = _clientConnectionHost.CreateListenTask(_listenCancellationTokenSource.Token);
+            _listenTask = _clientConnectionHost.ListenAsync(_listenCancellationTokenSource.Token);
             _diagnosticListener.ConnectionListening();
         }
 
@@ -214,7 +214,7 @@ namespace Microsoft.CodeAnalysis.CompilerServer
         {
             _diagnosticListener.ConnectionReceived();
             var allowCompilationRequests = _state == State.Running;
-            var connectionTask = HandleClientConnection(_listenTask, allowCompilationRequests, cancellationToken);
+            var connectionTask = HandleClientConnectionAsync(_listenTask, allowCompilationRequests, cancellationToken);
             _connectionList.Add(connectionTask);
 
             // Timeout and GC are only done when there are no active connections.  Now that we have a new
@@ -229,6 +229,7 @@ namespace Microsoft.CodeAnalysis.CompilerServer
 
         private void HandleCompletedTimeoutTask()
         {
+            CompilerServerLogger.Log("Timeout triggered. Shutting down server.");
             _diagnosticListener.KeepAliveReached();
             _listenCancellationTokenSource.Cancel();
             _timeoutTask = null;
@@ -293,15 +294,21 @@ namespace Microsoft.CodeAnalysis.CompilerServer
                 {
                     case CompletionReason.CompilationCompleted:
                     case CompletionReason.CompilationNotStarted:
+                        CompilerServerLogger.Log("Client completed");
                         // These are all normal shutdown states.  Nothing to do here.
                         break;
                     case CompletionReason.ClientDisconnect:
                         // Have to assume the worst here which is user pressing Ctrl+C at the command line and
                         // hence wanting all compilation to end.
+                        CompilerServerLogger.LogError("Unexpected client disconnect. Shutting down server");
                         shutdown = true;
                         break;
                     case CompletionReason.ClientException:
+                        CompilerServerLogger.LogError($"Unexpected client exception. Shutting down server");
+                        shutdown = true;
+                        break;
                     case CompletionReason.ClientShutdownRequest:
+                        CompilerServerLogger.Log($"Client requesting server shutdown");
                         shutdown = true;
                         break;
                     default:
@@ -313,6 +320,7 @@ namespace Microsoft.CodeAnalysis.CompilerServer
 
             if (shutdown)
             {
+                CompilerServerLogger.Log($"Shutting down server");
                 _state = State.ShuttingDown;
             }
         }
@@ -335,7 +343,7 @@ namespace Microsoft.CodeAnalysis.CompilerServer
         /// will never fail.  It will always produce a <see cref="ConnectionData"/> value.  Connection errors
         /// will end up being represented as <see cref="CompletionReason.ClientDisconnect"/>
         /// </summary>
-        internal static async Task<ConnectionData> HandleClientConnection(Task<IClientConnection> clientConnectionTask, bool allowCompilationRequests = true, CancellationToken cancellationToken = default(CancellationToken))
+        internal static async Task<ConnectionData> HandleClientConnectionAsync(Task<IClientConnection> clientConnectionTask, bool allowCompilationRequests = true, CancellationToken cancellationToken = default(CancellationToken))
         {
             IClientConnection clientConnection;
             try
@@ -352,7 +360,7 @@ namespace Microsoft.CodeAnalysis.CompilerServer
 
             try
             {
-                return await clientConnection.HandleConnection(allowCompilationRequests, cancellationToken).ConfigureAwait(false);
+                return await clientConnection.HandleConnectionAsync(allowCompilationRequests, cancellationToken).ConfigureAwait(false);
             }
             catch (Exception ex)
             {

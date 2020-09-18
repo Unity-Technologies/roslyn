@@ -15,6 +15,7 @@ using Task = System.Threading.Tasks.Task;
 using LS = Microsoft.VisualStudio.LiveShare.LanguageServices;
 using Microsoft.VisualStudio.Shell;
 using Microsoft.CodeAnalysis.Editor;
+using Microsoft.CodeAnalysis.Host.Mef;
 
 namespace Microsoft.VisualStudio.LanguageServices.LiveShare.Client
 {
@@ -87,18 +88,6 @@ namespace Microsoft.VisualStudio.LanguageServices.LiveShare.Client
                         TextDocumentSync = null,
                     })));
 
-            languageServerGuestService.RegisterClientMetadata(
-                new string[] { ContentTypeNames.CSharpLspContentTypeName, ContentTypeNames.VBLspContentTypeName },
-                new LS.LanguageServerClientMetadata(
-                    true,
-                    JObject.FromObject(new ServerCapabilities
-                    {
-                        // Uses Roslyn client.
-                        CodeActionProvider = true,
-                        ExecuteCommandProvider = new ExecuteCommandOptions(),
-                        ReferencesProvider = true,
-                    })));
-
             var lifeTimeService = LspClientLifeTimeService;
             lifeTimeService.Disposed += (s, e) =>
             {
@@ -114,9 +103,7 @@ namespace Microsoft.VisualStudio.LanguageServices.LiveShare.Client
             public event EventHandler Disposed;
 
             public void Dispose()
-            {
-                Disposed?.Invoke(this, null);
-            }
+                => Disposed?.Invoke(this, null);
         }
 
         /// <summary>
@@ -154,6 +141,12 @@ namespace Microsoft.VisualStudio.LanguageServices.LiveShare.Client
                                 CreationPriority = (int)ServiceRole.LocalService + 2000)]
     internal class CSharpLspClientServiceFactory : AbstractLspClientServiceFactory
     {
+        [ImportingConstructor]
+        [Obsolete(MefConstruction.ImportingConstructorMessage, error: true)]
+        public CSharpLspClientServiceFactory()
+        {
+        }
+
         protected override string LanguageSpecificProviderName => StringConstants.CSharpProviderName;
 
         protected override RoslynLSPClientLifeTimeService LspClientLifeTimeService => new CSharpLSPClientLifeTimeService();
@@ -171,6 +164,12 @@ namespace Microsoft.VisualStudio.LanguageServices.LiveShare.Client
                                 CreationPriority = (int)ServiceRole.LocalService + 2000)]
     internal class VisualBasicLspClientServiceFactory : AbstractLspClientServiceFactory
     {
+        [ImportingConstructor]
+        [Obsolete(MefConstruction.ImportingConstructorMessage, error: true)]
+        public VisualBasicLspClientServiceFactory()
+        {
+        }
+
         protected override string LanguageSpecificProviderName => StringConstants.VisualBasicProviderName;
 
         protected override RoslynLSPClientLifeTimeService LspClientLifeTimeService => new VisualBasicLSPClientLifeTimeService();
@@ -188,6 +187,12 @@ namespace Microsoft.VisualStudio.LanguageServices.LiveShare.Client
                                 CreationPriority = (int)ServiceRole.LocalService + 2000)]
     internal class TypeScriptLspClientServiceFactory : AbstractLspClientServiceFactory
     {
+        [ImportingConstructor]
+        [Obsolete(MefConstruction.ImportingConstructorMessage, error: true)]
+        public TypeScriptLspClientServiceFactory()
+        {
+        }
+
         protected override string LanguageSpecificProviderName => StringConstants.TypeScriptProviderName;
 
         protected override RoslynLSPClientLifeTimeService LspClientLifeTimeService => new TypeScriptLSPClientLifeTimeService();

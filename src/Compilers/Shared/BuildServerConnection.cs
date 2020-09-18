@@ -79,7 +79,7 @@ namespace Microsoft.CodeAnalysis.CommandLine
         /// </summary>
         internal static bool IsCompilerServerSupported => GetPipeNameForPathOpt("") is object;
 
-        public static Task<BuildResponse> RunServerCompilation(
+        public static Task<BuildResponse> RunServerCompilationAsync(
             RequestLanguage language,
             string? sharedCompilationId,
             List<string> arguments,
@@ -90,7 +90,7 @@ namespace Microsoft.CodeAnalysis.CommandLine
         {
             var pipeNameOpt = sharedCompilationId ?? GetPipeNameForPathOpt(buildPaths.ClientDirectory);
 
-            return RunServerCompilationCore(
+            return RunServerCompilationCoreAsync(
                 language,
                 arguments,
                 buildPaths,
@@ -102,7 +102,7 @@ namespace Microsoft.CodeAnalysis.CommandLine
                 cancellationToken: cancellationToken);
         }
 
-        internal static async Task<BuildResponse> RunServerCompilationCore(
+        internal static async Task<BuildResponse> RunServerCompilationCoreAsync(
             RequestLanguage language,
             List<string> arguments,
             BuildPathsAlt buildPaths,
@@ -113,14 +113,14 @@ namespace Microsoft.CodeAnalysis.CommandLine
             CreateServerFunc createServerFunc,
             CancellationToken cancellationToken)
         {
-            if (pipeName == null)
+            if (pipeName is null)
             {
-                return new RejectedBuildResponse();
+                throw new ArgumentException(nameof(pipeName));
             }
 
             if (buildPaths.TempDirectory == null)
             {
-                return new RejectedBuildResponse();
+                throw new ArgumentException(nameof(buildPaths));
             }
 
             // early check for the build hash. If we can't find it something is wrong; no point even trying to go to the server
@@ -132,26 +132,26 @@ namespace Microsoft.CodeAnalysis.CommandLine
             var pipeTask = tryConnectToServer(pipeName, buildPaths, timeoutOverride, createServerFunc, cancellationToken);
             if (pipeTask is null)
             {
-                return new RejectedBuildResponse();
+                return new RejectedBuildResponse("Failed to connect to server");
             }
             else
             {
                 var pipe = await pipeTask.ConfigureAwait(false);
                 if (pipe is null)
                 {
-                    return new RejectedBuildResponse();
+                    return new RejectedBuildResponse("Failed to connect to server");
                 }
                 else
                 {
                     var request = BuildRequest.Create(language,
                                                       buildPaths.WorkingDirectory,
                                                       buildPaths.TempDirectory,
-                                                      BuildProtocolConstants.GetCommitHash(),
+                                                      BuildProtocolConstants.GetCommitHash() ?? "",
                                                       arguments,
                                                       keepAlive,
                                                       libEnvVariable);
 
-                    return await TryCompile(pipe, request, cancellationToken).ConfigureAwait(false);
+                    return await TryCompileAsync(pipe, request, cancellationToken).ConfigureAwait(false);
                 }
             }
 
@@ -186,7 +186,9 @@ namespace Microsoft.CodeAnalysis.CommandLine
                         // the server and we need to fall back to the command line.
                         //
                         // Example: https://github.com/dotnet/roslyn/issues/24124
+#pragma warning disable VSTHRD114 // Avoid returning a null Task (False positive: https://github.com/microsoft/vs-threading/issues/637)
                         return null;
+#pragma warning restore VSTHRD114 // Avoid returning a null Task
                     }
 
                     if (!holdsMutex)
@@ -197,7 +199,9 @@ namespace Microsoft.CodeAnalysis.CommandLine
 
                             if (!holdsMutex)
                             {
+#pragma warning disable VSTHRD114 // Avoid returning a null Task (False positive: https://github.com/microsoft/vs-threading/issues/637)
                                 return null;
+#pragma warning restore VSTHRD114 // Avoid returning a null Task
                             }
                         }
                         catch (AbandonedMutexException)
@@ -238,7 +242,7 @@ namespace Microsoft.CodeAnalysis.CommandLine
         /// Try to compile using the server. Returns a null-containing Task if a response
         /// from the server cannot be retrieved.
         /// </summary>
-        private static async Task<BuildResponse> TryCompile(NamedPipeClientStream pipeStream,
+        private static async Task<BuildResponse> TryCompileAsync(NamedPipeClientStream pipeStream,
                                                             BuildRequest request,
                                                             CancellationToken cancellationToken)
         {
@@ -255,7 +259,7 @@ namespace Microsoft.CodeAnalysis.CommandLine
                 catch (Exception e)
                 {
                     LogException(e, "Error writing build request.");
-                    return new RejectedBuildResponse();
+                    return new RejectedBuildResponse($"Error writing build request: {e.Message}");
                 }
 
                 // Wait for the compilation and a monitor to detect if the server disconnects
@@ -264,7 +268,7 @@ namespace Microsoft.CodeAnalysis.CommandLine
                 Log("Begin reading response");
 
                 var responseTask = BuildResponse.ReadAsync(pipeStream, serverCts.Token);
-                var monitorTask = CreateMonitorDisconnectTask(pipeStream, "client", serverCts.Token);
+                var monitorTask = MonitorDisconnectAsync(pipeStream, "client", serverCts.Token);
                 await Task.WhenAny(responseTask, monitorTask).ConfigureAwait(false);
 
                 Log("End reading response");
@@ -279,13 +283,13 @@ namespace Microsoft.CodeAnalysis.CommandLine
                     catch (Exception e)
                     {
                         LogException(e, "Error reading response");
-                        response = new RejectedBuildResponse();
+                        response = new RejectedBuildResponse($"Error reading response: {e.Message}");
                     }
                 }
                 else
                 {
-                    Log("Server disconnect");
-                    response = new RejectedBuildResponse();
+                    LogError("Client disconnect");
+                    response = new RejectedBuildResponse($"Client disconnected");
                 }
 
                 // Cancel whatever task is still around
@@ -300,7 +304,7 @@ namespace Microsoft.CodeAnalysis.CommandLine
         /// if we don't attempt any new I/O after the client disconnects. We start an async I/O here
         /// which serves to check the pipe for disconnection.
         /// </summary>
-        internal static async Task CreateMonitorDisconnectTask(
+        internal static async Task MonitorDisconnectAsync(
             PipeStream pipeStream,
             string? identifier = null,
             CancellationToken cancellationToken = default(CancellationToken))
@@ -368,7 +372,7 @@ namespace Microsoft.CodeAnalysis.CommandLine
                     // To avoid this, we first force ourselves to a background thread using Task.Run.
                     // This ensures that the Task created by ConnectAsync will run on the default
                     // TaskScheduler (i.e., on a threadpool thread) which was the intent all along.
-                    await Task.Run(() => pipeStream.ConnectAsync(timeoutMs, cancellationToken)).ConfigureAwait(false);
+                    await Task.Run(() => pipeStream.ConnectAsync(timeoutMs, cancellationToken), cancellationToken).ConfigureAwait(false);
                 }
                 catch (Exception e) when (e is IOException || e is TimeoutException)
                 {
@@ -378,7 +382,7 @@ namespace Microsoft.CodeAnalysis.CommandLine
                     // IOException: The server is connected to another client and the
                     //              time-out period has expired.
 
-                    Log($"Connecting to server timed out after {timeoutMs} ms");
+                    LogException(e, $"Connecting to server timed out after {timeoutMs} ms");
                     return null;
                 }
                 Log("Named pipe '{0}' connected", pipeName);
@@ -388,7 +392,7 @@ namespace Microsoft.CodeAnalysis.CommandLine
                 // Verify that we own the pipe.
                 if (!NamedPipeUtil.CheckPipeConnectionOwnership(pipeStream))
                 {
-                    Log("Owner of named pipe is incorrect");
+                    LogError("Owner of named pipe is incorrect");
                     return null;
                 }
 
@@ -457,7 +461,7 @@ namespace Microsoft.CodeAnalysis.CommandLine
                 }
                 else
                 {
-                    Log("Failed to create process. GetLastError={0}", Marshal.GetLastWin32Error());
+                    LogError("Failed to create process. GetLastError={0}", Marshal.GetLastWin32Error());
                 }
                 return success;
             }

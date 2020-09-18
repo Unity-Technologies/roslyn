@@ -18,7 +18,8 @@ using Microsoft.VisualStudio.Text.Editor.Commanding.Commands;
 using Microsoft.VisualStudio.Text.Operations;
 using Roslyn.Test.Utilities;
 using Xunit;
-using static Microsoft.CodeAnalysis.Formatting.FormattingOptions;
+using static Microsoft.CodeAnalysis.Formatting.FormattingOptions2;
+using IndentStyle = Microsoft.CodeAnalysis.Formatting.FormattingOptions.IndentStyle;
 
 namespace Microsoft.CodeAnalysis.Editor.CSharp.UnitTests.SplitStringLiteral
 {
@@ -31,7 +32,7 @@ namespace Microsoft.CodeAnalysis.Editor.CSharp.UnitTests.SplitStringLiteral
         /// this known test infrastructure issure. This bug does not represent a product
         /// failure.
         /// </summary>
-        private void TestWorker(
+        private static void TestWorker(
             string inputMarkup,
             string expectedOutputMarkup,
             Action callback,
@@ -99,7 +100,7 @@ namespace Microsoft.CodeAnalysis.Editor.CSharp.UnitTests.SplitStringLiteral
         /// this known test infrastructure issure. This bug does not represent a product
         /// failure.
         /// </summary>
-        private void TestHandled(
+        private static void TestHandled(
             string inputMarkup, string expectedOutputMarkup,
             bool verifyUndo = true, IndentStyle indentStyle = IndentStyle.Smart,
             bool useTabs = false)
@@ -113,7 +114,7 @@ namespace Microsoft.CodeAnalysis.Editor.CSharp.UnitTests.SplitStringLiteral
                 verifyUndo, indentStyle, useTabs);
         }
 
-        private void TestNotHandled(string inputMarkup)
+        private static void TestNotHandled(string inputMarkup)
         {
             var notHandled = false;
             TestWorker(

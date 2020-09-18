@@ -5,6 +5,7 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.CodeAnalysis.Diagnostics;
 using Microsoft.CodeAnalysis.Test.Utilities;
@@ -149,7 +150,7 @@ namespace N.N1.N6.N7
         [Fact, WorkItem(486, "https://github.com/dotnet/roslyn/issues/486")]
         public async Task GlobalSuppressionOnTypesAndNamespaces_NamespaceAndDescendants()
         {
-            await VerifyCSharpAsync(@"
+            var source = @"
 using System.Diagnostics.CodeAnalysis;
 
 [assembly: SuppressMessage(""Test"", ""Declaration"", Scope=""NamespaceAndDescendants"", Target=""N.N1.N2"")]
@@ -200,10 +201,15 @@ namespace N.N1.N2.N7
     {
     }
 }
-",
-                new[] { new WarningOnNamePrefixDeclarationAnalyzer("N"), new WarningOnNamePrefixDeclarationAnalyzer("C") },
+";
+
+            await VerifyCSharpAsync(source,
+                new[] { new WarningOnNamePrefixDeclarationAnalyzer("N") },
                 Diagnostic("Declaration", "N"),
-                Diagnostic("Declaration", "N1"),
+                Diagnostic("Declaration", "N1"));
+
+            await VerifyCSharpAsync(source,
+                new[] { new WarningOnNamePrefixDeclarationAnalyzer("C") },
                 Diagnostic("Declaration", "C1"));
         }
 

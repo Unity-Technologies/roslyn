@@ -428,7 +428,7 @@ namespace Microsoft.CodeAnalysis.CSharp
                     return;
                 }
 
-                if (!Binder.CheckConstantBounds(conversion.Operand.Type.SpecialType, constantValue))
+                if (!Binder.CheckConstantBounds(conversion.Operand.Type.SpecialType, constantValue, out _))
                 {
                     Error(ErrorCode.WRN_VacuousIntegralComp, tree, conversion.Operand.Type);
                     return;
@@ -577,7 +577,7 @@ namespace Microsoft.CodeAnalysis.CSharp
         // * a conversion with no cast in source code that goes from a smaller
         //   signed type to a larger signed or unsigned type.
         //
-        // * an conversion (with or without a cast) from a smaller
+        // * a conversion (with or without a cast) from a smaller
         //   signed type to a larger unsigned type.
 
         private static ulong FindSurprisingSignExtensionBits(BoundExpression expr)
@@ -792,7 +792,7 @@ namespace Microsoft.CodeAnalysis.CSharp
 
                     string always = node.OperatorKind.Operator() == BinaryOperatorKind.NotEqual ? "true" : "false";
 
-                    if (_compilation.FeatureStrictEnabled || !node.OperatorKind.IsUserDefined())
+                    if (_compilation.FeatureStrictEnabled || !node.OperatorKind.IsUserDefined() || ErrorCode.WRN_NubExprIsConstBool2.GetWarningVersion() <= this._compilation.Options.WarningVersion)
                     {
                         if (node.Right.NullableNeverHasValue() && node.Left.NullableAlwaysHasValue())
                         {

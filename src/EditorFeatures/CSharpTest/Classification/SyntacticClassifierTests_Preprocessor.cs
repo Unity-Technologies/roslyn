@@ -4,6 +4,7 @@
 
 using System;
 using System.Threading.Tasks;
+using Microsoft.CodeAnalysis.Remote.Testing;
 using Microsoft.CodeAnalysis.Test.Utilities;
 using Roslyn.Test.Utilities;
 using Xunit;
@@ -329,7 +330,6 @@ namespace Microsoft.CodeAnalysis.Editor.CSharp.UnitTests.Classification
 aoeu
 aoeu
 #endif";
-            var start = code.IndexOf("#endif", StringComparison.Ordinal);
             await TestAsync(code,
                 PPKeyword("#"),
                 PPKeyword("if"),
@@ -372,8 +372,10 @@ aeu";
                 Identifier("aeu"));
         }
 
-        [Fact, Trait(Traits.Feature, Traits.Features.Classification)]
-        public async Task PP_If8()
+        [Theory, Trait(Traits.Feature, Traits.Features.Classification)]
+        [WorkItem(44423, "https://github.com/dotnet/roslyn/issues/44423")]
+        [CombinatorialData]
+        public async Task PP_If8(bool script, TestHost testHost)
         {
             var code =
 @"#if
@@ -383,21 +385,30 @@ aoeu
 aou
 #endif
 aeu";
-            await TestAsync(code,
+
+            var parseOptions = script ? Options.Script : null;
+
+            await TestAsync(
+                code,
+                code,
+                parseOptions,
+                testHost,
                 PPKeyword("#"),
                 PPKeyword("if"),
                 PPKeyword("#"),
                 PPKeyword("else"),
                 Identifier("aoeu"),
-                Field("aoeu"),
+                script ? Field("aoeu") : Local("aoeu"),
                 Identifier("aou"),
                 PPKeyword("#"),
                 PPKeyword("endif"),
-                Field("aeu"));
+                script ? Field("aeu") : Identifier("aeu"));
         }
 
-        [Fact, Trait(Traits.Feature, Traits.Features.Classification)]
-        public async Task PP_If9()
+        [Theory, Trait(Traits.Feature, Traits.Features.Classification)]
+        [WorkItem(44423, "https://github.com/dotnet/roslyn/issues/44423")]
+        [CombinatorialData]
+        public async Task PP_If9(bool script, TestHost testHost)
         {
             var code =
 @"#if //Goo1
@@ -407,7 +418,14 @@ aoeu
 aou
 #endif //Goo3
 aeu";
-            await TestAsync(code,
+
+            var parseOptions = script ? Options.Script : null;
+
+            await TestAsync(
+                code,
+                code,
+                parseOptions,
+                testHost,
                 PPKeyword("#"),
                 PPKeyword("if"),
                 Comment("//Goo1"),
@@ -415,12 +433,12 @@ aeu";
                 PPKeyword("else"),
                 Comment("//Goo2"),
                 Identifier("aoeu"),
-                Field("aoeu"),
+                script ? Field("aoeu") : Local("aoeu"),
                 Identifier("aou"),
                 PPKeyword("#"),
                 PPKeyword("endif"),
                 Comment("//Goo3"),
-                Field("aeu"));
+                script ? Field("aeu") : Identifier("aeu"));
         }
 
         [Fact, Trait(Traits.Feature, Traits.Features.Classification)]
