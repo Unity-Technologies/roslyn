@@ -36,15 +36,13 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.Options.Style.N
                 notificationService)));
         }
 
-        internal void AddSymbolSpecification(INamingStylesInfoDialogViewModel symbolSpecification)
+        internal void AddSymbolSpecification(INamingStylesInfoDialogViewModel _)
         {
 
         }
 
         internal void RemoveSymbolSpecification(INamingStylesInfoDialogViewModel symbolSpecification)
-        {
-            Items.Remove(symbolSpecification);
-        }
+            => Items.Remove(symbolSpecification);
 
         public void AddItem()
         {
@@ -57,9 +55,7 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.Options.Style.N
         }
 
         public void RemoveItem(INamingStylesInfoDialogViewModel item)
-        {
-            Items.Remove(item);
-        }
+            => Items.Remove(item);
 
         public void EditItem(INamingStylesInfoDialogViewModel item)
         {

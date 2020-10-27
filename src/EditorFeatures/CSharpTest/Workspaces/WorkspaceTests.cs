@@ -27,9 +27,15 @@ namespace Microsoft.CodeAnalysis.UnitTests.Workspaces
     [UseExportProvider]
     public partial class WorkspaceTests : TestBase
     {
-        private TestWorkspace CreateWorkspace(string workspaceKind = null, bool disablePartialSolutions = true)
+        private static TestWorkspace CreateWorkspace(string workspaceKind = null, bool disablePartialSolutions = true, bool shareGlobalOptions = false)
         {
-            return new TestWorkspace(TestExportProvider.ExportProviderWithCSharpAndVisualBasic, workspaceKind, disablePartialSolutions);
+            var composition = EditorTestCompositions.EditorFeatures;
+            if (shareGlobalOptions)
+            {
+                composition = composition.AddParts(typeof(TestOptionsServiceWithSharedGlobalOptionsServiceFactory));
+            }
+
+            return new TestWorkspace(exportProvider: null, composition, workspaceKind, disablePartialSolutions);
         }
 
         private static async Task WaitForWorkspaceOperationsToComplete(TestWorkspace workspace)
@@ -38,7 +44,7 @@ namespace Microsoft.CodeAnalysis.UnitTests.Workspaces
                                     .GetExportedValue<AsynchronousOperationListenerProvider>()
                                     .GetWaiter(FeatureAttribute.Workspace);
 
-            await workspaceWaiter.CreateExpeditedWaitTask();
+            await workspaceWaiter.ExpeditedWaitAsync();
         }
 
         [Fact]
@@ -1137,7 +1143,7 @@ class D { }
     </Project>
 </Workspace>";
 
-            using var workspace = TestWorkspace.Create(input, exportProvider: TestExportProvider.ExportProviderWithCSharpAndVisualBasic, openDocuments: true);
+            using var workspace = TestWorkspace.Create(input, composition: EditorTestCompositions.EditorFeatures, openDocuments: true);
             var eventArgs = new List<WorkspaceChangeEventArgs>();
 
             workspace.WorkspaceChanged += (s, e) =>
@@ -1199,7 +1205,7 @@ class D { }
             workspace.AddTestProject(project1);
 
             var solution = workspace.CurrentSolution;
-            var optionKey = new OptionKey(SolutionCrawlerOptions.BackgroundAnalysisScopeOption, LanguageNames.CSharp);
+            var optionKey = new OptionKey2(SolutionCrawlerOptions.BackgroundAnalysisScopeOption, LanguageNames.CSharp);
             var optionValue = solution.Options.GetOption(optionKey);
             Assert.Equal(BackgroundAnalysisScope.Default, optionValue);
 
@@ -1220,8 +1226,8 @@ class D { }
         public void TestOptionChangedHandlerInvokedAfterCurrentSolutionChanged(bool testDeprecatedOptionsSetter)
         {
             // Create workspaces with shared global options to replicate the true global options service shared between workspaces.
-            using var primaryWorkspace = CreateWorkspace(workspaceKind: TestWorkspaceName.NameWithSharedGlobalOptions);
-            using var secondaryWorkspace = CreateWorkspace(workspaceKind: TestWorkspaceName.NameWithSharedGlobalOptions);
+            using var primaryWorkspace = CreateWorkspace(shareGlobalOptions: true);
+            using var secondaryWorkspace = CreateWorkspace(shareGlobalOptions: true);
 
             var document = new TestHostDocument("class C { }");
 
@@ -1233,7 +1239,7 @@ class D { }
             var beforeSolutionForPrimaryWorkspace = primaryWorkspace.CurrentSolution;
             var beforeSolutionForSecondaryWorkspace = secondaryWorkspace.CurrentSolution;
 
-            var optionKey = new OptionKey(SolutionCrawlerOptions.BackgroundAnalysisScopeOption, LanguageNames.CSharp);
+            var optionKey = new OptionKey2(SolutionCrawlerOptions.BackgroundAnalysisScopeOption, LanguageNames.CSharp);
             Assert.Equal(BackgroundAnalysisScope.Default, primaryWorkspace.Options.GetOption(optionKey));
             Assert.Equal(BackgroundAnalysisScope.Default, secondaryWorkspace.Options.GetOption(optionKey));
 
@@ -1274,7 +1280,7 @@ class D { }
                 Assert.NotEqual(beforeOptionChangedSolution, currentSolution);
 
                 // Verify workspace.CurrentSolution has changed option.
-                var optionKey = new OptionKey(SolutionCrawlerOptions.BackgroundAnalysisScopeOption, LanguageNames.CSharp);
+                var optionKey = new OptionKey2(SolutionCrawlerOptions.BackgroundAnalysisScopeOption, LanguageNames.CSharp);
                 Assert.Equal(BackgroundAnalysisScope.Default, beforeOptionChangedSolution.Options.GetOption(optionKey));
                 Assert.Equal(BackgroundAnalysisScope.ActiveFile, currentSolution.Options.GetOption(optionKey));
             }

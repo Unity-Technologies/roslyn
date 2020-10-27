@@ -274,22 +274,7 @@ namespace Microsoft.CodeAnalysis.MSBuild.UnitTests
             await AssertNetCoreMultiTFMProject(projectFilePath);
         }
 
-        [ConditionalFact(typeof(VisualStudioMSBuildInstalled), typeof(DotNetCoreSdk.IsAvailable))]
-        [Trait(Traits.Feature, Traits.Features.MSBuildWorkspace)]
-        [Trait(Traits.Feature, Traits.Features.NetCore)]
-        public async Task TestOpenProject_NetCoreMultiTFM_ProjectReferenceWithReversedTFMs()
-        {
-            CreateFiles(GetNetCoreMultiTFMFiles_ProjectReferenceWithReversedTFMs());
-
-            // Restoring for Project.csproj should also restore Library.csproj
-            DotNetRestore(@"Project\Project.csproj");
-
-            var projectFilePath = GetSolutionFileName(@"Project\Project.csproj");
-
-            await AssertNetCoreMultiTFMProject(projectFilePath);
-        }
-
-        private async Task AssertNetCoreMultiTFMProject(string projectFilePath)
+        private static async Task AssertNetCoreMultiTFMProject(string projectFilePath)
         {
             using (var workspace = CreateMSBuildWorkspace())
             {
@@ -382,7 +367,7 @@ namespace Microsoft.CodeAnalysis.MSBuild.UnitTests
             }
         }
 
-        [ConditionalFact(typeof(VisualStudioMSBuildInstalled), typeof(DotNetCoreSdk.IsAvailable))]
+        [ConditionalFact(typeof(VisualStudioMSBuildInstalled), typeof(DotNetCoreSdk.IsAvailable), AlwaysSkip = "https://github.com/dotnet/roslyn/issues/41917")]
         [Trait(Traits.Feature, Traits.Features.MSBuildWorkspace)]
         [Trait(Traits.Feature, Traits.Features.NetCore)]
         public async Task TestOpenSolution_NetCoreMultiTFMWithProjectReferenceToFSharp()

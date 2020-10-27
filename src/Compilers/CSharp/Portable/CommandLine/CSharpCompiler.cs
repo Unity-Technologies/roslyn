@@ -2,6 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+#nullable enable
+
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
@@ -15,6 +17,7 @@ using Microsoft.CodeAnalysis.Diagnostics;
 using Microsoft.CodeAnalysis.Text;
 using Roslyn.Utilities;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using Microsoft.CodeAnalysis;
 
 namespace Microsoft.CodeAnalysis.CSharp
 {
@@ -35,11 +38,12 @@ namespace Microsoft.CodeAnalysis.CSharp
         public override DiagnosticFormatter DiagnosticFormatter { get { return _diagnosticFormatter; } }
         protected internal new CSharpCommandLineArguments Arguments { get { return (CSharpCommandLineArguments)base.Arguments; } }
 
-        public override Compilation CreateCompilation(
+        public override Compilation? CreateCompilation(
             TextWriter consoleOutput,
             TouchedFileLogger touchedFilesLogger,
             ErrorLogger errorLogger,
-            ImmutableArray<AnalyzerConfigOptionsResult> analyzerConfigOptions)
+            ImmutableArray<AnalyzerConfigOptionsResult> analyzerConfigOptions,
+            AnalyzerConfigOptionsResult globalConfigOptions)
         {
             var parseOptions = Arguments.ParseOptions;
 
@@ -50,7 +54,7 @@ namespace Microsoft.CodeAnalysis.CSharp
             bool hadErrors = false;
 
             var sourceFiles = Arguments.SourceFiles;
-            var trees = new SyntaxTree[sourceFiles.Length];
+            var trees = new SyntaxTree?[sourceFiles.Length];
             var normalizedFilePaths = new string[sourceFiles.Length];
             var diagnosticBag = DiagnosticBag.GetInstance();
 
@@ -64,9 +68,6 @@ namespace Microsoft.CodeAnalysis.CSharp
                         trees[i] = ParseFile(
                             parseOptions,
                             scriptParseOptions,
-                            analyzerConfigOptions.IsDefault
-                                ? (AnalyzerConfigOptionsResult?)null
-                                : analyzerConfigOptions[i],
                             ref hadErrors,
                             sourceFiles[i],
                             diagnosticBag,
@@ -86,9 +87,6 @@ namespace Microsoft.CodeAnalysis.CSharp
                     trees[i] = ParseFile(
                         parseOptions,
                         scriptParseOptions,
-                        analyzerConfigOptions.IsDefault
-                            ? (AnalyzerConfigOptionsResult?)null
-                            : analyzerConfigOptions[i],
                         ref hadErrors,
                         sourceFiles[i],
                         diagnosticBag,
@@ -109,7 +107,7 @@ namespace Microsoft.CodeAnalysis.CSharp
             {
                 var normalizedFilePath = normalizedFilePaths[i];
                 Debug.Assert(normalizedFilePath != null);
-                Debug.Assert(PathUtilities.IsAbsolute(normalizedFilePath));
+                Debug.Assert(sourceFiles[i].IsInputRedirected || PathUtilities.IsAbsolute(normalizedFilePath));
 
                 if (!uniqueFilePaths.Add(normalizedFilePath))
                 {
@@ -162,23 +160,24 @@ namespace Microsoft.CodeAnalysis.CSharp
             }
 
             var loggingFileSystem = new LoggingStrongNameFileSystem(touchedFilesLogger, _tempDirectory);
+            var optionsProvider = new CompilerSyntaxTreeOptionsProvider(trees, analyzerConfigOptions, globalConfigOptions);
 
             return CSharpCompilation.Create(
                 Arguments.CompilationName,
                 trees.WhereNotNull(),
                 resolvedReferences,
-                Arguments.CompilationOptions.
-                    WithMetadataReferenceResolver(referenceDirectiveResolver).
-                    WithAssemblyIdentityComparer(assemblyIdentityComparer).
-                    WithXmlReferenceResolver(xmlFileResolver).
-                    WithStrongNameProvider(Arguments.GetStrongNameProvider(loggingFileSystem)).
-                    WithSourceReferenceResolver(sourceFileResolver));
+                Arguments.CompilationOptions
+                    .WithMetadataReferenceResolver(referenceDirectiveResolver)
+                    .WithAssemblyIdentityComparer(assemblyIdentityComparer)
+                    .WithXmlReferenceResolver(xmlFileResolver)
+                    .WithStrongNameProvider(Arguments.GetStrongNameProvider(loggingFileSystem))
+                    .WithSourceReferenceResolver(sourceFileResolver)
+                    .WithSyntaxTreeOptionsProvider(optionsProvider));
         }
 
-        private SyntaxTree ParseFile(
+        private SyntaxTree? ParseFile(
             CSharpParseOptions parseOptions,
             CSharpParseOptions scriptParseOptions,
-            AnalyzerConfigOptionsResult? analyzerConfigOptionsResult,
             ref bool addedDiagnostics,
             CommandLineSourceFile file,
             DiagnosticBag diagnostics,
@@ -200,7 +199,7 @@ namespace Microsoft.CodeAnalysis.CSharp
             else
             {
                 Debug.Assert(fileDiagnostics.Count == 0);
-                return ParseFile(parseOptions, scriptParseOptions, content, file, analyzerConfigOptionsResult);
+                return ParseFile(parseOptions, scriptParseOptions, content, file);
             }
         }
 
@@ -208,28 +207,12 @@ namespace Microsoft.CodeAnalysis.CSharp
             CSharpParseOptions parseOptions,
             CSharpParseOptions scriptParseOptions,
             SourceText content,
-            CommandLineSourceFile file,
-            AnalyzerConfigOptionsResult? analyzerConfigOptionsResult)
+            CommandLineSourceFile file)
         {
-            ImmutableDictionary<string, ReportDiagnostic> diagnosticOptions;
-            bool? isUserConfiguredGeneratedCode;
-            if (analyzerConfigOptionsResult.HasValue)
-            {
-                diagnosticOptions = analyzerConfigOptionsResult.Value.TreeOptions;
-                isUserConfiguredGeneratedCode = GeneratedCodeUtilities.GetIsGeneratedCodeFromOptions(analyzerConfigOptionsResult.Value.AnalyzerOptions);
-            }
-            else
-            {
-                diagnosticOptions = null;
-                isUserConfiguredGeneratedCode = null;
-            }
-
             var tree = SyntaxFactory.ParseSyntaxTree(
                 content,
                 file.IsScript ? scriptParseOptions : parseOptions,
-                file.Path,
-                diagnosticOptions,
-                isUserConfiguredGeneratedCode);
+                file.Path);
 
             // prepopulate line tables.
             // we will need line tables anyways and it is better to not wait until we are in emit
@@ -263,26 +246,23 @@ namespace Microsoft.CodeAnalysis.CSharp
 
                 var comp = (CSharpCompilation)compilation;
 
-                Symbol entryPoint = comp.ScriptClass;
-                if ((object)entryPoint == null)
+                Symbol? entryPoint = comp.ScriptClass;
+                if (entryPoint is null)
                 {
                     var method = comp.GetEntryPoint(cancellationToken);
-                    if ((object)method != null)
+                    if (method is object)
                     {
                         entryPoint = method.PartialImplementationPart ?? method;
                     }
+                    else
+                    {
+                        // no entrypoint found - an error will be reported and the compilation won't be emitted
+                        return "error";
+                    }
                 }
 
-                if ((object)entryPoint != null)
-                {
-                    string entryPointFileName = PathUtilities.GetFileName(entryPoint.Locations.First().SourceTree.FilePath);
-                    return Path.ChangeExtension(entryPointFileName, ".exe");
-                }
-                else
-                {
-                    // no entrypoint found - an error will be reported and the compilation won't be emitted
-                    return "error";
-                }
+                string entryPointFileName = PathUtilities.GetFileName(entryPoint.Locations.First().SourceTree!.FilePath);
+                return Path.ChangeExtension(entryPointFileName, ".exe");
             }
             else
             {
@@ -311,7 +291,7 @@ namespace Microsoft.CodeAnalysis.CSharp
             consoleOutput.WriteLine(ErrorFacts.GetMessage(MessageID.IDS_LangVersions, Culture));
             var defaultVersion = LanguageVersion.Default.MapSpecifiedToEffectiveVersion();
             var latestVersion = LanguageVersion.Latest.MapSpecifiedToEffectiveVersion();
-            foreach (LanguageVersion v in Enum.GetValues(typeof(LanguageVersion)))
+            foreach (var v in (LanguageVersion[])Enum.GetValues(typeof(LanguageVersion)))
             {
                 if (v == defaultVersion)
                 {
@@ -357,11 +337,14 @@ namespace Microsoft.CodeAnalysis.CSharp
             return CommonCompiler.TryGetCompilerDiagnosticCode(diagnosticId, "CS", out code);
         }
 
-        protected override ImmutableArray<DiagnosticAnalyzer> ResolveAnalyzersFromArguments(
+        protected override void ResolveAnalyzersFromArguments(
             List<DiagnosticInfo> diagnostics,
-            CommonMessageProvider messageProvider)
+            CommonMessageProvider messageProvider,
+            bool skipAnalyzers,
+            out ImmutableArray<DiagnosticAnalyzer> analyzers,
+            out ImmutableArray<ISourceGenerator> generators)
         {
-            return Arguments.ResolveAnalyzersFromArguments(LanguageNames.CSharp, diagnostics, messageProvider, AssemblyLoader);
+            Arguments.ResolveAnalyzersFromArguments(LanguageNames.CSharp, diagnostics, messageProvider, AssemblyLoader, skipAnalyzers, out analyzers, out generators);
         }
 
         protected override void ResolveEmbeddedFilesFromExternalSourceDirectives(
@@ -373,13 +356,13 @@ namespace Microsoft.CodeAnalysis.CSharp
             foreach (LineDirectiveTriviaSyntax directive in tree.GetRoot().GetDirectives(
                 d => d.IsActive && !d.HasErrors && d.Kind() == SyntaxKind.LineDirectiveTrivia))
             {
-                string path = (string)directive.File.Value;
+                var path = (string?)directive.File.Value;
                 if (path == null)
                 {
                     continue;
                 }
 
-                string resolvedPath = resolver.ResolveReference(path, tree.FilePath);
+                string? resolvedPath = resolver.ResolveReference(path, tree.FilePath);
                 if (resolvedPath == null)
                 {
                     diagnostics.Add(
@@ -394,6 +377,20 @@ namespace Microsoft.CodeAnalysis.CSharp
 
                 embeddedFiles.Add(resolvedPath);
             }
+        }
+
+        private protected override Compilation RunGenerators(Compilation input, ParseOptions parseOptions, ImmutableArray<ISourceGenerator> generators, AnalyzerConfigOptionsProvider analyzerConfigProvider, ImmutableArray<AdditionalText> additionalTexts, DiagnosticBag diagnostics)
+        {
+            // https://github.com/dotnet/roslyn/issues/42565: for now we gate behind langver == preview. We'll remove this before final shipping, as the feature is langver agnostic
+            if (((CSharpParseOptions)parseOptions).LanguageVersion != LanguageVersion.Preview)
+            {
+                return input;
+            }
+
+            var driver = CSharpGeneratorDriver.Create(generators, additionalTexts, (CSharpParseOptions)parseOptions, analyzerConfigProvider);
+            driver.RunGeneratorsAndUpdateCompilation(input, out var compilationOut, out var generatorDiagnostics);
+            diagnostics.AddRange(generatorDiagnostics);
+            return compilationOut;
         }
     }
 }

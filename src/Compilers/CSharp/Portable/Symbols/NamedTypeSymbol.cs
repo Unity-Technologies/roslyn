@@ -394,15 +394,12 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
             }
         }
 
-        internal override ManagedKind ManagedKind
+        internal override ManagedKind GetManagedKind(ref HashSet<DiagnosticInfo> useSiteDiagnostics)
         {
-            get
-            {
-                // CONSIDER: we could cache this, but it's only expensive for non-special struct types
-                // that are pointed to.  For now, only cache on SourceMemberContainerSymbol since it fits
-                // nicely into the flags variable.
-                return BaseTypeAnalysis.GetManagedKind(this);
-            }
+            // CONSIDER: we could cache this, but it's only expensive for non-special struct types
+            // that are pointed to.  For now, only cache on SourceMemberContainerSymbol since it fits
+            // nicely into the flags variable.
+            return BaseTypeAnalysis.GetManagedKind(this, ref useSiteDiagnostics);
         }
 
         /// <summary>
@@ -802,19 +799,8 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
                 }
             }
 
-            if (!haveChanges)
-            {
-                allTypeArguments.Free();
-                result = this;
-            }
-            else
-            {
-                TypeMap substitution = new TypeMap(this.OriginalDefinition.GetAllTypeParameters(),
-                                                   allTypeArguments.ToImmutableAndFree());
-
-                result = substitution.SubstituteNamedType(this.OriginalDefinition).WithTupleDataFrom(this);
-            }
-
+            result = haveChanges ? this.WithTypeArguments(allTypeArguments.ToImmutable()) : this;
+            allTypeArguments.Free();
             return true;
         }
 
@@ -840,16 +826,16 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
                 }
             }
 
-            TypeSymbol result = this;
-            if (haveChanges)
-            {
-                var definition = this.OriginalDefinition;
-                TypeMap substitution = new TypeMap(definition.GetAllTypeParameters(), allTypeArguments.ToImmutable());
-                result = substitution.SubstituteNamedType(definition).WithTupleDataFrom(this);
-            }
-
+            NamedTypeSymbol result = haveChanges ? this.WithTypeArguments(allTypeArguments.ToImmutable()) : this;
             allTypeArguments.Free();
             return result;
+        }
+
+        internal NamedTypeSymbol WithTypeArguments(ImmutableArray<TypeWithAnnotations> allTypeArguments)
+        {
+            var definition = this.OriginalDefinition;
+            TypeMap substitution = new TypeMap(definition.GetAllTypeParameters(), allTypeArguments);
+            return substitution.SubstituteNamedType(definition).WithTupleDataFrom(this);
         }
 
         internal override TypeSymbol MergeEquivalentTypes(TypeSymbol other, VarianceKind variance)
@@ -1234,13 +1220,21 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
 
         private bool DeriveUseSiteDiagnosticFromTypeArguments(ref DiagnosticInfo result)
         {
-            foreach (TypeWithAnnotations arg in this.TypeArgumentsWithAnnotationsNoUseSiteDiagnostics)
+            NamedTypeSymbol currentType = this;
+
+            do
             {
-                if (DeriveUseSiteDiagnosticFromType(ref result, arg))
+                foreach (TypeWithAnnotations arg in currentType.TypeArgumentsWithAnnotationsNoUseSiteDiagnostics)
                 {
-                    return true;
+                    if (DeriveUseSiteDiagnosticFromType(ref result, arg, AllowedRequiredModifierType.None))
+                    {
+                        return true;
+                    }
                 }
+
+                currentType = currentType.ContainingType;
             }
+            while (currentType?.IsDefinition == false);
 
             return false;
         }
@@ -1519,6 +1513,20 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
             tupleCardinality = 0;
             return false;
         }
+
+        /// <summary>
+        /// Returns an instance of a symbol that represents a native integer
+        /// if this underlying symbol represents System.IntPtr or System.UIntPtr.
+        /// For other symbols, throws <see cref="System.InvalidOperationException"/>.
+        /// </summary>
+        internal abstract NamedTypeSymbol AsNativeInteger();
+
+        /// <summary>
+        /// If this is a native integer, returns the symbol for the underlying type,
+        /// either <see cref="System.IntPtr"/> or <see cref="System.UIntPtr"/>.
+        /// Otherwise, returns null.
+        /// </summary>
+        internal abstract NamedTypeSymbol NativeIntegerUnderlyingType { get; }
 
         protected override ISymbol CreateISymbol()
         {

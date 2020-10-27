@@ -136,18 +136,14 @@ namespace Microsoft.CodeAnalysis.Text
 
             #region Lines
             protected override TextLineCollection GetLinesCore()
-            {
-                return new LineInfo(this);
-            }
+                => new LineInfo(this);
 
             private class LineInfo : TextLineCollection
             {
                 private readonly SnapshotSourceText _text;
 
                 public LineInfo(SnapshotSourceText text)
-                {
-                    _text = text;
-                }
+                    => _text = text;
 
                 public override int Count
                 {
@@ -164,14 +160,10 @@ namespace Microsoft.CodeAnalysis.Text
                 }
 
                 public override int IndexOf(int position)
-                {
-                    return _text.TextImage.GetLineNumberFromPosition(position);
-                }
+                    => _text.TextImage.GetLineNumberFromPosition(position);
 
                 public override TextLine GetLineFromPosition(int position)
-                {
-                    return this[this.IndexOf(position)];
-                }
+                    => this[this.IndexOf(position)];
 
                 public override LinePosition GetLinePosition(int position)
                 {
@@ -182,9 +174,7 @@ namespace Microsoft.CodeAnalysis.Text
             #endregion
 
             public override string ToString()
-            {
-                return this.TextImage.GetText();
-            }
+                => this.TextImage.GetText();
 
             public override string ToString(TextSpan textSpan)
             {
@@ -319,14 +309,10 @@ namespace Microsoft.CodeAnalysis.Text
             }
 
             public override void CopyTo(int sourceIndex, char[] destination, int destinationIndex, int count)
-            {
-                this.TextImage.CopyTo(sourceIndex, destination, destinationIndex, count);
-            }
+                => this.TextImage.CopyTo(sourceIndex, destination, destinationIndex, count);
 
             public override void Write(TextWriter textWriter, TextSpan span, CancellationToken cancellationToken)
-            {
-                this.TextImage.Write(textWriter, span.ToSpan());
-            }
+                => this.TextImage.Write(textWriter, span.ToSpan());
 
             #region GetChangeRangesImplementation 
 
@@ -390,7 +376,7 @@ namespace Microsoft.CodeAnalysis.Text
             private static readonly Func<ITextChange, TextChangeRange> s_forwardTextChangeRange = c => CreateTextChangeRange(c, forward: true);
             private static readonly Func<ITextChange, TextChangeRange> s_backwardTextChangeRange = c => CreateTextChangeRange(c, forward: false);
 
-            private IReadOnlyList<TextChangeRange> GetChangeRanges(ITextImage snapshot1, ITextImage snapshot2, bool forward)
+            private static IReadOnlyList<TextChangeRange> GetChangeRanges(ITextImage snapshot1, ITextImage snapshot2, bool forward)
             {
                 var oldSnapshot = forward ? snapshot1 : snapshot2;
                 var newSnapshot = forward ? snapshot2 : snapshot1;
@@ -426,7 +412,7 @@ namespace Microsoft.CodeAnalysis.Text
                 }
             }
 
-            private TextChangeRange GetChangeRanges(ITextImageVersion oldVersion, ITextImageVersion newVersion, bool forward)
+            private static TextChangeRange GetChangeRanges(ITextImageVersion oldVersion, ITextImageVersion newVersion, bool forward)
             {
                 TextChangeRange? range = null;
                 var iterator = GetMultipleVersionTextChanges(oldVersion, newVersion, forward);

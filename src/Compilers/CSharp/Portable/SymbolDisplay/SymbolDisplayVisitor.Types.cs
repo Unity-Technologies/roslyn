@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Linq;
@@ -91,7 +92,7 @@ namespace Microsoft.CodeAnalysis.CSharp
                 case CodeAnalysis.NullableAnnotation.NotAnnotated:
                     if (format.MiscellaneousOptions.IncludesOption(SymbolDisplayMiscellaneousOptions.IncludeNotNullableReferenceTypeModifier) &&
                         !type.IsValueType &&
-                        (type as Symbols.PublicModel.TypeSymbol)?.UnderlyingTypeSymbol.IsTypeParameterDisallowingAnnotation() != true)
+                        (type as Symbols.PublicModel.TypeSymbol)?.UnderlyingTypeSymbol.IsTypeParameterDisallowingAnnotationInCSharp8() != true)
                     {
                         return true;
                     }
@@ -149,6 +150,11 @@ namespace Microsoft.CodeAnalysis.CSharp
             AddPunctuation(SyntaxKind.AsteriskToken);
         }
 
+        public override void VisitFunctionPointerType(IFunctionPointerTypeSymbol symbol)
+        {
+            VisitMethod(symbol.Signature);
+        }
+
         public override void VisitTypeParameter(ITypeParameterSymbol symbol)
         {
             if (this.isFirstSymbolVisited)
@@ -182,7 +188,8 @@ namespace Microsoft.CodeAnalysis.CSharp
                 return;
             }
 
-            if (format.MiscellaneousOptions.IncludesOption(SymbolDisplayMiscellaneousOptions.UseSpecialTypes))
+            if (format.MiscellaneousOptions.IncludesOption(SymbolDisplayMiscellaneousOptions.UseSpecialTypes) ||
+                (symbol.IsNativeIntegerType && !format.CompilerInternalOptions.IncludesOption(SymbolDisplayCompilerInternalOptions.UseNativeIntegerUnderlyingType)))
             {
                 if (AddSpecialTypeKeyword(symbol))
                 {
@@ -577,7 +584,7 @@ namespace Microsoft.CodeAnalysis.CSharp
 
         private bool AddSpecialTypeKeyword(INamedTypeSymbol symbol)
         {
-            var specialTypeName = GetSpecialTypeName(symbol.SpecialType);
+            var specialTypeName = GetSpecialTypeName(symbol);
             if (specialTypeName == null)
             {
                 return false;
@@ -589,9 +596,9 @@ namespace Microsoft.CodeAnalysis.CSharp
             return true;
         }
 
-        private static string GetSpecialTypeName(SpecialType specialType)
+        private static string GetSpecialTypeName(INamedTypeSymbol symbol)
         {
-            switch (specialType)
+            switch (symbol.SpecialType)
             {
                 case SpecialType.System_Void:
                     return "void";
@@ -603,6 +610,10 @@ namespace Microsoft.CodeAnalysis.CSharp
                     return "int";
                 case SpecialType.System_Int64:
                     return "long";
+                case SpecialType.System_IntPtr when symbol.IsNativeIntegerType:
+                    return "nint";
+                case SpecialType.System_UIntPtr when symbol.IsNativeIntegerType:
+                    return "nuint";
                 case SpecialType.System_Byte:
                     return "byte";
                 case SpecialType.System_UInt16:
@@ -648,6 +659,11 @@ namespace Microsoft.CodeAnalysis.CSharp
                 {
                     switch (symbol.TypeKind)
                     {
+                        case TypeKind.Class when FindValidCloneMethod(symbol) is object:
+                            AddKeyword(SyntaxKind.RecordKeyword);
+                            AddSpace();
+                            break;
+
                         case TypeKind.Module:
                         case TypeKind.Class:
                             AddKeyword(SyntaxKind.ClassKeyword);
@@ -687,6 +703,66 @@ namespace Microsoft.CodeAnalysis.CSharp
                             break;
                     }
                 }
+            }
+        }
+
+        /// <summary>
+        /// Copy of <see cref="SynthesizedRecordClone.FindValidCloneMethod(TypeSymbol, ref HashSet{DiagnosticInfo}?)"/>
+        /// </summary>
+        private static IMethodSymbol FindValidCloneMethod(ITypeSymbol containingType)
+        {
+            if (containingType.SpecialType == SpecialType.System_Object)
+            {
+                return null;
+            }
+
+            IMethodSymbol candidate = null;
+
+            foreach (var member in containingType.GetMembers(WellKnownMemberNames.CloneMethodName))
+            {
+                if (member is IMethodSymbol
+                {
+                    DeclaredAccessibility: Accessibility.Public,
+                    IsStatic: false,
+                    Parameters: { Length: 0 },
+                    Arity: 0
+                } method)
+                {
+                    if (candidate is object)
+                    {
+                        // An ambiguity case, can come from metadata, treat as an error for simplicity.
+                        return null;
+                    }
+
+                    candidate = method;
+                }
+            }
+
+            if (candidate is null ||
+                !(containingType.IsSealed || candidate.IsOverride || candidate.IsVirtual || candidate.IsAbstract) ||
+                !isEqualToOrDerivedFrom(
+                    containingType,
+                    candidate.ReturnType))
+            {
+                return null;
+            }
+
+            return candidate;
+
+            static bool isEqualToOrDerivedFrom(ITypeSymbol one, ITypeSymbol other)
+            {
+                do
+                {
+                    if (one.Equals(other, SymbolEqualityComparer.IgnoreAll))
+                    {
+                        return true;
+                    }
+
+                    one = one.BaseType;
+                }
+                while (one != null);
+
+                return false;
             }
         }
 

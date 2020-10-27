@@ -47,6 +47,13 @@ namespace Microsoft.CodeAnalysis.CSharp.Completion.KeywordRecommenders
             SyntaxKind.VolatileKeyword,
         };
 
+        private static readonly ISet<SyntaxKind> s_validLocalFunctionModifiers = new HashSet<SyntaxKind>(SyntaxFacts.EqualityComparer)
+        {
+            SyntaxKind.ExternKeyword,
+            SyntaxKind.AsyncKeyword,
+            SyntaxKind.UnsafeKeyword
+        };
+
         public StaticKeywordRecommender()
             : base(SyntaxKind.StaticKeyword)
         {
@@ -57,9 +64,10 @@ namespace Microsoft.CodeAnalysis.CSharp.Completion.KeywordRecommenders
             return
                 context.IsGlobalStatementContext ||
                 context.TargetToken.IsUsingKeywordInUsingDirective() ||
-                context.IsStatementContext ||
                 IsValidContextForType(context, cancellationToken) ||
-                IsValidContextForMember(context, cancellationToken);
+                IsValidContextForMember(context, cancellationToken) ||
+                context.SyntaxTree.IsLambdaDeclarationContext(position, otherModifier: SyntaxKind.AsyncKeyword, cancellationToken) ||
+                context.SyntaxTree.IsLocalFunctionDeclarationContext(position, s_validLocalFunctionModifiers, cancellationToken);
         }
 
         private static bool IsValidContextForMember(CSharpSyntaxContext context, CancellationToken cancellationToken)
@@ -68,7 +76,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Completion.KeywordRecommenders
                 context.SyntaxTree.IsGlobalMemberDeclarationContext(context.Position, s_validGlobalMemberModifiers, cancellationToken) ||
                 context.IsMemberDeclarationContext(
                     validModifiers: s_validMemberModifiers,
-                    validTypeDeclarations: SyntaxKindSet.ClassInterfaceStructTypeDeclarations,
+                    validTypeDeclarations: SyntaxKindSet.ClassInterfaceStructRecordTypeDeclarations,
                     canBePartial: false,
                     cancellationToken: cancellationToken);
         }
@@ -77,7 +85,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Completion.KeywordRecommenders
         {
             return context.IsTypeDeclarationContext(
                 validModifiers: s_validTypeModifiers,
-                validTypeDeclarations: SyntaxKindSet.ClassInterfaceStructTypeDeclarations,
+                validTypeDeclarations: SyntaxKindSet.ClassInterfaceStructRecordTypeDeclarations,
                 canBePartial: false,
                 cancellationToken: cancellationToken);
         }

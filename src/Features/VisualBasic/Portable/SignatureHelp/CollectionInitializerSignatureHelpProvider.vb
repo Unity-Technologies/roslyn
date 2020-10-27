@@ -5,6 +5,7 @@
 Imports System.Composition
 Imports System.Runtime.InteropServices
 Imports System.Threading
+Imports Microsoft.CodeAnalysis.Host.Mef
 Imports Microsoft.CodeAnalysis.LanguageServices
 Imports Microsoft.CodeAnalysis.SignatureHelp
 Imports Microsoft.CodeAnalysis.Text
@@ -14,6 +15,11 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.SignatureHelp
     <ExportSignatureHelpProvider(NameOf(CollectionInitializerSignatureHelpProvider), LanguageNames.VisualBasic), [Shared]>
     Partial Friend Class CollectionInitializerSignatureHelpProvider
         Inherits AbstractOrdinaryMethodSignatureHelpProvider
+
+        <ImportingConstructor>
+        <Obsolete(MefConstruction.ImportingConstructorMessage, True)>
+        Public Sub New()
+        End Sub
 
         Public Overrides Function IsTriggerCharacter(ch As Char) As Boolean
             Return ch = "{"c OrElse ch = ","c
@@ -57,7 +63,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.SignatureHelp
 
             Dim semanticModel = Await document.GetSemanticModelAsync(cancellationToken).ConfigureAwait(False)
             Return CreateCollectionInitializerSignatureHelpItems(
-                addMethods.Select(Function(s) ConvertMemberGroupMember(document, s, collectionInitializer.OpenBraceToken.SpanStart, semanticModel, cancellationToken)).ToList(),
+                addMethods.Select(Function(s) ConvertMemberGroupMember(document, s, collectionInitializer.OpenBraceToken.SpanStart, semanticModel)).ToList(),
                 textSpan, GetCurrentArgumentState(root, position, syntaxFacts, textSpan, cancellationToken))
         End Function
 

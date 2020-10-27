@@ -14,6 +14,7 @@ using System.Runtime.CompilerServices;
 using System.Collections.Immutable;
 using System.Linq;
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.Host.Mef;
 
 namespace Microsoft.VisualStudio.LanguageServices.Implementation.SolutionExplorer
 {
@@ -32,9 +33,10 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.SolutionExplore
         private Workspace _workspace;
 
         [ImportingConstructor]
+        [Obsolete(MefConstruction.ImportingConstructorMessage, error: true)]
         public CpsDiagnosticItemProvider(
-            [Import(typeof(AnalyzersCommandHandler))]IAnalyzersCommandHandler commandHandler,
-            [Import(typeof(SVsServiceProvider))]IServiceProvider serviceProvider)
+            [Import(typeof(AnalyzersCommandHandler))] IAnalyzersCommandHandler commandHandler,
+            [Import(typeof(SVsServiceProvider))] IServiceProvider serviceProvider)
         {
             _commandHandler = commandHandler;
             _componentModel = (IComponentModel)serviceProvider.GetService(typeof(SComponentModel));
@@ -73,7 +75,7 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.SolutionExplore
             {
                 if (targetFrameworkMoniker == null)
                 {
-                    targetFrameworkMoniker = GetTargetFrameworkMoniker(parent, targetFrameworkMoniker);
+                    targetFrameworkMoniker = GetTargetFrameworkMoniker(parent);
                 }
 
                 if (NestedHierarchyHasProjectTreeCapability(parent, "ProjectRoot"))
@@ -89,7 +91,7 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.SolutionExplore
         /// Given an item determines if it represents a particular target frmework.
         /// If so, it returns the corresponding TargetFrameworkMoniker.
         /// </summary>
-        private static string GetTargetFrameworkMoniker(IVsHierarchyItem item, string targetFrameworkMoniker)
+        private static string GetTargetFrameworkMoniker(IVsHierarchyItem item)
         {
             var hierarchy = item.HierarchyIdentity.NestedHierarchy;
             var itemId = item.HierarchyIdentity.NestedItemID;
@@ -198,6 +200,5 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.SolutionExplore
 
             return _diagnosticAnalyzerService;
         }
-
     }
 }

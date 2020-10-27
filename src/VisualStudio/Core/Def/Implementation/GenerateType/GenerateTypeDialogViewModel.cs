@@ -175,7 +175,7 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.GenerateType
             _accessListMap.Add(key, accessibility);
         }
 
-        private void InitialSetup(string languageName)
+        private void InitialSetup()
         {
             _accessListMap = new Dictionary<string, Accessibility>();
             _typeKindMap = new Dictionary<string, TypeKind>();
@@ -400,9 +400,7 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.GenerateType
         }
 
         private void SendFailureNotification(string message)
-        {
-            _notificationService.SendNotification(message, severity: NotificationSeverity.Information);
-        }
+            => _notificationService.SendNotification(message, severity: NotificationSeverity.Information);
 
         private Project _selectedProject;
         public Project SelectedProject
@@ -724,7 +722,7 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.GenerateType
         {
             _generateTypeDialogOptions = generateTypeDialogOptions;
 
-            InitialSetup(document.Project.Language);
+            InitialSetup();
             var dependencyGraph = document.Project.Solution.GetProjectDependencyGraph();
 
             // Initialize the dependencies
@@ -803,9 +801,7 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.GenerateType
             }
 
             public ProjectSelectItem(Project project)
-            {
-                _project = project;
-            }
+                => _project = project;
         }
 
         public class DocumentSelectItem

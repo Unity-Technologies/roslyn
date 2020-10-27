@@ -48,9 +48,7 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.Snippets
         protected abstract bool TryInvokeInsertionUI(ITextView textView, ITextBuffer subjectBuffer, bool surroundWith = false);
 
         protected virtual bool TryInvokeSnippetPickerOnQuestionMark(ITextView textView, ITextBuffer textBuffer)
-        {
-            return false;
-        }
+            => false;
 
         public bool ExecuteCommand(TabKeyCommandArgs args, CommandExecutionContext context)
         {
@@ -92,7 +90,7 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.Snippets
                 return CommandState.Unspecified;
             }
 
-            if (!Workspace.TryGetWorkspace(args.SubjectBuffer.AsTextContainer(), out var workspace))
+            if (!Workspace.TryGetWorkspace(args.SubjectBuffer.AsTextContainer(), out _))
             {
                 return CommandState.Unspecified;
             }
@@ -126,7 +124,7 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.Snippets
                 return CommandState.Unspecified;
             }
 
-            if (!Workspace.TryGetWorkspace(args.SubjectBuffer.AsTextContainer(), out var workspace))
+            if (!Workspace.TryGetWorkspace(args.SubjectBuffer.AsTextContainer(), out _))
             {
                 return CommandState.Unspecified;
             }
@@ -160,7 +158,7 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.Snippets
                 return CommandState.Unspecified;
             }
 
-            if (!Workspace.TryGetWorkspace(args.SubjectBuffer.AsTextContainer(), out var workspace))
+            if (!Workspace.TryGetWorkspace(args.SubjectBuffer.AsTextContainer(), out _))
             {
                 return CommandState.Unspecified;
             }
@@ -194,7 +192,7 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.Snippets
                 return CommandState.Unspecified;
             }
 
-            if (!Workspace.TryGetWorkspace(args.SubjectBuffer.AsTextContainer(), out var workspace))
+            if (!Workspace.TryGetWorkspace(args.SubjectBuffer.AsTextContainer(), out _))
             {
                 return CommandState.Unspecified;
             }

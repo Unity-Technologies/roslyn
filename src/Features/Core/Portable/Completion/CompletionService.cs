@@ -4,7 +4,6 @@
 
 using System;
 using System.Collections.Immutable;
-using System.Diagnostics;
 using System.Globalization;
 using System.Threading;
 using System.Threading.Tasks;
@@ -68,9 +67,7 @@ namespace Microsoft.CodeAnalysis.Completion
         /// <param name="caretPosition">The position of the caret within the text.</param>
         [Obsolete("Not used anymore. CompletionService.GetDefaultCompletionListSpan is used instead.", error: true)]
         public virtual TextSpan GetDefaultItemSpan(SourceText text, int caretPosition)
-        {
-            return GetDefaultCompletionListSpan(text, caretPosition);
-        }
+            => GetDefaultCompletionListSpan(text, caretPosition);
 
         public virtual TextSpan GetDefaultCompletionListSpan(SourceText text, int caretPosition)
         {
@@ -156,8 +153,12 @@ namespace Microsoft.CodeAnalysis.Completion
         /// name="document"/> passed in.
         /// </summary>
         internal virtual Task<CompletionChange> GetChangeAsync(
-            Document document, CompletionItem item, TextSpan completionListSpan,
-            char? commitCharacter = null, CancellationToken cancellationToken = default)
+            Document document,
+            CompletionItem item,
+            TextSpan completionListSpan,
+            char? commitCharacter = null,
+            bool disallowAddingImports = false,
+            CancellationToken cancellationToken = default)
         {
             return GetChangeAsync(document, item, commitCharacter, cancellationToken);
         }

@@ -23,19 +23,19 @@ namespace Microsoft.CodeAnalysis.Editor.CSharp.UnitTests.QuickInfo
 {
     public class SemanticQuickInfoSourceTests : AbstractSemanticQuickInfoSourceTests
     {
-        private async Task TestWithOptionsAsync(CSharpParseOptions options, string markup, params Action<QuickInfoItem>[] expectedResults)
+        private static async Task TestWithOptionsAsync(CSharpParseOptions options, string markup, params Action<QuickInfoItem>[] expectedResults)
         {
             using var workspace = TestWorkspace.CreateCSharp(markup, options);
             await TestWithOptionsAsync(workspace, expectedResults);
         }
 
-        private async Task TestWithOptionsAsync(CSharpCompilationOptions options, string markup, params Action<QuickInfoItem>[] expectedResults)
+        private static async Task TestWithOptionsAsync(CSharpCompilationOptions options, string markup, params Action<QuickInfoItem>[] expectedResults)
         {
             using var workspace = TestWorkspace.CreateCSharp(markup, compilationOptions: options);
             await TestWithOptionsAsync(workspace, expectedResults);
         }
 
-        private async Task TestWithOptionsAsync(TestWorkspace workspace, params Action<QuickInfoItem>[] expectedResults)
+        private static async Task TestWithOptionsAsync(TestWorkspace workspace, params Action<QuickInfoItem>[] expectedResults)
         {
             var testDocument = workspace.DocumentWithCursor;
             var position = testDocument.CursorPosition.GetValueOrDefault();
@@ -61,7 +61,7 @@ namespace Microsoft.CodeAnalysis.Editor.CSharp.UnitTests.QuickInfo
             }
         }
 
-        private async Task TestWithOptionsAsync(Document document, QuickInfoService service, int position, Action<QuickInfoItem>[] expectedResults)
+        private static async Task TestWithOptionsAsync(Document document, QuickInfoService service, int position, Action<QuickInfoItem>[] expectedResults)
         {
             var info = await service.GetQuickInfoAsync(document, position, cancellationToken: CancellationToken.None);
 
@@ -80,7 +80,7 @@ namespace Microsoft.CodeAnalysis.Editor.CSharp.UnitTests.QuickInfo
             }
         }
 
-        private async Task VerifyWithMscorlib45Async(string markup, Action<QuickInfoItem>[] expectedResults)
+        private static async Task VerifyWithMscorlib45Async(string markup, Action<QuickInfoItem>[] expectedResults)
         {
             var xmlString = string.Format(@"
 <Workspace>
@@ -144,7 +144,7 @@ using System.Linq;
             return TestWithUsingsAsync(markupInMethod, expectedResults);
         }
 
-        private async Task TestWithReferenceAsync(string sourceCode,
+        private static async Task TestWithReferenceAsync(string sourceCode,
             string referencedCode,
             string sourceLanguage,
             string referencedLanguage,
@@ -160,7 +160,7 @@ using System.Linq;
             }
         }
 
-        private async Task TestWithMetadataReferenceHelperAsync(
+        private static async Task TestWithMetadataReferenceHelperAsync(
             string sourceCode,
             string referencedCode,
             string sourceLanguage,
@@ -185,7 +185,7 @@ using System.Linq;
             await VerifyWithReferenceWorkerAsync(xmlString, expectedResults);
         }
 
-        private async Task TestWithProjectReferenceHelperAsync(
+        private static async Task TestWithProjectReferenceHelperAsync(
             string sourceCode,
             string referencedCode,
             string sourceLanguage,
@@ -212,7 +212,7 @@ using System.Linq;
             await VerifyWithReferenceWorkerAsync(xmlString, expectedResults);
         }
 
-        private async Task TestInSameProjectHelperAsync(
+        private static async Task TestInSameProjectHelperAsync(
             string sourceCode,
             string referencedCode,
             string sourceLanguage,
@@ -233,7 +233,7 @@ using System.Linq;
             await VerifyWithReferenceWorkerAsync(xmlString, expectedResults);
         }
 
-        private async Task VerifyWithReferenceWorkerAsync(string xmlString, params Action<QuickInfoItem>[] expectedResults)
+        private static async Task VerifyWithReferenceWorkerAsync(string xmlString, params Action<QuickInfoItem>[] expectedResults)
         {
             using var workspace = TestWorkspace.Create(xmlString);
             var position = workspace.Documents.First(d => d.Name == "SourceDocument").CursorPosition.Value;
@@ -1256,9 +1256,7 @@ class D
 
         [Fact, Trait(Traits.Feature, Traits.Features.QuickInfo)]
         public async Task TestNullLiteralWithVar()
-        {
-            await TestInMethodAsync(@"var f = null$$");
-        }
+            => await TestInMethodAsync(@"var f = null$$");
 
         [WorkItem(26027, "https://github.com/dotnet/roslyn/issues/26027")]
         [Fact, Trait(Traits.Feature, Traits.Features.QuickInfo)]
@@ -1347,7 +1345,7 @@ class AsyncExample2
         result = await lambda();
     }
 }";
-            await TestAsync(markup, MainDescription($"({CSharpFeaturesResources.awaitable}) {string.Format(FeaturesResources.Awaited_task_returns_0, "class System.Threading.Tasks.Task<TResult>")}"),
+            await TestAsync(markup, MainDescription(string.Format(FeaturesResources.Awaited_task_returns_0, $"({CSharpFeaturesResources.awaitable}) class System.Threading.Tasks.Task<TResult>")),
                          TypeParameterMap($"\r\nTResult {FeaturesResources.is_} int"));
         }
 
@@ -2534,6 +2532,38 @@ class D : X$$
     }
 }",
                 MainDescription("struct System.Int32"));
+        }
+
+        [Fact, Trait(Traits.Feature, Traits.Features.QuickInfo)]
+        public async Task Constructor_ImplicitObjectCreation()
+        {
+            await TestAsync(
+@"class C
+{
+    static void Main()
+    {
+        C c = ne$$w();
+    }
+}
+",
+                MainDescription("C.C()"));
+        }
+
+        [Fact, Trait(Traits.Feature, Traits.Features.QuickInfo)]
+        public async Task Constructor_ImplicitObjectCreation_WithParameters()
+        {
+            await TestAsync(
+@"class C
+{
+    C(int i) { }
+    C(string s) { }
+    static void Main()
+    {
+        C c = ne$$w(1);
+    }
+}
+",
+                MainDescription($"C.C(int i) (+ 1 {FeaturesResources.overload})"));
         }
 
         [WorkItem(539841, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/539841")]
@@ -5200,7 +5230,7 @@ class Program
         awa$$it M();
     }
 }";
-            await TestAsync(markup, MainDescription("int[]"));
+            await TestAsync(markup, MainDescription(string.Format(FeaturesResources.Awaited_task_returns_0, "int[]")));
         }
 
         [WorkItem(1114300, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/1114300")]
@@ -5217,7 +5247,7 @@ class Program
         awa$$it M();
     }
 }";
-            await TestAsync(markup, MainDescription("dynamic"));
+            await TestAsync(markup, MainDescription(string.Format(FeaturesResources.Awaited_task_returns_0, "dynamic")));
         }
 
         [Fact, Trait(Traits.Feature, Traits.Features.Completion)]
@@ -6386,7 +6416,7 @@ class X
     }
 }",
                 MainDescription($"({FeaturesResources.parameter}) string? s"),
-                NullabilityAnalysis(string.Format(CSharpFeaturesResources._0_may_be_null_here, "s")));
+                NullabilityAnalysis(string.Format(FeaturesResources._0_may_be_null_here, "s")));
         }
 
         [Fact, Trait(Traits.Feature, Traits.Features.QuickInfo)]
@@ -6404,7 +6434,7 @@ class X
     }
 }",
                 MainDescription($"({FeaturesResources.parameter}) string? s"),
-                NullabilityAnalysis(string.Format(CSharpFeaturesResources._0_is_not_null_here, "s")));
+                NullabilityAnalysis(string.Format(FeaturesResources._0_is_not_null_here, "s")));
         }
 
         [Fact, Trait(Traits.Feature, Traits.Features.QuickInfo)]
@@ -6423,7 +6453,7 @@ class X
     }
 }",
                 MainDescription($"({FeaturesResources.field}) string? X.s"),
-                NullabilityAnalysis(string.Format(CSharpFeaturesResources._0_may_be_null_here, "s")));
+                NullabilityAnalysis(string.Format(FeaturesResources._0_may_be_null_here, "s")));
         }
 
         [Fact, Trait(Traits.Feature, Traits.Features.QuickInfo)]
@@ -6443,7 +6473,7 @@ class X
     }
 }",
                 MainDescription($"({FeaturesResources.field}) string? X.s"),
-                NullabilityAnalysis(string.Format(CSharpFeaturesResources._0_is_not_null_here, "s")));
+                NullabilityAnalysis(string.Format(FeaturesResources._0_is_not_null_here, "s")));
         }
 
         [Fact, Trait(Traits.Feature, Traits.Features.QuickInfo)]
@@ -6462,7 +6492,7 @@ class X
     }
 }",
                 MainDescription("string? X.S { get; set; }"),
-                NullabilityAnalysis(string.Format(CSharpFeaturesResources._0_may_be_null_here, "S")));
+                NullabilityAnalysis(string.Format(FeaturesResources._0_may_be_null_here, "S")));
         }
 
         [Fact, Trait(Traits.Feature, Traits.Features.QuickInfo)]
@@ -6482,7 +6512,7 @@ class X
     }
 }",
                 MainDescription("string? X.S { get; set; }"),
-                NullabilityAnalysis(string.Format(CSharpFeaturesResources._0_is_not_null_here, "S")));
+                NullabilityAnalysis(string.Format(FeaturesResources._0_is_not_null_here, "S")));
         }
 
         [Fact, Trait(Traits.Feature, Traits.Features.QuickInfo)]
@@ -6506,7 +6536,7 @@ class X
     }
 }",
                 MainDescription($"({FeaturesResources.local_variable}) string? s"),
-                NullabilityAnalysis(string.Format(CSharpFeaturesResources._0_may_be_null_here, "s")));
+                NullabilityAnalysis(string.Format(FeaturesResources._0_may_be_null_here, "s")));
         }
 
         [Fact, Trait(Traits.Feature, Traits.Features.QuickInfo)]
@@ -6529,8 +6559,8 @@ class X
         }
     }
 }",
-                MainDescription($"({FeaturesResources.local_variable}) string s"),
-                NullabilityAnalysis(string.Format(CSharpFeaturesResources._0_is_not_null_here, "s")));
+                MainDescription($"({FeaturesResources.local_variable}) string? s"),
+                NullabilityAnalysis(string.Format(FeaturesResources._0_is_not_null_here, "s")));
         }
 
         [Fact, Trait(Traits.Feature, Traits.Features.QuickInfo)]
@@ -6550,7 +6580,7 @@ class X
     }
 }",
                 MainDescription($"({FeaturesResources.local_variable}) string? s"),
-                NullabilityAnalysis(string.Format(CSharpFeaturesResources._0_may_be_null_here, "s")));
+                NullabilityAnalysis(string.Format(FeaturesResources._0_may_be_null_here, "s")));
         }
 
         [Fact, Trait(Traits.Feature, Traits.Features.QuickInfo)]
@@ -6570,7 +6600,7 @@ class X
     }
 }",
                 MainDescription($"({FeaturesResources.local_variable}) string? s"),
-                NullabilityAnalysis(string.Format(CSharpFeaturesResources._0_is_not_null_here, "s")));
+                NullabilityAnalysis(string.Format(FeaturesResources._0_is_not_null_here, "s")));
         }
 
         [Fact, Trait(Traits.Feature, Traits.Features.QuickInfo)]
@@ -6628,7 +6658,7 @@ class X
     }
 }",
                 MainDescription($"({FeaturesResources.local_variable}) string s"),
-                NullabilityAnalysis(string.Format(CSharpFeaturesResources._0_is_not_null_here, "s")));
+                NullabilityAnalysis(string.Format(FeaturesResources._0_is_not_null_here, "s")));
         }
 
         [Fact, Trait(Traits.Feature, Traits.Features.QuickInfo)]
@@ -6795,6 +6825,246 @@ class Program
     }
 }",
                 MainDescription("struct System.Int32"));
+        }
+
+        [Fact, Trait(Traits.Feature, Traits.Features.QuickInfo)]
+        [WorkItem(31618, "https://github.com/dotnet/roslyn/issues/31618")]
+        public async Task QuickInfoWithRemarksOnMethod()
+        {
+            await TestAsync(@"
+class Program
+{
+    /// <summary>
+    /// Summary text
+    /// </summary>
+    /// <remarks>
+    /// Remarks text
+    /// </remarks>
+    int M()
+    {
+        return $$M();
+    }
+}",
+                MainDescription("int Program.M()"),
+                Documentation("Summary text"),
+                Remarks("\r\nRemarks text"));
+        }
+
+        [Fact, Trait(Traits.Feature, Traits.Features.QuickInfo)]
+        [WorkItem(31618, "https://github.com/dotnet/roslyn/issues/31618")]
+        public async Task QuickInfoWithRemarksOnPropertyAccessor()
+        {
+            await TestAsync(@"
+class Program
+{
+    /// <summary>
+    /// Summary text
+    /// </summary>
+    /// <remarks>
+    /// Remarks text
+    /// </remarks>
+    int M { $$get; }
+}",
+                MainDescription("int Program.M.get"),
+                Documentation("Summary text"),
+                Remarks("\r\nRemarks text"));
+        }
+
+        [Fact, Trait(Traits.Feature, Traits.Features.QuickInfo)]
+        [WorkItem(31618, "https://github.com/dotnet/roslyn/issues/31618")]
+        public async Task QuickInfoWithReturnsOnMethod()
+        {
+            await TestAsync(@"
+class Program
+{
+    /// <summary>
+    /// Summary text
+    /// </summary>
+    /// <returns>
+    /// Returns text
+    /// </returns>
+    int M()
+    {
+        return $$M();
+    }
+}",
+                MainDescription("int Program.M()"),
+                Documentation("Summary text"),
+                Returns($"\r\n{FeaturesResources.Returns_colon}\r\n  Returns text"));
+        }
+
+        [Fact, Trait(Traits.Feature, Traits.Features.QuickInfo)]
+        [WorkItem(31618, "https://github.com/dotnet/roslyn/issues/31618")]
+        public async Task QuickInfoWithReturnsOnPropertyAccessor()
+        {
+            await TestAsync(@"
+class Program
+{
+    /// <summary>
+    /// Summary text
+    /// </summary>
+    /// <returns>
+    /// Returns text
+    /// </returns>
+    int M { $$get; }
+}",
+                MainDescription("int Program.M.get"),
+                Documentation("Summary text"),
+                Returns($"\r\n{FeaturesResources.Returns_colon}\r\n  Returns text"));
+        }
+
+        [Fact, Trait(Traits.Feature, Traits.Features.QuickInfo)]
+        [WorkItem(31618, "https://github.com/dotnet/roslyn/issues/31618")]
+        public async Task QuickInfoWithValueOnMethod()
+        {
+            await TestAsync(@"
+class Program
+{
+    /// <summary>
+    /// Summary text
+    /// </summary>
+    /// <value>
+    /// Value text
+    /// </value>
+    int M()
+    {
+        return $$M();
+    }
+}",
+                MainDescription("int Program.M()"),
+                Documentation("Summary text"),
+                Value($"\r\n{FeaturesResources.Value_colon}\r\n  Value text"));
+        }
+
+        [Fact, Trait(Traits.Feature, Traits.Features.QuickInfo)]
+        [WorkItem(31618, "https://github.com/dotnet/roslyn/issues/31618")]
+        public async Task QuickInfoWithValueOnPropertyAccessor()
+        {
+            await TestAsync(@"
+class Program
+{
+    /// <summary>
+    /// Summary text
+    /// </summary>
+    /// <value>
+    /// Value text
+    /// </value>
+    int M { $$get; }
+}",
+                MainDescription("int Program.M.get"),
+                Documentation("Summary text"),
+                Value($"\r\n{FeaturesResources.Value_colon}\r\n  Value text"));
+        }
+
+        [Fact, Trait(Traits.Feature, Traits.Features.QuickInfo)]
+        [WorkItem(42368, "https://github.com/dotnet/roslyn/issues/42368")]
+        public async Task QuickInfoNotPattern1()
+        {
+            await TestAsync(@"
+class Person
+{
+    void Goo(object o)
+    {
+        if (o is not $$Person p)
+        {
+        }
+    }
+}",
+                MainDescription("class Person"));
+        }
+
+        [Fact, Trait(Traits.Feature, Traits.Features.QuickInfo)]
+        [WorkItem(42368, "https://github.com/dotnet/roslyn/issues/42368")]
+        public async Task QuickInfoNotPattern2()
+        {
+            await TestAsync(@"
+class Person
+{
+    void Goo(object o)
+    {
+        if (o is $$not Person p)
+        {
+        }
+    }
+}");
+        }
+
+        [Fact, Trait(Traits.Feature, Traits.Features.QuickInfo)]
+        [WorkItem(42368, "https://github.com/dotnet/roslyn/issues/42368")]
+        public async Task QuickInfoOrPattern1()
+        {
+            await TestAsync(@"
+class Person
+{
+    void Goo(object o)
+    {
+        if (o is $$Person or int)
+        {
+        }
+    }
+}", MainDescription("class Person"));
+        }
+
+        [Fact, Trait(Traits.Feature, Traits.Features.QuickInfo)]
+        [WorkItem(42368, "https://github.com/dotnet/roslyn/issues/42368")]
+        public async Task QuickInfoOrPattern2()
+        {
+            await TestAsync(@"
+class Person
+{
+    void Goo(object o)
+    {
+        if (o is Person or $$int)
+        {
+        }
+    }
+}", MainDescription("struct System.Int32"));
+        }
+
+        [Fact, Trait(Traits.Feature, Traits.Features.QuickInfo)]
+        [WorkItem(42368, "https://github.com/dotnet/roslyn/issues/42368")]
+        public async Task QuickInfoOrPattern3()
+        {
+            await TestAsync(@"
+class Person
+{
+    void Goo(object o)
+    {
+        if (o is Person $$or int)
+        {
+        }
+    }
+}");
+        }
+
+        [Fact, Trait(Traits.Feature, Traits.Features.QuickInfo)]
+        public async Task QuickInfoRecord()
+        {
+            await TestWithOptionsAsync(
+                Options.Regular.WithLanguageVersion(LanguageVersion.CSharp9),
+@"record Person(string First, string Last)
+{
+    void M($$Person p)
+    {
+    }
+}", MainDescription("record Person"));
+        }
+
+        [Fact, Trait(Traits.Feature, Traits.Features.QuickInfo)]
+        public async Task QuickInfoDerivedRecord()
+        {
+            await TestWithOptionsAsync(
+                Options.Regular.WithLanguageVersion(LanguageVersion.CSharp9),
+@"record Person(string First, string Last)
+{
+}
+record Student(string Id)
+{
+    void M($$Student p)
+    {
+    }
+}
+", MainDescription("record Student"));
         }
     }
 }

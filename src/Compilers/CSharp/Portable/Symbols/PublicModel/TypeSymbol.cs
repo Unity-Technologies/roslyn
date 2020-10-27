@@ -111,7 +111,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols.PublicModel
                 : null;
         }
 
-        bool ITypeSymbol.IsUnmanagedType => !UnderlyingTypeSymbol.IsManagedType;
+        bool ITypeSymbol.IsUnmanagedType => !UnderlyingTypeSymbol.IsManagedTypeNoUseSiteDiagnostics;
 
         bool ITypeSymbol.IsReferenceType
         {
@@ -138,6 +138,8 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols.PublicModel
         }
 
         bool ITypeSymbol.IsTupleType => UnderlyingTypeSymbol.IsTupleType;
+
+        bool ITypeSymbol.IsNativeIntegerType => UnderlyingTypeSymbol.IsNativeIntegerType;
 
         string ITypeSymbol.ToDisplayString(CodeAnalysis.NullableFlowState topLevelNullability, SymbolDisplayFormat format)
         {

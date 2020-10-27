@@ -4,6 +4,7 @@
 
 using System.Collections.Immutable;
 using System.Threading;
+using System.Threading.Tasks;
 using Microsoft.CodeAnalysis.PooledObjects;
 using Microsoft.CodeAnalysis.Shared.Extensions;
 
@@ -14,10 +15,9 @@ namespace Microsoft.CodeAnalysis.FindSymbols.FindReferences
         public static ImmutableArray<ISymbol> FindBaseTypesAndInterfaces(INamedTypeSymbol type)
             => FindBaseTypes(type).AddRange(type.AllInterfaces).CastArray<ISymbol>();
 
-        public static ImmutableArray<ISymbol> FindOverriddenAndImplementedMembers(
-            ISymbol symbol, Project project, CancellationToken cancellationToken)
+        public static async ValueTask<ImmutableArray<ISymbol>> FindOverriddenAndImplementedMembersAsync(
+            ISymbol symbol, Solution solution, CancellationToken cancellationToken)
         {
-            var solution = project.Solution;
             var results = ArrayBuilder<ISymbol>.GetInstance();
 
             // This is called for all: class, struct or interface member.
@@ -31,7 +31,7 @@ namespace Microsoft.CodeAnalysis.FindSymbols.FindReferences
                     cancellationToken.ThrowIfCancellationRequested();
 
                     // Add to results overridden members only. Do not add hidden members.
-                    if (SymbolFinder.IsOverride(solution, symbol, member, cancellationToken))
+                    if (await SymbolFinder.IsOverrideAsync(solution, symbol, member, cancellationToken).ConfigureAwait(false))
                     {
                         results.Add(member);
 

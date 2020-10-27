@@ -12,6 +12,7 @@ using Microsoft.CodeAnalysis.Test.Utilities;
 using Roslyn.Test.Utilities;
 using Xunit;
 using Roslyn.Utilities;
+using ReferenceEqualityComparer = Roslyn.Utilities.ReferenceEqualityComparer;
 
 namespace Microsoft.CodeAnalysis.CSharp.UnitTests
 {
@@ -168,6 +169,20 @@ namespace Microsoft.CodeAnalysis.CSharp.UnitTests
             Assert.Same(symbol, model.GetDeclaredSymbol((SyntaxNode)declarator));
             Assert.NotEqual(symbol, model.LookupSymbols(declarator.SpanStart, name: declarator.Identifier.ValueText).Single());
             Assert.True(model.LookupNames(declarator.SpanStart).Contains(declarator.Identifier.ValueText));
+        }
+
+        internal static void VerifyModelForDuplicateVariableDeclarationInSameScope(
+            SemanticModel model,
+            SingleVariableDesignationSyntax designation,
+            LocalDeclarationKind kind = LocalDeclarationKind.PatternVariable)
+        {
+            var symbol = model.GetDeclaredSymbol(designation);
+            Assert.Equal(designation.Identifier.ValueText, symbol.Name);
+            Assert.Equal(designation, symbol.DeclaringSyntaxReferences.Single().GetSyntax());
+            Assert.Equal(kind, symbol.GetSymbol<LocalSymbol>().DeclarationKind);
+            Assert.Same(symbol, model.GetDeclaredSymbol((SyntaxNode)designation));
+            Assert.NotEqual(symbol, model.LookupSymbols(designation.SpanStart, name: designation.Identifier.ValueText).Single());
+            Assert.True(model.LookupNames(designation.SpanStart).Contains(designation.Identifier.ValueText));
         }
 
         protected static void VerifyNotAPatternField(SemanticModel model, IdentifierNameSyntax reference)
@@ -403,10 +418,10 @@ namespace Microsoft.CodeAnalysis.CSharp.UnitTests
 
         protected CSharpCompilation CreatePatternCompilation(string source, CSharpCompilationOptions options = null)
         {
-            return CreateCompilation(new[] { source, _iTupleSource }, options: options ?? TestOptions.DebugExe, parseOptions: TestOptions.RegularWithRecursivePatterns);
+            return CreateCompilation(new[] { source, _iTupleSource }, options: options ?? TestOptions.DebugExe, parseOptions: TestOptions.RegularWithPatternCombinators);
         }
 
-        private const string _iTupleSource = @"
+        protected const string _iTupleSource = @"
 namespace System.Runtime.CompilerServices
 {
     public interface ITuple

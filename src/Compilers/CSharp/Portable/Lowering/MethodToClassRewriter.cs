@@ -6,8 +6,8 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics;
 using Microsoft.CodeAnalysis.CodeGen;
-using Microsoft.CodeAnalysis.PooledObjects;
 using Microsoft.CodeAnalysis.CSharp.Emit;
+using Microsoft.CodeAnalysis.PooledObjects;
 using Roslyn.Utilities;
 
 namespace Microsoft.CodeAnalysis.CSharp.Symbols
@@ -129,6 +129,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
                     newLocals,
                     (BoundExpression)this.Visit(node.ExceptionSourceOpt),
                     this.VisitType(node.ExceptionTypeOpt),
+                    (BoundBlock)this.Visit(node.ExceptionFilterPrologueOpt),
                     (BoundExpression)this.Visit(node.ExceptionFilterOpt),
                     (BoundBlock)this.Visit(node.Body),
                     node.IsSynthesizedAsyncCatchAll);
@@ -506,6 +507,11 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
             return node.Update(rewrittenArgument, method, node.IsExtensionMethod, type);
         }
 
+        public override BoundNode VisitFunctionPointerLoad(BoundFunctionPointerLoad node)
+        {
+            return node.Update(VisitMethodSymbol(node.TargetMethod), VisitType(node.Type));
+        }
+
         public override BoundNode VisitLoweredConditionalAccess(BoundLoweredConditionalAccess node)
         {
             BoundExpression receiver = (BoundExpression)this.Visit(node.Receiver);
@@ -674,6 +680,8 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
                     return default;
                 }
             }
+
+            internal override bool IsIterator => false;
         }
     }
 }

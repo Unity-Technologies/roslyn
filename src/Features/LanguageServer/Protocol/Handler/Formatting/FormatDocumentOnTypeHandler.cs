@@ -4,6 +4,7 @@
 
 #nullable enable
 
+using System;
 using System.Collections.Generic;
 using System.Composition;
 using System.Linq;
@@ -11,6 +12,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.Editor;
+using Microsoft.CodeAnalysis.Host.Mef;
 using Microsoft.CodeAnalysis.PooledObjects;
 using Microsoft.CodeAnalysis.Text;
 using Microsoft.VisualStudio.LanguageServer.Protocol;
@@ -19,13 +21,18 @@ namespace Microsoft.CodeAnalysis.LanguageServer.Handler
 {
     [Shared]
     [ExportLspMethod(Methods.TextDocumentOnTypeFormattingName)]
-    internal class FormatDocumentOnTypeHandler : IRequestHandler<DocumentOnTypeFormattingParams, TextEdit[]>
+    internal class FormatDocumentOnTypeHandler : AbstractRequestHandler<DocumentOnTypeFormattingParams, TextEdit[]>
     {
-        public async Task<TextEdit[]> HandleRequestAsync(Solution solution, DocumentOnTypeFormattingParams request, ClientCapabilities? clientCapabilities,
-            CancellationToken cancellationToken)
+        [ImportingConstructor]
+        [Obsolete(MefConstruction.ImportingConstructorMessage, error: true)]
+        public FormatDocumentOnTypeHandler(ILspSolutionProvider solutionProvider) : base(solutionProvider)
+        {
+        }
+
+        public override async Task<TextEdit[]> HandleRequestAsync(DocumentOnTypeFormattingParams request, RequestContext context, CancellationToken cancellationToken)
         {
             var edits = new ArrayBuilder<TextEdit>();
-            var document = solution.GetDocumentFromURI(request.TextDocument.Uri);
+            var document = SolutionProvider.GetDocument(request.TextDocument, context.ClientName);
             if (document != null)
             {
                 var formattingService = document.Project.LanguageServices.GetRequiredService<IEditorFormattingService>();

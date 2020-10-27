@@ -10,15 +10,15 @@ using Roslyn.Test.Utilities;
 using Xunit;
 using Xunit.Abstractions;
 
-namespace Roslyn.VisualStudio.IntegrationTests.Basic
+namespace Roslyn.VisualStudio.IntegrationTests.VisualBasic
 {
     [Collection(nameof(SharedIntegrationHostFixture))]
     public class BasicKeywordHighlighting : AbstractEditorTest
     {
         protected override string LanguageName => LanguageNames.VisualBasic;
 
-        public BasicKeywordHighlighting(VisualStudioInstanceFactory instanceFactory, ITestOutputHelper testOutputHelper)
-            : base(instanceFactory, testOutputHelper, nameof(BasicKeywordHighlighting))
+        public BasicKeywordHighlighting(VisualStudioInstanceFactory instanceFactory)
+            : base(instanceFactory, nameof(BasicKeywordHighlighting))
         {
         }
 
@@ -39,7 +39,9 @@ End Class");
             VisualStudio.Editor.Verify.CurrentLineText("For a = 0 To 1 Step$$ 1", assertCaretPosition: true, trimWhitespace: true);
         }
 
+#pragma warning disable IDE0060 // Remove unused parameter - https://github.com/dotnet/roslyn/issues/46169
         private void Verify(string marker, int expectedCount)
+#pragma warning restore IDE0060 // Remove unused parameter
         {
             VisualStudio.Editor.PlaceCaret(marker, charsOffset: -1);
             VisualStudio.Workspace.WaitForAllAsyncOperations(

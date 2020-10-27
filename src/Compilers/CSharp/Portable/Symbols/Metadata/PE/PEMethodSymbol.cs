@@ -9,6 +9,7 @@ using System.Diagnostics;
 using System.Globalization;
 using System.Reflection;
 using System.Reflection.Metadata;
+using System.Runtime.CompilerServices;
 using System.Threading;
 using Microsoft.CodeAnalysis.CSharp.DocumentationComments;
 using Microsoft.CodeAnalysis.CSharp.Emit;
@@ -44,7 +45,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols.Metadata.PE
         {
             // We currently pack everything into a 32-bit int with the following layout:
             //
-            // |  q|p|ooo|n|m|l|k|j|i|h|g|f|e|d|c|b|aaaaa|
+            // |  r|q|p|ooo|n|m|l|k|j|i|h|g|f|e|d|c|b|aaaaa|
             // 
             // a = method kind. 5 bits.
             // b = method kind populated. 1 bit.
@@ -65,6 +66,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols.Metadata.PE
             // o = NullableContext. 3 bits.
             // p = DoesNotReturn. 1 bit.
             // q = DoesNotReturnPopulated. 1 bit.
+            // r = MemberNotNullPopulated. 1 bit.
             // 9 bits remain for future purposes.
 
             private const int MethodKindOffset = 0;
@@ -86,7 +88,10 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols.Metadata.PE
             private const int NullableContextOffset = 18;
             private const int NullableContextMask = 0x7;
             private const int DoesNotReturnBit = 0x1 << 21;
-            private const int DoesNotReturnPopulatedBit = 0x1 << 22;
+            private const int IsDoesNotReturnPopulatedBit = 0x1 << 22;
+            private const int IsMemberNotNullPopulatedBit = 0x1 << 23;
+            private const int IsInitOnlyBit = 0x1 << 24;
+            private const int IsInitOnlyPopulatedBit = 0x1 << 25;
 
             private int _bits;
 
@@ -118,7 +123,10 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols.Metadata.PE
             public bool IsReadOnly => (_bits & IsReadOnlyBit) != 0;
             public bool IsReadOnlyPopulated => (_bits & IsReadOnlyPopulatedBit) != 0;
             public bool DoesNotReturn => (_bits & DoesNotReturnBit) != 0;
-            public bool DoesNotReturnPopulated => (_bits & DoesNotReturnPopulatedBit) != 0;
+            public bool IsDoesNotReturnPopulated => (_bits & IsDoesNotReturnPopulatedBit) != 0;
+            public bool IsMemberNotNullPopulated => (_bits & IsMemberNotNullPopulatedBit) != 0;
+            public bool IsInitOnly => (_bits & IsInitOnlyBit) != 0;
+            public bool IsInitOnlyPopulated => (_bits & IsInitOnlyPopulatedBit) != 0;
 
 #if DEBUG
             static PackedFlags()
@@ -203,10 +211,22 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols.Metadata.PE
 
             public bool InitializeDoesNotReturn(bool value)
             {
-                int bitsToSet = DoesNotReturnPopulatedBit;
+                int bitsToSet = IsDoesNotReturnPopulatedBit;
                 if (value) bitsToSet |= DoesNotReturnBit;
 
                 return ThreadSafeFlagOperations.Set(ref _bits, bitsToSet);
+            }
+
+            public void SetIsMemberNotNullPopulated()
+            {
+                ThreadSafeFlagOperations.Set(ref _bits, IsMemberNotNullPopulatedBit);
+            }
+
+            public void InitializeIsInitOnly(bool isInitOnly)
+            {
+                int bitsToSet = (isInitOnly ? IsInitOnlyBit : 0) | IsInitOnlyPopulatedBit;
+                Debug.Assert(BitsAreUnsetOrSame(_bits, bitsToSet));
+                ThreadSafeFlagOperations.Set(ref _bits, bitsToSet);
             }
         }
 
@@ -222,6 +242,10 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols.Metadata.PE
             public ImmutableArray<string> _lazyConditionalAttributeSymbols;
             public ObsoleteAttributeData _lazyObsoleteAttributeData;
             public DiagnosticInfo _lazyUseSiteDiagnostic;
+            public ImmutableArray<string> _lazyNotNullMembers;
+            public ImmutableArray<string> _lazyNotNullMembersWhenTrue;
+            public ImmutableArray<string> _lazyNotNullMembersWhenFalse;
+            public MethodSymbol _lazyExplicitClassOverride;
         }
 
         private UncommonFields CreateUncommonFields()
@@ -256,6 +280,18 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols.Metadata.PE
             if (_packedFlags.IsOverriddenOrHiddenMembersPopulated)
             {
                 retVal._lazyOverriddenOrHiddenMembersResult = OverriddenOrHiddenMembersResult.Empty;
+            }
+
+            if (_packedFlags.IsMemberNotNullPopulated)
+            {
+                retVal._lazyNotNullMembers = ImmutableArray<string>.Empty;
+                retVal._lazyNotNullMembersWhenTrue = ImmutableArray<string>.Empty;
+                retVal._lazyNotNullMembersWhenFalse = ImmutableArray<string>.Empty;
+            }
+
+            if (_packedFlags.IsExplicitOverrideIsPopulated)
+            {
+                retVal._lazyExplicitClassOverride = null;
             }
 
             return retVal;
@@ -559,7 +595,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols.Metadata.PE
         {
             get
             {
-                if (!_packedFlags.DoesNotReturnPopulated)
+                if (!_packedFlags.IsDoesNotReturnPopulated)
                 {
                     var moduleSymbol = _containingType.ContainingPEModule;
                     bool doesNotReturn = moduleSymbol.Module.HasDoesNotReturnAttribute(_handle);
@@ -567,6 +603,99 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols.Metadata.PE
                 }
 
                 return _packedFlags.DoesNotReturn ? FlowAnalysisAnnotations.DoesNotReturn : FlowAnalysisAnnotations.None;
+            }
+        }
+
+        internal override ImmutableArray<string> NotNullMembers
+        {
+            get
+            {
+                if (!_packedFlags.IsMemberNotNullPopulated)
+                {
+                    PopulateMemberNotNullData();
+                }
+
+                var uncommonFields = _uncommonFields;
+                if (uncommonFields == null)
+                {
+                    return ImmutableArray<string>.Empty;
+                }
+                else
+                {
+                    var result = uncommonFields._lazyNotNullMembers;
+                    return result.IsDefault ? ImmutableArray<string>.Empty : result;
+                }
+            }
+        }
+
+        private void PopulateMemberNotNullData()
+        {
+            var module = _containingType.ContainingPEModule.Module;
+            var memberNotNull = module.GetMemberNotNullAttributeValues(_handle);
+            Debug.Assert(!memberNotNull.IsDefault);
+            if (!memberNotNull.IsEmpty)
+            {
+                InterlockedOperations.Initialize(ref AccessUncommonFields()._lazyNotNullMembers, memberNotNull);
+            }
+
+            var (memberNotNullWhenTrue, memberNotNullWhenFalse) = module.GetMemberNotNullWhenAttributeValues(_handle);
+
+            Debug.Assert(!memberNotNullWhenTrue.IsDefault);
+            if (!memberNotNullWhenTrue.IsEmpty)
+            {
+                InterlockedOperations.Initialize(ref AccessUncommonFields()._lazyNotNullMembersWhenTrue, memberNotNullWhenTrue);
+            }
+
+            Debug.Assert(!memberNotNullWhenFalse.IsDefault);
+            if (!memberNotNullWhenFalse.IsEmpty)
+            {
+                InterlockedOperations.Initialize(ref AccessUncommonFields()._lazyNotNullMembersWhenFalse, memberNotNullWhenFalse);
+            }
+
+            _packedFlags.SetIsMemberNotNullPopulated();
+        }
+
+        internal override ImmutableArray<string> NotNullWhenTrueMembers
+        {
+            get
+            {
+                if (!_packedFlags.IsMemberNotNullPopulated)
+                {
+                    PopulateMemberNotNullData();
+                }
+
+                var uncommonFields = _uncommonFields;
+                if (uncommonFields is null)
+                {
+                    return ImmutableArray<string>.Empty;
+                }
+                else
+                {
+                    var result = uncommonFields._lazyNotNullMembersWhenTrue;
+                    return result.IsDefault ? ImmutableArray<string>.Empty : result;
+                }
+            }
+        }
+
+        internal override ImmutableArray<string> NotNullWhenFalseMembers
+        {
+            get
+            {
+                if (!_packedFlags.IsMemberNotNullPopulated)
+                {
+                    PopulateMemberNotNullData();
+                }
+
+                var uncommonFields = _uncommonFields;
+                if (uncommonFields is null)
+                {
+                    return ImmutableArray<string>.Empty;
+                }
+                else
+                {
+                    var result = uncommonFields._lazyNotNullMembersWhenFalse;
+                    return result.IsDefault ? ImmutableArray<string>.Empty : result;
+                }
             }
         }
 
@@ -1047,6 +1176,9 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols.Metadata.PE
 
         public override ImmutableArray<MethodSymbol> ExplicitInterfaceImplementations
         {
+            // Disabling optimization to work around a JIT bug in .NET 5.
+            // See https://github.com/dotnet/roslyn/issues/46575
+            [MethodImpl(MethodImplOptions.NoOptimization)]
             get
             {
                 var explicitInterfaceImplementations = _lazyExplicitMethodImplementations;
@@ -1072,9 +1204,9 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols.Metadata.PE
                     {
                         anyToRemove = true;
                         sawObjectFinalize =
-                            (method.ContainingType.SpecialType == SpecialType.System_Object &&
-                             method.Name == WellKnownMemberNames.DestructorName && // Cheaper than MethodKind.
-                             method.MethodKind == MethodKind.Destructor);
+                           (method.ContainingType.SpecialType == SpecialType.System_Object &&
+                            method.Name == WellKnownMemberNames.DestructorName && // Cheaper than MethodKind.
+                            method.MethodKind == MethodKind.Destructor);
                     }
 
                     if (anyToRemove && sawObjectFinalize)
@@ -1082,13 +1214,6 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols.Metadata.PE
                         break;
                     }
                 }
-
-                // CONSIDER: could assert that we're writing the existing value if it's already there
-                // CONSIDER: what we'd really like to do is set this bit only in cases where the explicitly
-                // overridden method matches the method that will be returned by MethodSymbol.OverriddenMethod.
-                // Unfortunately, this MethodSymbol will not be sufficiently constructed (need IsOverride and MethodKind,
-                // which depend on this property) to determine which method OverriddenMethod will return.
-                _packedFlags.InitializeIsExplicitOverride(isExplicitFinalizerOverride: sawObjectFinalize, isExplicitClassOverride: anyToRemove);
 
                 explicitInterfaceImplementations = explicitlyOverriddenMethods;
 
@@ -1104,9 +1229,47 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols.Metadata.PE
                     }
 
                     explicitInterfaceImplementations = explicitInterfaceImplementationsBuilder.ToImmutableAndFree();
+
+                    MethodSymbol uniqueClassOverride = null;
+                    foreach (MethodSymbol method in explicitlyOverriddenMethods)
+                    {
+                        if (method.ContainingType.IsClassType())
+                        {
+                            if (uniqueClassOverride is { })
+                            {
+                                // not unique
+                                uniqueClassOverride = null;
+                                break;
+                            }
+
+                            uniqueClassOverride = method;
+                        }
+                    }
+
+                    if (uniqueClassOverride is { })
+                    {
+                        Interlocked.CompareExchange(ref AccessUncommonFields()._lazyExplicitClassOverride, uniqueClassOverride, null);
+                    }
                 }
 
+                // CONSIDER: what we'd really like to do is set this bit only in cases where the explicitly
+                // overridden method matches the method that will be returned by MethodSymbol.OverriddenMethod.
+                // Unfortunately, this MethodSymbol will not be sufficiently constructed (need IsOverride and MethodKind,
+                // which depend on this property) to determine which method OverriddenMethod will return.
+                _packedFlags.InitializeIsExplicitOverride(isExplicitFinalizerOverride: sawObjectFinalize, isExplicitClassOverride: anyToRemove);
+
                 return InterlockedOperations.Initialize(ref _lazyExplicitMethodImplementations, explicitInterfaceImplementations);
+            }
+        }
+
+        /// <summary>
+        /// If a methodimpl record indicates a unique overridden method, that method. Otherwise null.
+        /// </summary>
+        internal MethodSymbol ExplicitlyOverriddenClassMethod
+        {
+            get
+            {
+                return IsExplicitClassOverride ? AccessUncommonFields()._lazyExplicitClassOverride : null;
             }
         }
 
@@ -1125,6 +1288,21 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols.Metadata.PE
                     _packedFlags.InitializeIsReadOnly(isReadOnly);
                 }
                 return _packedFlags.IsReadOnly;
+            }
+        }
+
+        internal override bool IsInitOnly
+        {
+            get
+            {
+                if (!_packedFlags.IsInitOnlyPopulated)
+                {
+                    bool isInitOnly = !this.IsStatic &&
+                        this.MethodKind == MethodKind.PropertySet &&
+                        ReturnTypeWithAnnotations.CustomModifiers.HasIsExternalInitModifier();
+                    _packedFlags.InitializeIsInitOnly(isInitOnly);
+                }
+                return _packedFlags.IsInitOnly;
             }
         }
 

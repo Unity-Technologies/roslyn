@@ -4,29 +4,29 @@
 
 using System.Collections.Generic;
 using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.CSharp.Extensions;
 using Microsoft.CodeAnalysis.CSharp.Formatting;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.CSharp.Utilities;
 using Microsoft.CodeAnalysis.Formatting.Rules;
-using Microsoft.CodeAnalysis.Options;
 
 namespace Microsoft.CodeAnalysis.Editor.CSharp.Formatting
 {
     internal class TypingFormattingRule : BaseFormattingRule
     {
-        public readonly static TypingFormattingRule Instance = new TypingFormattingRule();
+        public static readonly TypingFormattingRule Instance = new TypingFormattingRule();
 
-        public override void AddSuppressOperations(List<SuppressOperation> list, SyntaxNode node, OptionSet optionSet, in NextSuppressOperationAction nextOperation)
+        public override void AddSuppressOperations(List<SuppressOperation> list, SyntaxNode node, in NextSuppressOperationAction nextOperation)
         {
             if (TryAddSuppressionOnMissingCloseBraceCase(list, node))
             {
                 return;
             }
 
-            base.AddSuppressOperations(list, node, optionSet, in nextOperation);
+            base.AddSuppressOperations(list, node, in nextOperation);
         }
 
-        private bool TryAddSuppressionOnMissingCloseBraceCase(List<SuppressOperation> list, SyntaxNode node)
+        private static bool TryAddSuppressionOnMissingCloseBraceCase(List<SuppressOperation> list, SyntaxNode node)
         {
             var bracePair = node.GetBracePair();
             if (!bracePair.IsValidBracePair())
@@ -74,7 +74,7 @@ namespace Microsoft.CodeAnalysis.Editor.CSharp.Formatting
                 return false;
             }
 
-            if (node.IsKind(SyntaxKind.Block) && ((BlockSyntax)node).Statements.Count >= 1)
+            if (node.IsKind(SyntaxKind.Block, out BlockSyntax block) && block.Statements.Count >= 1)
             {
                 // In the case of a block, see if the first statement is on the same line 
                 // as the open curly.  If so then we'll want to consider the end of the
@@ -102,7 +102,7 @@ namespace Microsoft.CodeAnalysis.Editor.CSharp.Formatting
             return true;
         }
 
-        private bool SomeParentHasMissingCloseBrace(SyntaxNode node)
+        private static bool SomeParentHasMissingCloseBrace(SyntaxNode node)
         {
             while (node != null && node.Kind() != SyntaxKind.CompilationUnit)
             {

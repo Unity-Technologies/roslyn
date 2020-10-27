@@ -10,7 +10,6 @@ using Microsoft.CodeAnalysis.CodeRefactorings;
 using Microsoft.CodeAnalysis.Editor.UnitTests.CodeActions;
 using Microsoft.CodeAnalysis.Editor.UnitTests.Workspaces;
 using Roslyn.Test.Utilities;
-using Roslyn.Utilities;
 using Xunit;
 
 namespace Microsoft.CodeAnalysis.Editor.UnitTests.LinkedFiles
@@ -26,7 +25,7 @@ namespace Microsoft.CodeAnalysis.Editor.UnitTests.LinkedFiles
                     </Project>
                 </Workspace>";
 
-        protected override string GetLanguage()
+        protected internal override string GetLanguage()
             => LanguageNames.CSharp;
 
         protected override CodeRefactoringProvider CreateCodeRefactoringProvider(Workspace workspace, TestParameters parameters)
@@ -35,7 +34,8 @@ namespace Microsoft.CodeAnalysis.Editor.UnitTests.LinkedFiles
         [WpfFact]
         public async Task TestCodeActionPreviewAndApply()
         {
-            using var workspace = TestWorkspace.Create(WorkspaceXml);
+            // TODO: WPF required due to https://github.com/dotnet/roslyn/issues/46153
+            using var workspace = TestWorkspace.Create(WorkspaceXml, composition: EditorTestCompositions.EditorFeaturesWpf);
             var codeIssueOrRefactoring = await GetCodeRefactoringAsync(workspace, new TestParameters());
 
             var expectedCode = "private class D { }";
@@ -70,15 +70,8 @@ namespace Microsoft.CodeAnalysis.Editor.UnitTests.LinkedFiles
             Assert.Equal(expectedMergedText, (await workspace.CurrentSolution.GetDocument(linkedDocumentId).GetTextAsync()).ToString());
         }
 
-        protected override TestWorkspace CreateWorkspaceFromFile(string initialMarkup, TestParameters parameters)
-        {
-            throw new NotSupportedException();
-        }
-
         protected override ParseOptions GetScriptOptions()
-        {
-            throw new NotSupportedException();
-        }
+            => throw new NotSupportedException();
 
         private class TestCodeRefactoringProvider : CodeRefactorings.CodeRefactoringProvider
         {

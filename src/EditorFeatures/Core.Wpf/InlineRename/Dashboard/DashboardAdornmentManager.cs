@@ -46,14 +46,10 @@ namespace Microsoft.CodeAnalysis.Editor.Implementation.InlineRename
         }
 
         private void OnTextViewClosed(object sender, EventArgs e)
-        {
-            Dispose();
-        }
+            => Dispose();
 
         private void OnActiveSessionChanged(object sender, EventArgs e)
-        {
-            UpdateAdornments();
-        }
+            => UpdateAdornments();
 
         private void UpdateAdornments()
         {
@@ -71,7 +67,7 @@ namespace Microsoft.CodeAnalysis.Editor.Implementation.InlineRename
             }
         }
 
-        private bool ViewIncludesBufferFromWorkspace(IWpfTextView textView, Workspace workspace)
+        private static bool ViewIncludesBufferFromWorkspace(IWpfTextView textView, Workspace workspace)
         {
             return textView.BufferGraph.GetTextBuffers(b => GetWorkspace(b.AsTextContainer()) == workspace)
                                        .Any();

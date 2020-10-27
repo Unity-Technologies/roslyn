@@ -121,14 +121,6 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols.Retargeting
             }
         }
 
-        public override bool ReturnsVoid
-        {
-            get
-            {
-                return _underlyingMethod.ReturnsVoid;
-            }
-        }
-
         public override TypeWithAnnotations ReturnTypeWithAnnotations
         {
             get
@@ -286,6 +278,20 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols.Retargeting
             }
 
             return builder.ToImmutableAndFree();
+        }
+
+        /// <summary>
+        /// The explicitly overridden method (e.g. as would be declared in the PE method in covariant return scenarios).
+        /// </summary>
+        internal MethodSymbol ExplicitlyOverriddenClassMethod
+        {
+            get
+            {
+                return
+                    _underlyingMethod.RequiresExplicitOverride(out _)
+                        ? this.RetargetingTranslator.Retarget(_underlyingMethod.OverriddenMethod, MemberSignatureComparer.RetargetedExplicitImplementationComparer)
+                        : null;
+            }
         }
 
         internal override DiagnosticInfo GetUseSiteDiagnostic()

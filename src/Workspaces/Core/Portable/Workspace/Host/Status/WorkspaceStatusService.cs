@@ -14,9 +14,8 @@ namespace Microsoft.CodeAnalysis.Host
     [ExportWorkspaceService(typeof(IWorkspaceStatusService), ServiceLayer.Default), Shared]
     internal sealed class WorkspaceStatusService : IWorkspaceStatusService
     {
-        public readonly static WorkspaceStatusService Default = new WorkspaceStatusService();
-
         [ImportingConstructor]
+        [Obsolete(MefConstruction.ImportingConstructorMessage, error: true)]
         public WorkspaceStatusService()
         {
         }

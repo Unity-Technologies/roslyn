@@ -2,18 +2,16 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
-using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Xml.Linq;
 using Microsoft.CodeAnalysis.Editor.CSharp.EventHookup;
 using Microsoft.CodeAnalysis.Editor.Shared.Utilities;
 using Microsoft.CodeAnalysis.Editor.UnitTests;
+using Microsoft.CodeAnalysis.Editor.UnitTests.CodeActions;
 using Microsoft.CodeAnalysis.Editor.UnitTests.Extensions;
-using Microsoft.CodeAnalysis.Options;
 using Microsoft.CodeAnalysis.Shared.TestHooks;
 using Microsoft.CodeAnalysis.Test.Utilities;
-using Microsoft.VisualStudio.Composition;
 using Roslyn.Utilities;
 using Xunit;
 
@@ -21,11 +19,16 @@ namespace Microsoft.CodeAnalysis.Editor.CSharp.UnitTests.EventHookup
 {
     internal sealed class EventHookupTestState : AbstractCommandHandlerTestState
     {
+        // TODO: It seems that we can move EventHookupSessionManager to EditorFeatures (https://github.com/dotnet/roslyn/issues/46280)
+        private static readonly TestComposition s_composition = EditorTestCompositions.EditorFeaturesWpf.AddParts(
+            typeof(EventHookupCommandHandler),
+            typeof(EventHookupSessionManager));
+
         private readonly EventHookupCommandHandler _commandHandler;
         private readonly Mutex _testSessionHookupMutex;
 
-        public EventHookupTestState(XElement workspaceElement, IDictionary<OptionKey, object> options)
-            : base(workspaceElement, GetExtraParts())
+        public EventHookupTestState(XElement workspaceElement, OptionsCollection options)
+            : base(workspaceElement, s_composition)
         {
             _commandHandler = new EventHookupCommandHandler(
                 Workspace.ExportProvider.GetExportedValue<IThreadingContext>(),
@@ -38,22 +41,16 @@ namespace Microsoft.CodeAnalysis.Editor.CSharp.UnitTests.EventHookup
             Workspace.ApplyOptions(options);
         }
 
-        private static ComposableCatalog GetExtraParts()
-        {
-            return ExportProviderCache.CreateTypeCatalog(new[] { typeof(EventHookupCommandHandler), typeof(EventHookupSessionManager) });
-        }
+        public static EventHookupTestState CreateTestState(string markup, OptionsCollection options = null)
+            => new EventHookupTestState(GetWorkspaceXml(markup), options);
 
-        public static EventHookupTestState CreateTestState(string markup, IDictionary<OptionKey, object> options = null)
-        {
-            var workspaceXml = string.Format(@"
+        public static XElement GetWorkspaceXml(string markup)
+            => XElement.Parse(string.Format(@"
 <Workspace>
     <Project Language=""C#"" CommonReferences=""true"">
         <Document>{0}</Document>
     </Project>
-</Workspace>", markup);
-
-            return new EventHookupTestState(XElement.Parse(workspaceXml), options);
-        }
+</Workspace>", markup));
 
         internal void AssertShowing(string expectedText)
         {

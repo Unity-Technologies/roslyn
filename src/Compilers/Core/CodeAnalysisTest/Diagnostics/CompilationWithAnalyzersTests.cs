@@ -25,10 +25,10 @@ namespace Microsoft.CodeAnalysis.UnitTests.Diagnostics
         public void GetEffectiveDiagnostics_Errors()
         {
             var c = CSharpCompilation.Create("c");
-            var ds = new[] { default(Diagnostic) };
+            var ds = new[] { (Diagnostic)null };
 
             Assert.Throws<ArgumentNullException>(() => CompilationWithAnalyzers.GetEffectiveDiagnostics(default(ImmutableArray<Diagnostic>), c));
-            Assert.Throws<ArgumentNullException>(() => CompilationWithAnalyzers.GetEffectiveDiagnostics(default(IEnumerable<Diagnostic>), c));
+            Assert.Throws<ArgumentNullException>(() => CompilationWithAnalyzers.GetEffectiveDiagnostics(null, c));
             Assert.Throws<ArgumentNullException>(() => CompilationWithAnalyzers.GetEffectiveDiagnostics(ds, null));
         }
 
@@ -41,12 +41,12 @@ namespace Microsoft.CodeAnalysis.UnitTests.Diagnostics
 
             var d1 = SimpleDiagnostic.Create(MessageProvider.Instance, (int)ErrorCode.WRN_AlignmentMagnitude);
             var d2 = SimpleDiagnostic.Create(MessageProvider.Instance, (int)ErrorCode.WRN_AlwaysNull);
-            var ds = new[] { default(Diagnostic), d1, d2 };
+            var ds = new[] { null, d1, d2 };
 
             var filtered = CompilationWithAnalyzers.GetEffectiveDiagnostics(ds, c);
 
             // overwrite the original value to test eagerness:
-            ds[1] = default(Diagnostic);
+            ds[1] = null;
 
             AssertEx.Equal(new[] { d1 }, filtered);
         }
@@ -66,6 +66,15 @@ namespace Microsoft.CodeAnalysis.UnitTests.Diagnostics
             // Even though the analyzer registers a symbol action, it should never be invoked because all of its rules are disabled.
             var analyzerTelemetry = compWithAnalyzers.GetAnalyzerTelemetryInfoAsync(analyzer, CancellationToken.None).Result;
             Assert.Equal(0, analyzerTelemetry.SymbolActionsCount);
+        }
+
+        [Fact]
+        public void TestIsDiagnosticAnalyzerSuppressedWithExceptionInSupportedDiagnostics()
+        {
+            // Verify IsDiagnosticAnalyzerSuppressed does not throw an exception when 'onAnalyzerException' is null.
+            var analyzer = new AnalyzerThatThrowsInSupportedDiagnostics();
+            var options = new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary);
+            _ = CompilationWithAnalyzers.IsDiagnosticAnalyzerSuppressed(analyzer, options, onAnalyzerException: null);
         }
     }
 }

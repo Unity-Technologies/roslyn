@@ -1,7 +1,7 @@
 ﻿// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
-#if NETCOREAPP3_1
+#if NETCOREAPP
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -35,6 +35,7 @@ namespace Roslyn.Test.Utilities.CoreClr
             if (assemblyName.Name.StartsWith("System.", comparison) ||
                 assemblyName.Name.StartsWith("Microsoft.", comparison) ||
                 comparer.Equals(assemblyName.Name, "mscorlib") ||
+                comparer.Equals(assemblyName.Name, "System") ||
                 comparer.Equals(assemblyName.Name, "netstandard"))
             {
                 return null;

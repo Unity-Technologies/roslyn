@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+using System;
 using System.Threading.Tasks;
 using Microsoft.CodeAnalysis.Completion;
 using Microsoft.CodeAnalysis.CSharp.Completion.Providers;
@@ -19,10 +20,8 @@ namespace Microsoft.CodeAnalysis.Editor.CSharp.UnitTests.Completion.CompletionSe
         {
         }
 
-        internal override CompletionProvider CreateCompletionProvider()
-        {
-            return new NamedParameterCompletionProvider();
-        }
+        internal override Type GetCompletionProviderType()
+            => typeof(NamedParameterCompletionProvider);
 
         [Fact, Trait(Traits.Feature, Traits.Features.Completion)]
         public async Task SendEnterThroughToEditorTest()
@@ -482,7 +481,7 @@ class Program
     }
 }
 ";
-            await VerifyProviderCommitAsync(markup, "args:", expected, ':', "args");
+            await VerifyProviderCommitAsync(markup, "args:", expected, ':');
         }
 
         [Fact, Trait(Traits.Feature, Traits.Features.Completion)]
@@ -493,7 +492,7 @@ class Program
 {
     static void Main(string[] args)
     {
-        Main(ar$$)
+        Main(arg$$)
     }
 }
 ";
@@ -507,7 +506,7 @@ class Program
     }
 }
 ";
-            await VerifyProviderCommitAsync(markup, "args:", expected, ':', "arg");
+            await VerifyProviderCommitAsync(markup, "args:", expected, ':');
         }
     }
 }

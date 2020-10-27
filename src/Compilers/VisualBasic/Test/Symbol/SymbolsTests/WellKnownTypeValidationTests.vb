@@ -482,7 +482,9 @@ End Namespace
 
                 Dim symbol = comp.GetSpecialTypeMember(special)
 
-                If special = SpecialMember.System_Runtime_CompilerServices_RuntimeFeature__DefaultImplementationsOfInterfaces Then
+                If special = SpecialMember.System_Runtime_CompilerServices_RuntimeFeature__DefaultImplementationsOfInterfaces OrElse
+                   special = SpecialMember.System_Runtime_CompilerServices_RuntimeFeature__UnmanagedSignatureCallingConvention OrElse
+                   special = SpecialMember.System_Runtime_CompilerServices_RuntimeFeature__CovariantReturnsOfClasses Then
                     Assert.Null(symbol) ' Not available
                 Else
                     Assert.NotNull(symbol)
@@ -536,7 +538,10 @@ End Namespace
                          WellKnownType.System_Threading_CancellationToken,
                          WellKnownType.System_Runtime_CompilerServices_NonNullTypesAttribute,
                          WellKnownType.Microsoft_CodeAnalysis_EmbeddedAttribute,
-                         WellKnownType.System_Runtime_CompilerServices_SwitchExpressionException
+                         WellKnownType.System_Runtime_CompilerServices_SwitchExpressionException,
+                         WellKnownType.System_Runtime_CompilerServices_NativeIntegerAttribute,
+                         WellKnownType.System_Runtime_CompilerServices_IsExternalInit,
+                         WellKnownType.System_Runtime_CompilerServices_PreserveBaseOverridesAttribute
                         ' Not available on all platforms.
                         Continue For
                     Case WellKnownType.ExtSentinel
@@ -599,7 +604,10 @@ End Namespace
                          WellKnownType.System_Threading_CancellationToken,
                          WellKnownType.System_Runtime_CompilerServices_NonNullTypesAttribute,
                          WellKnownType.Microsoft_CodeAnalysis_EmbeddedAttribute,
-                         WellKnownType.System_Runtime_CompilerServices_SwitchExpressionException
+                         WellKnownType.System_Runtime_CompilerServices_SwitchExpressionException,
+                         WellKnownType.System_Runtime_CompilerServices_NativeIntegerAttribute,
+                         WellKnownType.System_Runtime_CompilerServices_IsExternalInit,
+                         WellKnownType.System_Runtime_CompilerServices_PreserveBaseOverridesAttribute
                         ' Not available on all platforms.
                         Continue For
                     Case WellKnownType.ExtSentinel
@@ -682,7 +690,10 @@ End Namespace
                          WellKnownMember.System_Runtime_CompilerServices_AsyncIteratorMethodBuilder__Create,
                          WellKnownMember.System_Runtime_CompilerServices_AsyncIteratorMethodBuilder__MoveNext_T,
                          WellKnownMember.System_Runtime_CompilerServices_AsyncStateMachineAttribute__ctor,
-                         WellKnownMember.System_Runtime_CompilerServices_RuntimeHelpers__GetSubArray_T
+                         WellKnownMember.System_Runtime_CompilerServices_RuntimeHelpers__GetSubArray_T,
+                         WellKnownMember.System_Runtime_CompilerServices_NativeIntegerAttribute__ctor,
+                         WellKnownMember.System_Runtime_CompilerServices_NativeIntegerAttribute__ctorTransformFlags,
+                         WellKnownMember.System_Runtime_CompilerServices_PreserveBaseOverridesAttribute__ctor
                         ' Not available yet, but will be in upcoming release.
                         Continue For
                     Case WellKnownMember.Microsoft_CodeAnalysis_Runtime_Instrumentation__CreatePayloadForMethodsSpanningSingleFile,
@@ -821,7 +832,10 @@ End Namespace
                          WellKnownMember.System_Runtime_CompilerServices_AsyncIteratorMethodBuilder__Create,
                          WellKnownMember.System_Runtime_CompilerServices_AsyncIteratorMethodBuilder__MoveNext_T,
                          WellKnownMember.System_Runtime_CompilerServices_AsyncStateMachineAttribute__ctor,
-                         WellKnownMember.System_Runtime_CompilerServices_RuntimeHelpers__GetSubArray_T
+                         WellKnownMember.System_Runtime_CompilerServices_RuntimeHelpers__GetSubArray_T,
+                         WellKnownMember.System_Runtime_CompilerServices_NativeIntegerAttribute__ctor,
+                         WellKnownMember.System_Runtime_CompilerServices_NativeIntegerAttribute__ctorTransformFlags,
+                         WellKnownMember.System_Runtime_CompilerServices_PreserveBaseOverridesAttribute__ctor
                         ' Not available yet, but will be in upcoming release.
                         Continue For
                     Case WellKnownMember.Microsoft_CodeAnalysis_Runtime_Instrumentation__CreatePayloadForMethodsSpanningSingleFile,

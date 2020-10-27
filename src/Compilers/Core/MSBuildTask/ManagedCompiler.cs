@@ -16,6 +16,7 @@ using Microsoft.Build.Framework;
 using Microsoft.Build.Utilities;
 using Roslyn.Utilities;
 using Microsoft.CodeAnalysis.CommandLine;
+using Microsoft.Build.Tasks;
 
 namespace Microsoft.CodeAnalysis.BuildTasks
 {
@@ -315,6 +316,12 @@ namespace Microsoft.CodeAnalysis.BuildTasks
             get { return (string?)_store[nameof(SharedCompilationId)]; }
         }
 
+        public bool SkipAnalyzers
+        {
+            set { _store[nameof(SkipAnalyzers)] = value; }
+            get { return _store.GetOrDefault(nameof(SkipAnalyzers), false); }
+        }
+
         public bool SkipCompilerExecution
         {
             set { _store[nameof(SkipCompilerExecution)] = value; }
@@ -508,7 +515,7 @@ namespace Microsoft.CodeAnalysis.BuildTasks
                     // Note: using ToolArguments here (the property) since
                     // commandLineCommands (the parameter) may have been mucked with
                     // (to support using the dotnet cli)
-                    var responseTask = BuildServerConnection.RunServerCompilation(
+                    var responseTask = BuildServerConnection.RunServerCompilationAsync(
                         Language,
                         RoslynString.IsNullOrEmpty(SharedCompilationId) ? null : SharedCompilationId,
                         GetArguments(ToolArguments, responseFileCommands).ToList(),
@@ -526,6 +533,7 @@ namespace Microsoft.CodeAnalysis.BuildTasks
                     }
                     else
                     {
+                        CompilerServerLogger.LogError($"Server compilation failed, falling back to {pathToTool}");
                         Log.LogMessage(ErrorString.SharedCompilationFallback, pathToTool);
 
                         ExitCode = base.ExecuteTool(pathToTool, responseFileCommands, commandLineCommands);
@@ -538,8 +546,9 @@ namespace Microsoft.CodeAnalysis.BuildTasks
             }
             catch (Exception e)
             {
-                Log.LogErrorWithCodeFromResources("Compiler_UnexpectedException");
-                LogErrorOutput(e.ToString());
+                var util = new TaskLoggingHelper(this);
+                util.LogErrorWithCodeFromResources("Compiler_UnexpectedException");
+                util.LogErrorFromException(e, showStackTrace: true, showDetail: true, file: null);
                 ExitCode = -1;
             }
 
@@ -612,7 +621,7 @@ namespace Microsoft.CodeAnalysis.BuildTasks
         {
             if (response.Type != BuildResponse.ResponseType.Completed)
             {
-                ValidateBootstrapUtil.AddFailedServerConnection();
+                ValidateBootstrapUtil.AddFailedServerConnection(response.Type, OutputAssembly?.ItemSpec);
             }
 
             switch (response.Type)
@@ -623,7 +632,7 @@ namespace Microsoft.CodeAnalysis.BuildTasks
 
                     if (LogStandardErrorAsError)
                     {
-                        LogErrorOutput(completedResponse.ErrorOutput);
+                        LogErrorMultiline(completedResponse.ErrorOutput);
                     }
                     else
                     {
@@ -633,29 +642,31 @@ namespace Microsoft.CodeAnalysis.BuildTasks
                     return completedResponse.ReturnCode;
 
                 case BuildResponse.ResponseType.MismatchedVersion:
-                    LogErrorOutput("Roslyn compiler server reports different protocol version than build task.");
+                    LogError("Roslyn compiler server reports different protocol version than build task.");
                     return base.ExecuteTool(pathToTool, responseFileCommands, commandLineCommands);
 
                 case BuildResponse.ResponseType.IncorrectHash:
-                    LogErrorOutput("Roslyn compiler server reports different hash version than build task.");
+                    LogError("Roslyn compiler server reports different hash version than build task.");
                     return base.ExecuteTool(pathToTool, responseFileCommands, commandLineCommands);
 
                 case BuildResponse.ResponseType.Rejected:
                 case BuildResponse.ResponseType.AnalyzerInconsistency:
+                    CompilerServerLogger.LogError($"Server rejected request {response.Type}");
                     return base.ExecuteTool(pathToTool, responseFileCommands, commandLineCommands);
 
                 default:
-                    LogErrorOutput($"Received an unrecognized response from the server: {response.Type}");
+                    LogError($"Received an unrecognized response from the server: {response.Type}");
                     return base.ExecuteTool(pathToTool, responseFileCommands, commandLineCommands);
             }
         }
 
-        private void LogErrorOutput(string output)
+        internal void LogError(string message)
         {
-            LogErrorOutput(output, Log);
+            CompilerServerLogger.LogError(message);
+            Log.LogError(message);
         }
 
-        internal static void LogErrorOutput(string output, TaskLoggingHelper log)
+        private void LogErrorMultiline(string output)
         {
             string[] lines = output.Split(new string[] { Environment.NewLine }, StringSplitOptions.RemoveEmptyEntries);
             foreach (string line in lines)
@@ -663,7 +674,7 @@ namespace Microsoft.CodeAnalysis.BuildTasks
                 string trimmedMessage = line.Trim();
                 if (trimmedMessage != "")
                 {
-                    log.LogError(trimmedMessage);
+                    Log.LogError(trimmedMessage);
                 }
             }
         }
@@ -825,6 +836,7 @@ namespace Microsoft.CodeAnalysis.BuildTasks
             commandLine.AppendSwitchWithSplitting("/instrument:", Instrument, ",", ';', ',');
             commandLine.AppendSwitchIfNotNull("/sourcelink:", SourceLink);
             commandLine.AppendSwitchIfNotNull("/langversion:", LangVersion);
+            commandLine.AppendPlusOrMinusSwitch("/skipanalyzers", _store, nameof(SkipAnalyzers));
 
             AddFeatures(commandLine, Features);
             AddEmbeddedFilesToCommandLine(commandLine);
@@ -949,77 +961,6 @@ namespace Microsoft.CodeAnalysis.BuildTasks
                     _store[nameof(EmitDebugInformation)] = false;
                 }
             }
-        }
-
-        /// <summary>
-        /// Validate parameters, log errors and warnings and return true if
-        /// Execute should proceed.
-        /// </summary>
-        protected override bool ValidateParameters()
-        {
-            return ListHasNoDuplicateItems(Resources, nameof(Resources), "LogicalName", Log) && ListHasNoDuplicateItems(Sources, nameof(Sources), Log);
-        }
-
-        /// <summary>
-        /// Returns true if the provided item list contains duplicate items, false otherwise.
-        /// </summary>
-        internal static bool ListHasNoDuplicateItems(ITaskItem[]? itemList, string parameterName, TaskLoggingHelper log)
-        {
-            return ListHasNoDuplicateItems(itemList, parameterName, disambiguatingMetadataName: null, log);
-        }
-
-        /// <summary>
-        /// Returns true if the provided item list contains duplicate items, false otherwise.
-        /// </summary>
-        /// <param name="itemList"></param>
-        /// <param name="disambiguatingMetadataName">Optional name of metadata that may legitimately disambiguate items. May be null.</param>
-        /// <param name="parameterName"></param>
-        /// <param name="log"></param>
-        private static bool ListHasNoDuplicateItems(ITaskItem[]? itemList, string parameterName, string? disambiguatingMetadataName, TaskLoggingHelper log)
-        {
-            if (itemList == null || itemList.Length == 0)
-            {
-                return true;
-            }
-
-            var alreadySeen = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-            foreach (ITaskItem item in itemList)
-            {
-                string key;
-                string? disambiguatingMetadataValue = null;
-                if (disambiguatingMetadataName != null)
-                {
-                    disambiguatingMetadataValue = item.GetMetadata(disambiguatingMetadataName);
-                }
-
-                if (disambiguatingMetadataName == null || string.IsNullOrEmpty(disambiguatingMetadataValue))
-                {
-                    key = item.ItemSpec;
-                }
-                else
-                {
-                    key = item.ItemSpec + ":" + disambiguatingMetadataValue;
-                }
-
-                if (alreadySeen.ContainsKey(key))
-                {
-                    if (disambiguatingMetadataName == null || string.IsNullOrEmpty(disambiguatingMetadataValue))
-                    {
-                        log.LogErrorWithCodeFromResources("General_DuplicateItemsNotSupported", item.ItemSpec, parameterName);
-                    }
-                    else
-                    {
-                        log.LogErrorWithCodeFromResources("General_DuplicateItemsNotSupportedWithMetadata", item.ItemSpec, parameterName, disambiguatingMetadataValue, disambiguatingMetadataName);
-                    }
-                    return false;
-                }
-                else
-                {
-                    alreadySeen[key] = string.Empty;
-                }
-            }
-
-            return true;
         }
 
         /// <summary>

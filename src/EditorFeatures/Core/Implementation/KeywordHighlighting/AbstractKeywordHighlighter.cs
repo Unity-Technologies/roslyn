@@ -71,10 +71,8 @@ namespace Microsoft.CodeAnalysis.Editor.Implementation.Highlighting
 
         protected abstract void AddHighlightsForNode(SyntaxNode node, List<TextSpan> highlights, CancellationToken cancellationToken);
 
-        protected TextSpan EmptySpan(int position)
-        {
-            return new TextSpan(position, 0);
-        }
+        protected static TextSpan EmptySpan(int position)
+            => new TextSpan(position, 0);
 
         internal static void AddTouchingTokens(SyntaxNode root, int position, List<SyntaxToken> tokens)
         {

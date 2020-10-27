@@ -47,7 +47,7 @@ namespace RunTests
             // Use 1.5 times the number of processors for unit tests, but only 1 processor for the open integration tests
             // since they perform actual UI operations (such as mouse clicks and sending keystrokes) and we don't want two
             // tests to conflict with one-another.
-            var max = (_options.TestVsi) ? 1 : (int)(Environment.ProcessorCount * 1.5);
+            var max = (_options.TestVsi || _options.Sequential) ? 1 : (int)(Environment.ProcessorCount * 1.5);
             var cacheCount = 0;
             var waiting = new Stack<AssemblyInfo>(assemblyInfoList);
             var running = new List<Task<TestResult>>();
@@ -70,6 +70,7 @@ namespace RunTests
                             if (!testResult.Succeeded)
                             {
                                 failures++;
+                                ConsoleUtil.WriteLine(ConsoleColor.Red, "Test failure log: " + testResult.ResultsFilePath);
                             }
 
                             if (testResult.IsFromCache)
@@ -81,7 +82,7 @@ namespace RunTests
                         }
                         catch (Exception ex)
                         {
-                            ConsoleUtil.WriteLine($"Error: {ex.Message}");
+                            ConsoleUtil.WriteLine(ConsoleColor.Red, $"Error: {ex.Message}");
                             failures++;
                         }
 

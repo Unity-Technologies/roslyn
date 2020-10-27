@@ -22,7 +22,7 @@ namespace Microsoft.CodeAnalysis
 
         // Cannot expose the following two field publicly because this structure is mutable
         // and might become not null/empty, unless we restrict access to it.
-        private static readonly Word[] s_emptyArray = Array.Empty<Word>();
+        private static Word[] s_emptyArray => Array.Empty<Word>();
         private static readonly BitVector s_nullValue = default;
         private static readonly BitVector s_emptyValue = new BitVector(0, s_emptyArray, 0);
 
@@ -49,7 +49,7 @@ namespace Microsoft.CodeAnalysis
                 && _bits.AsSpan().SequenceEqual(other._bits.AsSpan());
         }
 
-        public override bool Equals(object obj)
+        public override bool Equals(object? obj)
         {
             return obj is BitVector other && Equals(other);
         }
@@ -223,6 +223,21 @@ namespace Microsoft.CodeAnalysis
         }
 
         /// <summary>
+        /// Invert all the bits in the vector.
+        /// </summary>
+        public void Invert()
+        {
+            _bits0 = ~_bits0;
+            if (!(_bits is null))
+            {
+                for (int i = 0; i < _bits.Length; i++)
+                {
+                    _bits[i] = ~_bits[i];
+                }
+            }
+        }
+
+        /// <summary>
         /// Is the given bit array null?
         /// </summary>
         public bool IsNull
@@ -325,6 +340,8 @@ namespace Microsoft.CodeAnalysis
         {
             get
             {
+                if (index < 0)
+                    throw new IndexOutOfRangeException();
                 if (index >= _capacity)
                     return false;
                 int i = (index >> Log2BitsPerWord) - 1;
@@ -335,6 +352,8 @@ namespace Microsoft.CodeAnalysis
 
             set
             {
+                if (index < 0)
+                    throw new IndexOutOfRangeException();
                 if (index >= _capacity)
                     EnsureCapacity(index + 1);
                 int i = (index >> Log2BitsPerWord) - 1;

@@ -89,16 +89,6 @@ namespace Microsoft.CodeAnalysis.Editor.Tagging
             /// </summary>
             private readonly CancellationTokenSource _initialComputationCancellationTokenSource = new CancellationTokenSource();
 
-            /// <summary>
-            /// Whether or not we've gotten any change notifications from our <see cref="ITaggerEventSource"/>.
-            /// The first time we hear about changes, we fast track getting tags and reporting 
-            /// them to the UI.
-            /// 
-            /// We use an int so we can use <see cref="Interlocked.CompareExchange(ref int, int, int)"/> 
-            /// to read/set this.
-            /// </summary>
-            private int _seenEventSourceChanged;
-
             public TaggerDelay AddedTagNotificationDelay => _dataSource.AddedTagNotificationDelay;
             public TaggerDelay RemovedTagNotificationDelay => _dataSource.RemovedTagNotificationDelay;
 
@@ -303,19 +293,13 @@ namespace Microsoft.CodeAnalysis.Editor.Tagging
             }
 
             private void RaisePaused()
-            {
-                this.Paused?.Invoke(this, EventArgs.Empty);
-            }
+                => this.Paused?.Invoke(this, EventArgs.Empty);
 
             private void RaiseResumed()
-            {
-                this.Resumed?.Invoke(this, EventArgs.Empty);
-            }
+                => this.Resumed?.Invoke(this, EventArgs.Empty);
 
             private static T NextOrDefault<T>(IEnumerator<T> enumerator)
-            {
-                return enumerator.MoveNext() ? enumerator.Current : default;
-            }
+                => enumerator.MoveNext() ? enumerator.Current : default;
 
             /// <summary>
             /// Return all the spans that appear in only one of "latestSpans" or "previousSpans".

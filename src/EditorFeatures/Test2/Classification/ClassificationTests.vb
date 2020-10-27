@@ -13,6 +13,7 @@ Imports Microsoft.CodeAnalysis.Host.Mef
 Imports Microsoft.CodeAnalysis.Notification
 Imports Microsoft.CodeAnalysis.Shared.TestHooks
 Imports Microsoft.CodeAnalysis.Text
+Imports Microsoft.CodeAnalysis.UnitTests
 Imports Microsoft.VisualStudio.Text
 Imports Microsoft.VisualStudio.Text.Classification
 Imports Microsoft.VisualStudio.Text.Tagging
@@ -32,17 +33,17 @@ Namespace Microsoft.CodeAnalysis.Editor.UnitTests.Classification
                 </Project>
             </Workspace>
 
-            Dim exportProvider = ExportProviderCache _
-                .GetOrCreateExportProviderFactory(TestExportProvider.EntireAssemblyCatalogWithCSharpAndVisualBasic().WithParts(GetType(NoCompilationEditorClassificationService))) _
-                .CreateExportProvider()
+            Dim composition = EditorTestCompositions.EditorFeatures.AddParts(
+                GetType(NoCompilationContentTypeDefinitions),
+                GetType(NoCompilationContentTypeLanguageService),
+                GetType(NoCompilationEditorClassificationService))
 
-            Using workspace = TestWorkspace.Create(workspaceDefinition, exportProvider:=exportProvider)
-                Dim listenerProvider = exportProvider.GetExportedValue(Of IAsynchronousOperationListenerProvider)
+            Using workspace = TestWorkspace.Create(workspaceDefinition, composition:=composition)
+                Dim listenerProvider = workspace.ExportProvider.GetExportedValue(Of IAsynchronousOperationListenerProvider)
 
                 Dim provider = New SemanticClassificationViewTaggerProvider(
                     workspace.ExportProvider.GetExportedValue(Of IThreadingContext),
                     workspace.GetService(Of IForegroundNotificationService),
-                    workspace.GetService(Of ISemanticChangeNotificationService),
                     workspace.GetService(Of ClassificationTypeMap),
                     listenerProvider)
 
@@ -57,7 +58,7 @@ Namespace Microsoft.CodeAnalysis.Editor.UnitTests.Classification
                 End Using
 
                 Using DirectCast(tagger, IDisposable)
-                    Await listenerProvider.GetWaiter(FeatureAttribute.Classification).CreateExpeditedWaitTask()
+                    Await listenerProvider.GetWaiter(FeatureAttribute.Classification).ExpeditedWaitAsync()
 
                     ' Note: we don't actually care what results we get back.  We're just
                     ' verifying that we don't crash because the SemanticViewTagger ends up
@@ -70,10 +71,7 @@ Namespace Microsoft.CodeAnalysis.Editor.UnitTests.Classification
 
         <WpfFact>
         Public Sub TestFailOverOfMissingClassificationType()
-            Dim exportProvider = ExportProviderCache _
-                .GetOrCreateExportProviderFactory(TestExportProvider.EntireAssemblyCatalogWithCSharpAndVisualBasic()) _
-                .CreateExportProvider()
-
+            Dim exportProvider = EditorTestCompositions.EditorFeatures.ExportProviderFactory.CreateExportProvider()
 
             Dim typeMap = exportProvider.GetExportedValue(Of ClassificationTypeMap)
             Dim formatMap = exportProvider.GetExportedValue(Of IClassificationFormatMapService).GetClassificationFormatMap("tooltip")
@@ -97,11 +95,11 @@ Namespace Microsoft.CodeAnalysis.Editor.UnitTests.Classification
                 </Project>
             </Workspace>
 
-            Dim exportProvider = ExportProviderCache _
-                .GetOrCreateExportProviderFactory(TestExportProvider.EntireAssemblyCatalogWithCSharpAndVisualBasic()) _
-                .CreateExportProvider()
+            Dim composition = EditorTestCompositions.EditorFeatures.AddParts(
+                GetType(NoCompilationContentTypeLanguageService),
+                GetType(NoCompilationContentTypeDefinitions))
 
-            Using workspace = TestWorkspace.Create(workspaceDefinition, exportProvider:=exportProvider)
+            Using workspace = TestWorkspace.Create(workspaceDefinition, composition:=composition)
                 Dim project = workspace.CurrentSolution.Projects.First(Function(p) p.Language = LanguageNames.CSharp)
                 Dim classificationService = project.LanguageServices.GetService(Of IClassificationService)()
 
@@ -116,11 +114,12 @@ Namespace Microsoft.CodeAnalysis.Editor.UnitTests.Classification
         End Function
 
 #Disable Warning BC40000 ' Type or member is obsolete
-        <ExportLanguageService(GetType(IClassificationService), "NoCompilation"), [Shared]>
+        <ExportLanguageService(GetType(IClassificationService), NoCompilationConstants.LanguageName, ServiceLayer.Test), [Shared], PartNotDiscoverable>
         Private Class NoCompilationEditorClassificationService
             Implements IClassificationService
 
             <ImportingConstructor>
+            <Obsolete(MefConstruction.ImportingConstructorMessage, True)>
             Public Sub New()
             End Sub
 

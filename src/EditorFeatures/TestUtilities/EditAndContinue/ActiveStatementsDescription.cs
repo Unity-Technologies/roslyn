@@ -2,6 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+#nullable enable
+
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
@@ -19,7 +21,7 @@ namespace Microsoft.CodeAnalysis.EditAndContinue.UnitTests
         public readonly TextSpan[] NewSpans;
         public readonly ImmutableArray<TextSpan>[] OldRegions;
         public readonly ImmutableArray<TextSpan>[] NewRegions;
-        public readonly TextSpan?[] OldTrackingSpans;
+        public readonly TextSpan[]? OldTrackingSpans;
 
         private ActiveStatementsDescription()
         {
@@ -50,7 +52,6 @@ namespace Microsoft.CodeAnalysis.EditAndContinue.UnitTests
             // Tracking spans are marked in the new source since the editor moves them around as the user 
             // edits the source and we get their positions when analyzing the new source.
             // The EnC analyzer uses old trackign spans as hints to find matching nodes.
-            // After an edit the tracking spans are updated to match new active statements.
             OldTrackingSpans = GetTrackingSpans(newSource, OldStatements.Length);
         }
 
@@ -85,14 +86,10 @@ namespace Microsoft.CodeAnalysis.EditAndContinue.UnitTests
             RegexOptions.IgnorePatternWhitespace | RegexOptions.Singleline);
 
         internal static IEnumerable<int> GetIds(Match match)
-        {
-            return match.Groups["Id"].Value.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries).Select(int.Parse);
-        }
+            => match.Groups["Id"].Value.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries).Select(int.Parse);
 
         internal static int[] GetIds(string ids)
-        {
-            return ids.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries).Select(int.Parse).ToArray();
-        }
+            => ids.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries).Select(int.Parse).ToArray();
 
         internal static IEnumerable<ValueTuple<int, int>> GetDottedIds(Match match)
         {
@@ -148,7 +145,7 @@ namespace Microsoft.CodeAnalysis.EditAndContinue.UnitTests
                 text.Lines.GetLinePositionSpan(span),
                 documentId);
 
-        internal static TextSpan?[] GetTrackingSpans(string src, int count)
+        internal static TextSpan[]? GetTrackingSpans(string src, int count)
         {
             var matches = s_trackingStatementPattern.Matches(src);
             if (matches.Count == 0)
@@ -156,7 +153,7 @@ namespace Microsoft.CodeAnalysis.EditAndContinue.UnitTests
                 return null;
             }
 
-            var result = new TextSpan?[count];
+            var result = new TextSpan[count];
 
             for (var i = 0; i < matches.Count; i++)
             {
@@ -166,6 +163,8 @@ namespace Microsoft.CodeAnalysis.EditAndContinue.UnitTests
                     result[id] = new TextSpan(span.Index, span.Length);
                 }
             }
+
+            Contract.ThrowIfTrue(result.Any(span => span == default));
 
             return result;
         }
@@ -208,7 +207,7 @@ namespace Microsoft.CodeAnalysis.EditAndContinue.UnitTests
         {
             while (i >= list.Count)
             {
-                list.Add(default);
+                list.Add(default!);
             }
         }
     }

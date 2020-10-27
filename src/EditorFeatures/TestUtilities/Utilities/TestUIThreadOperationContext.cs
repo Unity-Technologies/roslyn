@@ -9,7 +9,7 @@ namespace Microsoft.CodeAnalysis.Editor.UnitTests.Utilities
 {
     internal class TestUIThreadOperationContext : AbstractUIThreadOperationContext
     {
-        CancellationTokenSource _cancellationTokenSource;
+        private readonly CancellationTokenSource _cancellationTokenSource;
         private readonly int _maxUpdates;
         private int _updates;
 
@@ -36,9 +36,7 @@ namespace Microsoft.CodeAnalysis.Editor.UnitTests.Utilities
         }
 
         protected override void OnScopeProgressChanged(IUIThreadOperationScope changedScope)
-        {
-            UpdateProgress();
-        }
+            => UpdateProgress();
 
         private void UpdateProgress()
         {

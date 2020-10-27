@@ -5,6 +5,7 @@
 Imports System.ComponentModel.Composition
 Imports System.Threading
 Imports Microsoft.CodeAnalysis.Editor.Implementation.Highlighting
+Imports Microsoft.CodeAnalysis.Host.Mef
 Imports Microsoft.CodeAnalysis.Text
 Imports Microsoft.CodeAnalysis.VisualBasic.Syntax
 
@@ -14,6 +15,7 @@ Namespace Microsoft.CodeAnalysis.Editor.VisualBasic.KeywordHighlighting
         Inherits AbstractKeywordHighlighter(Of SyntaxNode)
 
         <ImportingConstructor>
+        <Obsolete(MefConstruction.ImportingConstructorMessage, True)>
         Public Sub New()
         End Sub
 
@@ -37,7 +39,7 @@ Namespace Microsoft.CodeAnalysis.Editor.VisualBasic.KeywordHighlighting
                     highlights.Add(.InKeyword.Span)
                 End With
             Else
-                Contract.Fail("Expected ForStatementSyntax or ForEachStatementSyntax, but was " & forBlock.ForOrForEachStatement.GetTypeDisplayName())
+                throw ExceptionUtilities.UnexpectedValue(forBlock.ForOrForEachStatement)
             End If
 
             highlights.AddRange(
@@ -51,7 +53,7 @@ Namespace Microsoft.CodeAnalysis.Editor.VisualBasic.KeywordHighlighting
             End If
         End Sub
 
-        Private Function GetForBlockFromNode(node As SyntaxNode) As ForOrForEachBlockSyntax
+        Private Shared Function GetForBlockFromNode(node As SyntaxNode) As ForOrForEachBlockSyntax
             If node.IsIncorrectContinueStatement(SyntaxKind.ContinueForStatement) OrElse
                node.IsIncorrectExitStatement(SyntaxKind.ExitForStatement) Then
                 Return Nothing
@@ -77,7 +79,7 @@ Namespace Microsoft.CodeAnalysis.Editor.VisualBasic.KeywordHighlighting
         ''' statement that is closing multiple loops, the Next statement is attached to the 
         ''' innermost matching loop.
         ''' </summary>
-        Private Function GetNextStatementMatchingForBlock(forBlock As ForOrForEachBlockSyntax) As NextStatementSyntax
+        Private Shared Function GetNextStatementMatchingForBlock(forBlock As ForOrForEachBlockSyntax) As NextStatementSyntax
             Dim forBlockChild = forBlock
 
             While forBlockChild IsNot Nothing
@@ -112,7 +114,7 @@ Namespace Microsoft.CodeAnalysis.Editor.VisualBasic.KeywordHighlighting
         ''' innermost. Do not consider the actual names of the loop variables because highlighting 
         ''' should work even if the wrong identifier names are listed. 
         ''' </summary>
-        Private Function GetForBlocksMatchingNextStatement(nextStatement As NextStatementSyntax) As IEnumerable(Of ForOrForEachBlockSyntax)
+        Private Shared Function GetForBlocksMatchingNextStatement(nextStatement As NextStatementSyntax) As IEnumerable(Of ForOrForEachBlockSyntax)
             ' If there are 0 control variables, then one for block is closed by the Next statement
             Dim numExpectedForBlocksMatched = Math.Max(nextStatement.ControlVariables.Count(), 1)
             Return nextStatement.GetAncestors(Of ForOrForEachBlockSyntax).Take(numExpectedForBlocksMatched).Reverse()

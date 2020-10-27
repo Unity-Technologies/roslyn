@@ -2,11 +2,12 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+#nullable enable
+
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics;
-using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading;
@@ -30,11 +31,15 @@ namespace Microsoft.CodeAnalysis.CodeFixes.Configuration
         private enum ConfigurationKind
         {
             OptionValue,
-            Severity
+            Severity,
+            BulkConfigure
         }
 
         private const string DiagnosticOptionPrefix = "dotnet_diagnostic.";
-        private const string DiagnosticOptionSuffix = ".severity";
+        private const string SeveritySuffix = ".severity";
+        private const string BulkConfigureAllAnalyzerDiagnosticsOptionKey = "dotnet_analyzer_diagnostic.severity";
+        private const string BulkConfigureAnalyzerDiagnosticsByCategoryOptionPrefix = "dotnet_analyzer_diagnostic.category-";
+        private const string AllAnalyzerDiagnosticsCategory = "";
 
         // Regular expression for .editorconfig header.
         // For example: "[*.cs]    # Optional comment"
@@ -47,41 +52,52 @@ namespace Microsoft.CodeAnalysis.CodeFixes.Configuration
         // For example: "dotnet_style_object_initializer = true:suggestion   # Optional comment"
         private static readonly Regex s_optionBasedEntryPattern = new Regex(@"([\w ]+)=([\w, ]+):[ ]*([\w]+)([ ]*[;#].*)?");
 
-        // Regular expression for .editorconfig diagnosticID severity configuration entry.
-        // For example: "dotnet_diagnostic.CA2000.severity = suggestion   # Optional comment"
-        private static readonly Regex s_severityBasedEntryPattern = new Regex(@"([\w \.]+)=[ ]*([\w]+)([ ]*[;#].*)?");
+        // Regular expression for .editorconfig diagnostic severity configuration entry.
+        // For example:
+        //  1. "dotnet_diagnostic.CA2000.severity = suggestion   # Optional comment"
+        //  2. "dotnet_analyzer_diagnostic.category-Security.severity = suggestion   # Optional comment"
+        //  3. "dotnet_analyzer_diagnostic.severity = suggestion   # Optional comment"
+        private static readonly Regex s_severityBasedEntryPattern = new Regex(@"([\w- \.]+)=[ ]*([\w]+)([ ]*[;#].*)?");
 
-        private readonly string _optionNameOpt;
-        private readonly string _newOptionValueOpt;
+        private readonly string? _optionNameOpt;
+        private readonly string? _newOptionValueOpt;
         private readonly string _newSeverity;
         private readonly ConfigurationKind _configurationKind;
-        private readonly Diagnostic _diagnostic;
+        private readonly Diagnostic? _diagnostic;
+        private readonly string? _categoryToBulkConfigure;
         private readonly bool _isPerLanguage;
         private readonly Project _project;
         private readonly CancellationToken _cancellationToken;
+        private readonly bool _addNewEntryIfNoExistingEntryFound;
         private readonly string _language;
 
         private ConfigurationUpdater(
-            string optionNameOpt,
-            string newOptionValueOpt,
+            string? optionNameOpt,
+            string? newOptionValueOpt,
             string newSeverity,
             ConfigurationKind configurationKind,
-            Diagnostic diagnostic,
+            Diagnostic? diagnosticToConfigure,
+            string? categoryToBulkConfigure,
             bool isPerLanguage,
             Project project,
+            bool addNewEntryIfNoExistingEntryFound,
             CancellationToken cancellationToken)
         {
             Debug.Assert(configurationKind != ConfigurationKind.OptionValue || !string.IsNullOrEmpty(newOptionValueOpt));
             Debug.Assert(!string.IsNullOrEmpty(newSeverity));
+            Debug.Assert(diagnosticToConfigure != null ^ categoryToBulkConfigure != null);
+            Debug.Assert((categoryToBulkConfigure != null) == (configurationKind == ConfigurationKind.BulkConfigure));
 
             _optionNameOpt = optionNameOpt;
             _newOptionValueOpt = newOptionValueOpt;
             _newSeverity = newSeverity;
             _configurationKind = configurationKind;
-            _diagnostic = diagnostic;
+            _diagnostic = diagnosticToConfigure;
+            _categoryToBulkConfigure = categoryToBulkConfigure;
             _isPerLanguage = isPerLanguage;
             _project = project;
             _cancellationToken = cancellationToken;
+            _addNewEntryIfNoExistingEntryFound = addNewEntryIfNoExistingEntryFound;
             _language = project.Language;
         }
 
@@ -123,15 +139,57 @@ namespace Microsoft.CodeAnalysis.CodeFixes.Configuration
             if (!codeStyleOptionValues.IsEmpty)
             {
                 return ConfigureCodeStyleOptionsAsync(
-                    codeStyleOptionValues.Select(t => (t.optionName, t.currentOptionValue, editorConfigSeverity, t.isPerLanguage)),
-                    diagnostic, project, configurationKind: ConfigurationKind.Severity, cancellationToken);
+                    codeStyleOptionValues.Select(t => (t.optionName, t.currentOptionValue, t.isPerLanguage)),
+                    editorConfigSeverity, diagnostic, project, configurationKind: ConfigurationKind.Severity, cancellationToken);
             }
             else
             {
                 updater = new ConfigurationUpdater(optionNameOpt: null, newOptionValueOpt: null, editorConfigSeverity,
-                    configurationKind: ConfigurationKind.Severity, diagnostic, isPerLanguage: false, project, cancellationToken);
+                    configurationKind: ConfigurationKind.Severity, diagnostic, categoryToBulkConfigure: null,
+                    isPerLanguage: false, project, addNewEntryIfNoExistingEntryFound: true, cancellationToken);
                 return updater.ConfigureAsync();
             }
+        }
+
+        /// <summary>
+        /// Updates or adds an .editorconfig <see cref="AnalyzerConfigDocument"/> to the given <paramref name="project"/>
+        /// so that the default severity of the diagnostics with the given <paramref name="category"/> is configured to be the given
+        /// <paramref name="editorConfigSeverity"/>.
+        /// </summary>
+        public static Task<Solution> BulkConfigureSeverityAsync(
+            string editorConfigSeverity,
+            string category,
+            Project project,
+            CancellationToken cancellationToken)
+        {
+            Contract.ThrowIfFalse(!string.IsNullOrEmpty(category));
+            return BulkConfigureSeverityCoreAsync(editorConfigSeverity, category, project, cancellationToken);
+        }
+
+        /// <summary>
+        /// Updates or adds an .editorconfig <see cref="AnalyzerConfigDocument"/> to the given <paramref name="project"/>
+        /// so that the default severity of all diagnostics is configured to be the given
+        /// <paramref name="editorConfigSeverity"/>.
+        /// </summary>
+        public static Task<Solution> BulkConfigureSeverityAsync(
+            string editorConfigSeverity,
+            Project project,
+            CancellationToken cancellationToken)
+        {
+            return BulkConfigureSeverityCoreAsync(editorConfigSeverity, category: AllAnalyzerDiagnosticsCategory, project, cancellationToken);
+        }
+
+        private static Task<Solution> BulkConfigureSeverityCoreAsync(
+            string editorConfigSeverity,
+            string category,
+            Project project,
+            CancellationToken cancellationToken)
+        {
+            Contract.ThrowIfNull(category);
+            var updater = new ConfigurationUpdater(optionNameOpt: null, newOptionValueOpt: null, editorConfigSeverity,
+                configurationKind: ConfigurationKind.BulkConfigure, diagnosticToConfigure: null, category,
+                isPerLanguage: false, project, addNewEntryIfNoExistingEntryFound: true, cancellationToken);
+            return updater.ConfigureAsync();
         }
 
         /// <summary>
@@ -141,32 +199,62 @@ namespace Microsoft.CodeAnalysis.CodeFixes.Configuration
         public static Task<Solution> ConfigureCodeStyleOptionAsync(
             string optionName,
             string optionValue,
-            string defaultSeverity,
             Diagnostic diagnostic,
             bool isPerLanguage,
             Project project,
             CancellationToken cancellationToken)
         => ConfigureCodeStyleOptionsAsync(
-                SpecializedCollections.SingletonEnumerable((optionName, optionValue, defaultSeverity, isPerLanguage)),
+                SpecializedCollections.SingletonEnumerable((optionName, optionValue, isPerLanguage)),
+                diagnostic.Severity.ToEditorConfigString(),
                 diagnostic, project, configurationKind: ConfigurationKind.OptionValue, cancellationToken);
 
         private static async Task<Solution> ConfigureCodeStyleOptionsAsync(
-            IEnumerable<(string optionName, string optionValue, string optionSeverity, bool isPerLanguage)> codeStyleOptionValues,
+            IEnumerable<(string optionName, string optionValue, bool isPerLanguage)> codeStyleOptionValues,
+            string editorConfigSeverity,
             Diagnostic diagnostic,
             Project project,
             ConfigurationKind configurationKind,
             CancellationToken cancellationToken)
         {
+            Debug.Assert(!codeStyleOptionValues.IsEmpty());
+
+            // For severity configuration for IDE code style diagnostics, we want to ensure the following:
+            //  1. For code style option based entries, i.e. "%option_name% = %option_value%:%severity%,
+            //     we only update existing entries, but do not add a new entry.
+            //  2. For "dotnet_diagnostic.<%DiagnosticId%>.severity = %severity%" entries, we update existing entries, and if none found
+            //     we add a single new severity configuration entry for all code style options that share the same diagnostic ID.
+            //  This behavior is required to ensure that we always add the up-to-date dotnet_diagnostic based severity entry
+            //  so the IDE code style diagnostics can be enforced in build, as the compiler only understands dotnet_diagnostic entries.
+            //  See https://github.com/dotnet/roslyn/issues/44201 for more details.
+
+            // First handle "%option_name% = %option_value%:%severity% entries.
+            // For option value configuration, we always want to add new entry if no existing value is found.
+            // For severity configuration, we only want to update existing value if found.
             var currentProject = project;
-            foreach (var (optionName, optionValue, severity, isPerLanguage) in codeStyleOptionValues)
+            var areAllOptionsPerLanguage = true;
+            var addNewEntryIfNoExistingEntryFound = configurationKind != ConfigurationKind.Severity;
+            foreach (var (optionName, optionValue, isPerLanguage) in codeStyleOptionValues)
             {
                 Debug.Assert(!string.IsNullOrEmpty(optionName));
                 Debug.Assert(optionValue != null);
-                Debug.Assert(!string.IsNullOrEmpty(severity));
 
-                var updater = new ConfigurationUpdater(optionName, optionValue, severity, configurationKind, diagnostic, isPerLanguage, currentProject, cancellationToken);
+                var updater = new ConfigurationUpdater(optionName, optionValue, editorConfigSeverity, configurationKind,
+                    diagnostic, categoryToBulkConfigure: null, isPerLanguage, currentProject,
+                    addNewEntryIfNoExistingEntryFound, cancellationToken);
                 var solution = await updater.ConfigureAsync().ConfigureAwait(false);
-                currentProject = solution.GetProject(project.Id);
+                currentProject = solution.GetProject(project.Id)!;
+                areAllOptionsPerLanguage = areAllOptionsPerLanguage && isPerLanguage;
+            }
+
+            // For severity configuration, handle "dotnet_diagnostic.<%DiagnosticId%>.severity = %severity%" entry.
+            // We want to update existing entry + add new entry if no existing value is found.
+            if (configurationKind == ConfigurationKind.Severity)
+            {
+                var updater = new ConfigurationUpdater(optionNameOpt: null, newOptionValueOpt: null, editorConfigSeverity,
+                    configurationKind: ConfigurationKind.Severity, diagnostic, categoryToBulkConfigure: null,
+                    isPerLanguage: areAllOptionsPerLanguage, currentProject, addNewEntryIfNoExistingEntryFound: true, cancellationToken);
+                var solution = await updater.ConfigureAsync().ConfigureAwait(false);
+                currentProject = solution.GetProject(project.Id)!;
             }
 
             return currentProject.Solution;
@@ -187,7 +275,7 @@ namespace Microsoft.CodeAnalysis.CodeFixes.Configuration
             // Compute the updated text for analyzer config document.
             var newText = GetNewAnalyzerConfigDocumentText(originalText, editorConfigDocument);
 
-            if (newText == null)
+            if (newText == null || newText.Equals(originalText))
             {
                 return solution;
             }
@@ -201,9 +289,11 @@ namespace Microsoft.CodeAnalysis.CodeFixes.Configuration
             return solution.WithAnalyzerConfigDocumentText(editorConfigDocument.Id, newText);
         }
 
-        private AnalyzerConfigDocument FindOrGenerateEditorConfig()
+        private AnalyzerConfigDocument? FindOrGenerateEditorConfig()
         {
-            var analyzerConfigPath = _project.TryGetAnalyzerConfigPathForDiagnosticConfiguration(_diagnostic);
+            var analyzerConfigPath = _diagnostic != null
+                ? _project.TryGetAnalyzerConfigPathForDiagnosticConfiguration(_diagnostic)
+                : _project.TryGetAnalyzerConfigPathForProjectConfiguration();
             if (analyzerConfigPath == null)
             {
                 return null;
@@ -217,8 +307,8 @@ namespace Microsoft.CodeAnalysis.CodeFixes.Configuration
             }
 
             // Otherwise, add analyzer config document to all applicable projects for the current project's solution.
-            AnalyzerConfigDocument analyzerConfigDocument = null;
-            var analyzerConfigDirectory = PathUtilities.GetDirectoryName(analyzerConfigPath);
+            AnalyzerConfigDocument? analyzerConfigDocument = null;
+            var analyzerConfigDirectory = PathUtilities.GetDirectoryName(analyzerConfigPath) ?? throw ExceptionUtilities.Unreachable;
             var currentSolution = _project.Solution;
             foreach (var projectId in _project.Solution.ProjectIds)
             {
@@ -237,7 +327,7 @@ namespace Microsoft.CodeAnalysis.CodeFixes.Configuration
             return analyzerConfigDocument;
         }
 
-        private static ImmutableArray<(string optionName, string currentOptionValue, string currentSeverity, bool isPerLanguage)> GetCodeStyleOptionValuesForDiagnostic(
+        private static ImmutableArray<(string optionName, string currentOptionValue, bool isPerLanguage)> GetCodeStyleOptionValuesForDiagnostic(
             Diagnostic diagnostic,
             Project project)
         {
@@ -250,7 +340,7 @@ namespace Microsoft.CodeAnalysis.CodeFixes.Configuration
             if (!codeStyleOptions.IsEmpty)
             {
                 var optionSet = project.Solution.Workspace.Options;
-                var builder = ArrayBuilder<(string optionName, string currentOptionValue, string currentSeverity, bool isPerLanguage)>.GetInstance();
+                var builder = ArrayBuilder<(string optionName, string currentOptionValue, bool isPerLanguage)>.GetInstance();
 
                 try
                 {
@@ -259,9 +349,9 @@ namespace Microsoft.CodeAnalysis.CodeFixes.Configuration
                         if (!TryGetEditorConfigStringParts(codeStyleOption, editorConfigLocation, optionSet, out var parts))
                         {
                             // Did not find a match, bail out.
-                            return ImmutableArray<(string optionName, string currentOptionValue, string currentSeverity, bool isPerLanguage)>.Empty;
+                            return ImmutableArray<(string optionName, string currentOptionValue, bool isPerLanguage)>.Empty;
                         }
-                        builder.Add((parts.optionName, parts.optionValue, parts.optionSeverity, isPerLanguage));
+                        builder.Add((parts.optionName, parts.optionValue, isPerLanguage));
                     }
 
                     return builder.ToImmutable();
@@ -272,14 +362,14 @@ namespace Microsoft.CodeAnalysis.CodeFixes.Configuration
                 }
             }
 
-            return ImmutableArray<(string optionName, string currentOptionValue, string currentSeverity, bool isPerLanguage)>.Empty;
+            return ImmutableArray<(string optionName, string currentOptionValue, bool isPerLanguage)>.Empty;
         }
 
         internal static bool TryGetEditorConfigStringParts(
             ICodeStyleOption codeStyleOption,
             IEditorConfigStorageLocation2 editorConfigLocation,
             OptionSet optionSet,
-            out (string optionName, string optionValue, string optionSeverity) parts)
+            out (string optionName, string optionValue) parts)
         {
             var editorConfigString = editorConfigLocation.GetEditorConfigString(codeStyleOption, optionSet);
             if (!string.IsNullOrEmpty(editorConfigString))
@@ -288,8 +378,7 @@ namespace Microsoft.CodeAnalysis.CodeFixes.Configuration
                 if (match.Success)
                 {
                     parts = (optionName: match.Groups[1].Value.Trim(),
-                             optionValue: match.Groups[2].Value.Trim(),
-                             optionSeverity: match.Groups[3].Value.Trim());
+                             optionValue: match.Groups[2].Value.Trim());
                     return true;
                 }
             }
@@ -298,7 +387,6 @@ namespace Microsoft.CodeAnalysis.CodeFixes.Configuration
             return false;
         }
 
-
         internal static ImmutableArray<(OptionKey optionKey, ICodeStyleOption codeStyleOptionValue, IEditorConfigStorageLocation2 location, bool isPerLanguage)> GetCodeStyleOptionsForDiagnostic(
             Diagnostic diagnostic,
             Project project)
@@ -306,39 +394,32 @@ namespace Microsoft.CodeAnalysis.CodeFixes.Configuration
             if (IDEDiagnosticIdToOptionMappingHelper.TryGetMappedOptions(diagnostic.Id, project.Language, out var options))
             {
                 var optionSet = project.Solution.Workspace.Options;
-                var builder = ArrayBuilder<(OptionKey, ICodeStyleOption, IEditorConfigStorageLocation2, bool)>.GetInstance();
+                using var _ = ArrayBuilder<(OptionKey, ICodeStyleOption, IEditorConfigStorageLocation2, bool)>.GetInstance(out var builder);
 
-                try
+                foreach (var option in options.OrderBy(option => option.Name))
                 {
-                    foreach (var option in options.OrderBy(option => option.Name))
+                    var editorConfigLocation = option.StorageLocations.OfType<IEditorConfigStorageLocation2>().FirstOrDefault();
+                    if (editorConfigLocation != null)
                     {
-                        var editorConfigLocation = option.StorageLocations.OfType<IEditorConfigStorageLocation2>().FirstOrDefault();
-                        if (editorConfigLocation != null)
+                        var optionKey = new OptionKey(option, option.IsPerLanguage ? project.Language : null);
+                        if (optionSet.GetOption(optionKey) is ICodeStyleOption codeStyleOption)
                         {
-                            var optionKey = new OptionKey(option, option.IsPerLanguage ? project.Language : null);
-                            if (optionSet.GetOption(optionKey) is ICodeStyleOption codeStyleOption)
-                            {
-                                builder.Add((optionKey, codeStyleOption, editorConfigLocation, option.IsPerLanguage));
-                                continue;
-                            }
+                            builder.Add((optionKey, codeStyleOption, editorConfigLocation, option.IsPerLanguage));
+                            continue;
                         }
-
-                        // Did not find a match.
-                        return ImmutableArray<(OptionKey, ICodeStyleOption, IEditorConfigStorageLocation2, bool)>.Empty;
                     }
 
-                    return builder.ToImmutable();
+                    // Did not find a match.
+                    return ImmutableArray<(OptionKey, ICodeStyleOption, IEditorConfigStorageLocation2, bool)>.Empty;
                 }
-                finally
-                {
-                    builder.Free();
-                }
+
+                return builder.ToImmutable();
             }
 
             return ImmutableArray<(OptionKey, ICodeStyleOption, IEditorConfigStorageLocation2, bool)>.Empty;
         }
 
-        private SourceText GetNewAnalyzerConfigDocumentText(SourceText originalText, AnalyzerConfigDocument editorConfigDocument)
+        private SourceText? GetNewAnalyzerConfigDocumentText(SourceText originalText, AnalyzerConfigDocument editorConfigDocument)
         {
             // Check if an entry to configure the rule severity already exists in the .editorconfig file.
             // If it does, we update the existing entry with the new severity.
@@ -348,12 +429,17 @@ namespace Microsoft.CodeAnalysis.CodeFixes.Configuration
                 return newText;
             }
 
+            if (!_addNewEntryIfNoExistingEntryFound)
+            {
+                return originalText;
+            }
+
             // We did not find any existing entry in the in the .editorconfig file to configure rule severity.
             // So we add a new configuration entry to the .editorconfig file.
             return AddMissingRule(originalText, lastValidHeaderSpanEnd, lastValidSpecificHeaderSpanEnd);
         }
 
-        private (SourceText newText, TextLine? lastValidHeaderSpanEnd, TextLine? lastValidSpecificHeaderSpanEnd) CheckIfRuleExistsAndReplaceInFile(
+        private (SourceText? newText, TextLine? lastValidHeaderSpanEnd, TextLine? lastValidSpecificHeaderSpanEnd) CheckIfRuleExistsAndReplaceInFile(
             SourceText result,
             AnalyzerConfigDocument editorConfigDocument)
         {
@@ -367,8 +453,8 @@ namespace Microsoft.CodeAnalysis.CodeFixes.Configuration
             var relativePath = string.Empty;
             var diagnosticFilePath = string.Empty;
 
-            // If diagnostic SourceTree is null, it means Location.None, and thus no relative path.
-            var diagnosticSourceTree = _diagnostic.Location.SourceTree;
+            // If diagnostic SourceTree is null, it means either Location.None or Bulk configuration at root editorconfig, and thus no relative path.
+            var diagnosticSourceTree = _diagnostic?.Location.SourceTree;
             if (diagnosticSourceTree != null)
             {
                 // Finds the relative path between editorconfig directory and diagnostic filepath.
@@ -391,10 +477,12 @@ namespace Microsoft.CodeAnalysis.CodeFixes.Configuration
                 var curLineText = curLine.ToString();
 
                 // We might have a diagnostic ID configuration entry based on either s_optionBasedEntryPattern or
-                // s_severityBasedEntryPattern. Both of these are considered valid severity configurations
-                // and should be detected here.
+                // s_severityBasedEntryPattern. Both of these are considered valid severity configurations.
                 var isOptionBasedMatch = s_optionBasedEntryPattern.IsMatch(curLineText);
-                var isSeverityBasedMatch = _configurationKind == ConfigurationKind.Severity &&
+
+                // We want to detect severity based entry only when we are configuring severity and have no option name specified.
+                var isSeverityBasedMatch = _configurationKind != ConfigurationKind.OptionValue &&
+                    _optionNameOpt == null &&
                     !isOptionBasedMatch &&
                     s_severityBasedEntryPattern.IsMatch(curLineText);
                 if (isOptionBasedMatch || isSeverityBasedMatch)
@@ -427,22 +515,55 @@ namespace Microsoft.CodeAnalysis.CodeFixes.Configuration
                         {
                             // We found a rule configuration entry of severity based form:
                             //      "dotnet_diagnostic.<%DiagnosticId%>.severity = %severity%
-                            var diagIdLength = -1;
-                            if (key.StartsWith(DiagnosticOptionPrefix, StringComparison.Ordinal) &&
-                                key.EndsWith(DiagnosticOptionSuffix, StringComparison.Ordinal))
-                            {
-                                diagIdLength = key.Length - (DiagnosticOptionPrefix.Length + DiagnosticOptionSuffix.Length);
-                            }
+                            //              OR
+                            //      "dotnet_analyzer_diagnostic.severity = %severity%
+                            //              OR
+                            //      "dotnet_analyzer_diagnostic.category-<%DiagnosticCategory%>.severity = %severity%
 
-                            if (diagIdLength >= 0)
+                            switch (_configurationKind)
                             {
-                                var diagId = key.Substring(
-                                    DiagnosticOptionPrefix.Length,
-                                    diagIdLength);
-                                if (string.Equals(diagId, _diagnostic.Id, StringComparison.OrdinalIgnoreCase))
-                                {
-                                    textChange = new TextChange(curLine.Span, $"{key} = {_newSeverity}{commentValue}");
-                                }
+                                case ConfigurationKind.Severity:
+                                    RoslynDebug.Assert(_diagnostic != null);
+                                    if (key.StartsWith(DiagnosticOptionPrefix, StringComparison.Ordinal) &&
+                                        key.EndsWith(SeveritySuffix, StringComparison.Ordinal))
+                                    {
+                                        var diagIdLength = key.Length - (DiagnosticOptionPrefix.Length + SeveritySuffix.Length);
+                                        if (diagIdLength > 0)
+                                        {
+                                            var diagId = key.Substring(DiagnosticOptionPrefix.Length, diagIdLength);
+                                            if (string.Equals(diagId, _diagnostic.Id, StringComparison.OrdinalIgnoreCase))
+                                            {
+                                                textChange = new TextChange(curLine.Span, $"{key} = {_newSeverity}{commentValue}");
+                                            }
+                                        }
+                                    }
+
+                                    break;
+
+                                case ConfigurationKind.BulkConfigure:
+                                    RoslynDebug.Assert(_categoryToBulkConfigure != null);
+                                    if (_categoryToBulkConfigure == AllAnalyzerDiagnosticsCategory)
+                                    {
+                                        if (key == BulkConfigureAllAnalyzerDiagnosticsOptionKey)
+                                        {
+                                            textChange = new TextChange(curLine.Span, $"{key} = {_newSeverity}{commentValue}");
+                                        }
+                                    }
+                                    else
+                                    {
+                                        if (key.StartsWith(BulkConfigureAnalyzerDiagnosticsByCategoryOptionPrefix, StringComparison.Ordinal) &&
+                                            key.EndsWith(SeveritySuffix, StringComparison.Ordinal))
+                                        {
+                                            var categoryLength = key.Length - (BulkConfigureAnalyzerDiagnosticsByCategoryOptionPrefix.Length + SeveritySuffix.Length);
+                                            var category = key.Substring(BulkConfigureAnalyzerDiagnosticsByCategoryOptionPrefix.Length, categoryLength);
+                                            if (string.Equals(category, _categoryToBulkConfigure, StringComparison.OrdinalIgnoreCase))
+                                            {
+                                                textChange = new TextChange(curLine.Span, $"{key} = {_newSeverity}{commentValue}");
+                                            }
+                                        }
+                                    }
+
+                                    break;
                             }
                         }
                     }
@@ -499,7 +620,7 @@ namespace Microsoft.CodeAnalysis.CodeFixes.Configuration
                                 // Thus, we want to keep track of whether there is an existing header that only contains [*.cs] or only
                                 // [*.vb], depending on the language.
                                 // We also keep track of the last valid header for the language.
-                                var isLanguageAgnosticEntry = !SuppressionHelpers.IsCompilerDiagnostic(_diagnostic) && _isPerLanguage;
+                                var isLanguageAgnosticEntry = (_diagnostic == null || !SuppressionHelpers.IsCompilerDiagnostic(_diagnostic)) && _isPerLanguage;
                                 if (isLanguageAgnosticEntry)
                                 {
                                     if ((_language.Equals(LanguageNames.CSharp) || _language.Equals(LanguageNames.VisualBasic)) &&
@@ -557,23 +678,37 @@ namespace Microsoft.CodeAnalysis.CodeFixes.Configuration
             return (null, lastValidHeaderSpanEnd, lastValidSpecificHeaderSpanEnd);
         }
 
-        private SourceText AddMissingRule(
+        private SourceText? AddMissingRule(
             SourceText result,
             TextLine? lastValidHeaderSpanEnd,
             TextLine? lastValidSpecificHeaderSpanEnd)
         {
-            // Create a new rule configuration entry for the given diagnostic ID.
+            // Create a new rule configuration entry for the given diagnostic ID or bulk configuration category.
             // If optionNameOpt and optionValueOpt are non-null, it indicates an option based diagnostic ID
             // which can be configured by a new entry such as: "%option_name% = %option_value%:%severity%
-            // Otherwise, it indicates a non-option diagnostic ID,
+            // Otherwise, if diagnostic is non-null, it indicates a non-option diagnostic ID,
             // which can be configured by a new entry such as: "dotnet_diagnostic.<%DiagnosticId%>.severity = %severity%
+            // Otherwise, it indicates a bulk configuration entry for default severity of a specific diagnostic category or all analyzer diagnostics,
+            // which can be configured by a new entry such as:
+            //  1. All analyzer diagnostics: "dotnet_analyzer_diagnostic.severity = %severity%
+            //  2. Category configuration: "dotnet_analyzer_diagnostic.category-<%DiagnosticCategory%>.severity = %severity%
 
             var newEntry = !string.IsNullOrEmpty(_optionNameOpt) && !string.IsNullOrEmpty(_newOptionValueOpt)
                 ? $"{_optionNameOpt} = {_newOptionValueOpt}:{_newSeverity}"
-                : $"{DiagnosticOptionPrefix}{_diagnostic.Id}{DiagnosticOptionSuffix} = {_newSeverity}";
+                : _diagnostic != null
+                    ? $"{DiagnosticOptionPrefix}{_diagnostic.Id}{SeveritySuffix} = {_newSeverity}"
+                    : _categoryToBulkConfigure == AllAnalyzerDiagnosticsCategory
+                        ? $"{BulkConfigureAllAnalyzerDiagnosticsOptionKey} = {_newSeverity}"
+                        : $"{BulkConfigureAnalyzerDiagnosticsByCategoryOptionPrefix}{_categoryToBulkConfigure}{SeveritySuffix} = {_newSeverity}";
 
-            // Insert a new line and comment text with diagnostic title above the new entry
-            newEntry = $"\r\n# {_diagnostic.Id}: {_diagnostic.Descriptor.Title}\r\n{newEntry}\r\n";
+            // Insert a new line and comment text above the new entry
+            var commentPrefix = _diagnostic != null
+                ? $"{_diagnostic.Id}: {_diagnostic.Descriptor.Title}"
+                : _categoryToBulkConfigure == AllAnalyzerDiagnosticsCategory
+                    ? "Default severity for all analyzer diagnostics"
+                    : $"Default severity for analyzer diagnostics with category '{_categoryToBulkConfigure}'";
+
+            newEntry = $"\r\n# {commentPrefix}\r\n{newEntry}\r\n";
 
             // Check if have a correct existing header for the new entry.
             //      - If the diagnostic's isPerLanguage = true, it means the rule is valid for both C# and VB.
@@ -623,7 +758,7 @@ namespace Microsoft.CodeAnalysis.CodeFixes.Configuration
                     prefix += "\r\n";
                 }
 
-                var compilerDiagOrNotPerLang = SuppressionHelpers.IsCompilerDiagnostic(_diagnostic) || !_isPerLanguage;
+                var compilerDiagOrNotPerLang = (_diagnostic != null && SuppressionHelpers.IsCompilerDiagnostic(_diagnostic)) || !_isPerLanguage;
                 if (_language.Equals(LanguageNames.CSharp) && compilerDiagOrNotPerLang)
                 {
                     prefix += "[*.cs]\r\n";

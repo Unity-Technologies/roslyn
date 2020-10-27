@@ -170,13 +170,13 @@ class Program
     {
         System.Collections.Generic.IEnumerable<int> enumerable()
         {
-            var v1 = new int[] { 1, 2 };
-            var v = new int[] { 3, 4 };
-            foreach (var num in v1)
+            var vs1 = new int[] { 1, 2 };
+            var vs = new int[] { 3, 4 };
+            foreach (var num in vs1)
             {
                 foreach (var a in new int[] { 5, 6 })
                 {
-                    foreach (var x1 in v)
+                    foreach (var x1 in vs)
                     {
                         if (object.Equals(num, x1))
                         {
@@ -219,18 +219,18 @@ class Program
     {
         System.Collections.Generic.IEnumerable<int> enumerable()
         {
-            var v2 = new int[] { 1, 2 };
-            var v1 = new int[] { 3, 4 };
-            var v = new int[] { 7, 8 };
-            foreach (var num in v2)
+            var vs2 = new int[] { 1, 2 };
+            var vs1 = new int[] { 3, 4 };
+            var vs = new int[] { 7, 8 };
+            foreach (var num in vs2)
             {
                 foreach (var a in new int[] { 5, 6 })
                 {
-                    foreach (var x1 in v1)
+                    foreach (var x1 in vs1)
                     {
                         if (object.Equals(num, x1))
                         {
-                            foreach (var x2 in v)
+                            foreach (var x2 in vs)
                             {
                                 if (object.Equals(num, x2))
                                 {
@@ -1104,7 +1104,6 @@ class C
             // No conversion can be made because it expects to introduce a local function but the return type contains anonymous.
             await TestMissingAsync(source);
         }
-
 
         [Fact, Trait(Traits.Feature, Traits.Features.CodeActionsConvertQueryToForEach)]
         public async Task DuplicateIdentifiers()
@@ -2141,7 +2140,7 @@ class C
 {
     void M(IEnumerable<int> nums)
     {
-        IEnumerable<B> enumerable()
+        IEnumerable<B> @as()
         {
             foreach (B a in nums)
             {
@@ -2152,7 +2151,7 @@ class C
             }
         }
 
-        foreach (A a in enumerable())
+        foreach (A a in @as())
         {
             Console.Write(a.ToString());
         }
@@ -2238,7 +2237,7 @@ class C
 {
     void M(IEnumerable<int> nums)
     {
-        IEnumerable<int> enumerable()
+        IEnumerable<int> bs()
         {
             foreach (int n1 in nums)
             {
@@ -2249,7 +2248,7 @@ class C
             }
         }
 
-        foreach (var b in enumerable())
+        foreach (var b in bs())
         {
             int n1 = 5;
             Console.WriteLine(b);
@@ -2318,7 +2317,7 @@ class C
 
     void Test()
     {
-        IEnumerable<C> enumerable()
+        IEnumerable<C> xes()
         {
             foreach (var x in new[] { 1, 2, 3, })
             {
@@ -2326,7 +2325,7 @@ class C
             }
         }
 
-        foreach (int x in enumerable())
+        foreach (int x in xes())
         {
             Console.Write(x);
         }
@@ -2480,7 +2479,7 @@ class C
 {
     void M(IEnumerable<int> nums)
     {
-        IEnumerable<int> queryable()
+        IEnumerable<int> queryables()
         {
             foreach (int n1 in nums.AsQueryable())
             {
@@ -2488,7 +2487,7 @@ class C
             }
         }
 
-        IEnumerable<int> q = queryable();
+        IEnumerable<int> q = queryables();
     }
 }";
 
@@ -4054,7 +4053,6 @@ class C
             await TestInRegularAndScriptAsync(source, output);
         }
 
-
         [Fact, Trait(Traits.Feature, Traits.Features.CodeActionsConvertQueryToForEach)]
         public async Task InAnonymousMethod()
         {
@@ -4192,7 +4190,7 @@ class C
         [Fact, Trait(Traits.Feature, Traits.Features.CodeActionsConvertQueryToForEach)]
         public async Task EnumerableFunctionDoesNotUseLocalFunctionName()
         {
-            string source = @"
+            var source = @"
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -4206,7 +4204,7 @@ class Query
         void enumerable() { }
     }
 }";
-            string output = @"
+            var output = @"
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -4234,7 +4232,7 @@ class Query
         [Fact, Trait(Traits.Feature, Traits.Features.CodeActionsConvertQueryToForEach)]
         public async Task EnumerableFunctionCanUseLocalFunctionParameterName()
         {
-            string source = @"
+            var source = @"
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -4248,7 +4246,7 @@ class Query
         void M(IEnumerable<int> enumerable) { }
     }
 }";
-            string output = @"
+            var output = @"
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -4276,7 +4274,7 @@ class Query
         [Fact, Trait(Traits.Feature, Traits.Features.CodeActionsConvertQueryToForEach)]
         public async Task EnumerableFunctionDoesNotUseLambdaParameterNameWithCSharpLessThan8()
         {
-            string source = @"
+            var source = @"
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -4290,7 +4288,7 @@ class Query
         Action<int> myLambda = enumerable => { };
     }
 }";
-            string output = @"
+            var output = @"
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -4318,7 +4316,7 @@ class Query
         [Fact, Trait(Traits.Feature, Traits.Features.CodeActionsConvertQueryToForEach)]
         public async Task EnumerableFunctionCanUseLambdaParameterNameInCSharp8()
         {
-            string source = @"
+            var source = @"
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -4332,7 +4330,7 @@ class Query
         Action<int> myLambda = enumerable => { };
     }
 }";
-            string output = @"
+            var output = @"
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -4364,7 +4362,7 @@ class Query
         [WorkItem(35180, "https://github.com/dotnet/roslyn/issues/35180")]
         public async Task DeclarationSelection()
         {
-            string source = @"
+            var source = @"
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -4376,7 +4374,7 @@ class Query
         var r = [|from i in c select i+1;|]
     }
 }";
-            string output = @"
+            var output = @"
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -4403,7 +4401,7 @@ class Query
         [WorkItem(35180, "https://github.com/dotnet/roslyn/issues/35180")]
         public async Task LocalAssignmentSelection()
         {
-            string source = @"
+            var source = @"
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -4416,7 +4414,7 @@ class Query
         [|r = from i in c select i+1;|]
     }
 }";
-            string output = @"
+            var output = @"
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -4439,7 +4437,6 @@ class Query
 }";
             await TestInRegularAndScriptAsync(source, output);
         }
-
 
         #endregion
     }

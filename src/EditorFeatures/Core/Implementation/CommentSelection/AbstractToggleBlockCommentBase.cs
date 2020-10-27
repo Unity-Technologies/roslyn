@@ -58,14 +58,10 @@ namespace Microsoft.CodeAnalysis.Editor.Implementation.CommentSelection
             TextSpan linesContainingSelections, CommentSelectionInfo commentInfo, CancellationToken cancellationToken);
 
         public CommandState GetCommandState(ToggleBlockCommentCommandArgs args)
-        {
-            return GetCommandState(args.SubjectBuffer);
-        }
+            => GetCommandState(args.SubjectBuffer);
 
         public bool ExecuteCommand(ToggleBlockCommentCommandArgs args, CommandExecutionContext context)
-        {
-            return ExecuteCommand(args.TextView, args.SubjectBuffer, ValueTuple.Create(), context);
-        }
+            => ExecuteCommand(args.TextView, args.SubjectBuffer, ValueTuple.Create(), context);
 
         public override string DisplayName => EditorFeaturesResources.Toggle_Block_Comment;
 
@@ -73,7 +69,7 @@ namespace Microsoft.CodeAnalysis.Editor.Implementation.CommentSelection
 
         protected override string GetMessage(ValueTuple command) => EditorFeaturesResources.Toggling_block_comment;
 
-        internal async override Task<CommentSelectionResult> CollectEditsAsync(Document document, ICommentSelectionService service,
+        internal override async Task<CommentSelectionResult> CollectEditsAsync(Document document, ICommentSelectionService service,
             ITextBuffer subjectBuffer, NormalizedSnapshotSpanCollection selectedSpans, ValueTuple command, CancellationToken cancellationToken)
         {
             using (Logger.LogBlock(FunctionId.CommandHandler_ToggleBlockComment, KeyValueLogMessage.Create(LogType.UserAction, m =>
@@ -318,9 +314,7 @@ namespace Microsoft.CodeAnalysis.Editor.Implementation.CommentSelection
             /// Determines if the location falls inside a commented span.
             /// </summary>
             public bool IsLocationCommented(int location)
-            {
-                return IntersectingBlockComments.Contains(span => span.Contains(location));
-            }
+                => IntersectingBlockComments.Contains(span => span.Contains(location));
 
             /// <summary>
             /// Checks if the selection already starts with a comment marker.
@@ -346,22 +340,16 @@ namespace Microsoft.CodeAnalysis.Editor.Implementation.CommentSelection
             /// Checks if the selected span contains any uncommented non whitespace characters.
             /// </summary>
             public bool IsEntirelyCommented()
-            {
-                return !UncommentedSpansInSelection.Any() && HasIntersectingBlockComments();
-            }
+                => !UncommentedSpansInSelection.Any() && HasIntersectingBlockComments();
 
             /// <summary>
             /// Returns if the selection intersects with any block comments.
             /// </summary>
             public bool HasIntersectingBlockComments()
-            {
-                return IntersectingBlockComments.Any();
-            }
+                => IntersectingBlockComments.Any();
 
             public string GetSubstringFromText(int position, int length)
-            {
-                return SnapshotSpan.Snapshot.GetText().Substring(position, length);
-            }
+                => SnapshotSpan.Snapshot.GetText().Substring(position, length);
 
             /// <summary>
             /// Tries to get a block comment on the same line.  There are two cases:
@@ -406,10 +394,8 @@ namespace Microsoft.CodeAnalysis.Editor.Implementation.CommentSelection
             /// Gets a list of block comments that intersect the span.
             /// Spans are intersecting if 1 location is the same between them (empty spans look at the start).
             /// </summary>
-            private ImmutableArray<TextSpan> GetIntersectingBlockComments(ImmutableArray<TextSpan> allBlockComments, TextSpan span)
-            {
-                return allBlockComments.WhereAsArray(blockCommentSpan => span.OverlapsWith(blockCommentSpan) || blockCommentSpan.Contains(span));
-            }
+            private static ImmutableArray<TextSpan> GetIntersectingBlockComments(ImmutableArray<TextSpan> allBlockComments, TextSpan span)
+                => allBlockComments.WhereAsArray(blockCommentSpan => span.OverlapsWith(blockCommentSpan) || blockCommentSpan.Contains(span));
 
             /// <summary>
             /// Retrieves all non commented, non whitespace spans.

@@ -254,7 +254,7 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.PreviewPane
         // worth by default.
         private void AdjustWidthAndHeight(FrameworkElement previewElement)
         {
-            var headerStackPanelWidth = double.PositiveInfinity;
+            double headerStackPanelWidth;
             var titleTextBlockHeight = double.PositiveInfinity;
             if (previewElement == null)
             {
@@ -301,9 +301,7 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.PreviewPane
         }
 
         private static bool IsNormal(double size)
-        {
-            return size > 0 && !double.IsNaN(size) && !double.IsInfinity(size);
-        }
+            => size > 0 && !double.IsNaN(size) && !double.IsInfinity(size);
 
         private bool HasDescription
         {

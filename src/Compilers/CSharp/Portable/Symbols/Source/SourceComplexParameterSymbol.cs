@@ -259,7 +259,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
                 return ConstantValue.Bad;
             }
 
-            bool hasErrors = ParameterHelpers.ReportDefaultParameterErrors(binder, ContainingSymbol, parameterSyntax, this, valueBeforeConversion, diagnostics);
+            bool hasErrors = ParameterHelpers.ReportDefaultParameterErrors(binder, ContainingSymbol, parameterSyntax, this, valueBeforeConversion, convertedExpression, diagnostics);
             if (hasErrors)
             {
                 return ConstantValue.Bad;
@@ -341,7 +341,18 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
 
         AttributeLocation IAttributeTargetSymbol.DefaultAttributeLocation => AttributeLocation.Parameter;
 
-        AttributeLocation IAttributeTargetSymbol.AllowedAttributeLocations => AttributeLocation.Parameter;
+        AttributeLocation IAttributeTargetSymbol.AllowedAttributeLocations
+        {
+            get
+            {
+                if (SynthesizedRecordPropertySymbol.HaveCorrespondingSynthesizedRecordPropertySymbol(this))
+                {
+                    return AttributeLocation.Parameter | AttributeLocation.Property | AttributeLocation.Field;
+                }
+
+                return AttributeLocation.Parameter;
+            }
+        }
 
         /// <summary>
         /// Symbol to copy bound attributes from, or null if the attributes are not shared among multiple source parameter symbols.
@@ -646,34 +657,9 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
             {
                 ValidateCallerMemberNameAttribute(arguments.AttributeSyntaxOpt, arguments.Diagnostics);
             }
-            else if (attribute.IsTargetAttribute(this, AttributeDescription.DynamicAttribute))
+            else if (ReportExplicitUseOfReservedAttributes(in arguments,
+                ReservedAttributes.DynamicAttribute | ReservedAttributes.IsReadOnlyAttribute | ReservedAttributes.IsUnmanagedAttribute | ReservedAttributes.IsByRefLikeAttribute | ReservedAttributes.TupleElementNamesAttribute | ReservedAttributes.NullableAttribute | ReservedAttributes.NativeIntegerAttribute))
             {
-                // DynamicAttribute should not be set explicitly.
-                arguments.Diagnostics.Add(ErrorCode.ERR_ExplicitDynamicAttr, arguments.AttributeSyntaxOpt.Location);
-            }
-            else if (attribute.IsTargetAttribute(this, AttributeDescription.IsReadOnlyAttribute))
-            {
-                // IsReadOnlyAttribute should not be set explicitly.
-                arguments.Diagnostics.Add(ErrorCode.ERR_ExplicitReservedAttr, arguments.AttributeSyntaxOpt.Location, AttributeDescription.IsReadOnlyAttribute.FullName);
-            }
-            else if (attribute.IsTargetAttribute(this, AttributeDescription.IsUnmanagedAttribute))
-            {
-                // IsUnmanagedAttribute should not be set explicitly.
-                arguments.Diagnostics.Add(ErrorCode.ERR_ExplicitReservedAttr, arguments.AttributeSyntaxOpt.Location, AttributeDescription.IsUnmanagedAttribute.FullName);
-            }
-            else if (attribute.IsTargetAttribute(this, AttributeDescription.IsByRefLikeAttribute))
-            {
-                // IsByRefLikeAttribute should not be set explicitly.
-                arguments.Diagnostics.Add(ErrorCode.ERR_ExplicitReservedAttr, arguments.AttributeSyntaxOpt.Location, AttributeDescription.IsByRefLikeAttribute.FullName);
-            }
-            else if (attribute.IsTargetAttribute(this, AttributeDescription.TupleElementNamesAttribute))
-            {
-                arguments.Diagnostics.Add(ErrorCode.ERR_ExplicitTupleElementNamesAttribute, arguments.AttributeSyntaxOpt.Location);
-            }
-            else if (attribute.IsTargetAttribute(this, AttributeDescription.NullableAttribute))
-            {
-                // NullableAttribute should not be set explicitly.
-                arguments.Diagnostics.Add(ErrorCode.ERR_ExplicitNullableAttribute, arguments.AttributeSyntaxOpt.Location);
             }
             else if (attribute.IsTargetAttribute(this, AttributeDescription.AllowNullAttribute))
             {

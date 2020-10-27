@@ -9,27 +9,22 @@ using Microsoft.CodeAnalysis.Host.Mef;
 
 namespace Microsoft.CodeAnalysis.UnitTests.Persistence
 {
-    [ExportWorkspaceService(typeof(IProjectCacheHostService), "NotKeptAlive"), Shared]
+    [ExportWorkspaceService(typeof(IProjectCacheHostService), ServiceLayer.Test), Shared, PartNotDiscoverable]
     public class TestProjectCacheService : IProjectCacheHostService
     {
         [ImportingConstructor]
+        [Obsolete(MefConstruction.ImportingConstructorMessage, error: true)]
         public TestProjectCacheService()
         {
         }
 
         T IProjectCacheHostService.CacheObjectIfCachingEnabledForKey<T>(ProjectId key, ICachedObjectOwner owner, T instance)
-        {
-            return instance;
-        }
+            => instance;
 
         T IProjectCacheHostService.CacheObjectIfCachingEnabledForKey<T>(ProjectId key, object owner, T instance)
-        {
-            return instance;
-        }
+            => instance;
 
         IDisposable IProjectCacheService.EnableCaching(ProjectId key)
-        {
-            return null;
-        }
+            => null;
     }
 }

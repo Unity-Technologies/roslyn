@@ -2,10 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
-using Microsoft.CodeAnalysis.CSharp.Symbols;
-using Microsoft.CodeAnalysis.CSharp.Syntax;
-using Microsoft.CodeAnalysis.Text;
-using Roslyn.Utilities;
+#nullable enable
 
 namespace Microsoft.CodeAnalysis.CSharp
 {
@@ -19,7 +16,7 @@ namespace Microsoft.CodeAnalysis.CSharp
     /// </typeparam>
     public abstract partial class CSharpSyntaxVisitor<TResult>
     {
-        public virtual TResult Visit(SyntaxNode node)
+        public virtual TResult? Visit(SyntaxNode? node)
         {
             if (node != null)
             {
@@ -27,12 +24,12 @@ namespace Microsoft.CodeAnalysis.CSharp
             }
 
             // should not come here too often so we will put this at the end of the method.
-            return default(TResult);
+            return default;
         }
 
-        public virtual TResult DefaultVisit(SyntaxNode node)
+        public virtual TResult? DefaultVisit(SyntaxNode node)
         {
-            return default(TResult);
+            return default;
         }
     }
 
@@ -42,7 +39,7 @@ namespace Microsoft.CodeAnalysis.CSharp
     /// </summary>
     public abstract partial class CSharpSyntaxVisitor
     {
-        public virtual void Visit(SyntaxNode node)
+        public virtual void Visit(SyntaxNode? node)
         {
             if (node != null)
             {

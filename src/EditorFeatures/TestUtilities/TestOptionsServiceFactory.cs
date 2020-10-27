@@ -15,12 +15,13 @@ using Roslyn.Utilities;
 
 namespace Microsoft.CodeAnalysis.Editor.UnitTests
 {
-    [ExportWorkspaceServiceFactory(typeof(IOptionService), TestWorkspaceName.Name), Shared]
+    [ExportWorkspaceServiceFactory(typeof(IOptionService), ServiceLayer.Test), Shared, PartNotDiscoverable]
     internal class TestOptionsServiceFactory : IWorkspaceServiceFactory
     {
         private readonly ImmutableArray<Lazy<IOptionProvider, LanguageMetadata>> _providers;
 
         [ImportingConstructor]
+        [Obsolete(MefConstruction.ImportingConstructorMessage, error: true)]
         public TestOptionsServiceFactory(
             [ImportMany] IEnumerable<Lazy<IOptionProvider, LanguageMetadata>> optionProviders)
         {

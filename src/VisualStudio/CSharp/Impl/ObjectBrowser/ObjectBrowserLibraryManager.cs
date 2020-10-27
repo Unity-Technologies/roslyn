@@ -13,7 +13,7 @@ namespace Microsoft.VisualStudio.LanguageServices.CSharp.ObjectBrowser
     internal class ObjectBrowserLibraryManager : AbstractObjectBrowserLibraryManager
     {
         public ObjectBrowserLibraryManager(IServiceProvider serviceProvider, IComponentModel componentModel, VisualStudioWorkspace workspace)
-            : base(LanguageNames.CSharp, Guids.CSharpLibraryId, __SymbolToolLanguage.SymbolToolLanguage_CSharp, serviceProvider, componentModel, workspace)
+            : base(LanguageNames.CSharp, Guids.CSharpLibraryId, serviceProvider, componentModel, workspace)
         {
         }
 
@@ -26,8 +26,6 @@ namespace Microsoft.VisualStudio.LanguageServices.CSharp.ObjectBrowser
         }
 
         internal override AbstractListItemFactory CreateListItemFactory()
-        {
-            return new ListItemFactory();
-        }
+            => new ListItemFactory();
     }
 }

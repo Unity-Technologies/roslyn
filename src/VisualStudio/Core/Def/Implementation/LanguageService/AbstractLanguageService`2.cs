@@ -98,11 +98,12 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.LanguageService
             // First, acquire any services we need throughout our lifetime.
             this.GetServices();
 
-            var componentModel = this.Package.ComponentModel;
+            // TODO: Is the below access to component model required or can be removed?
+            _ = this.Package.ComponentModel;
 
             // Start off a background task to prime some components we'll need for editing
             VsTaskLibraryHelper.CreateAndStartTask(VsTaskLibraryHelper.ServiceInstance, VsTaskRunContext.BackgroundThread,
-                () => PrimeLanguageServiceComponentsOnBackground(componentModel));
+                () => PrimeLanguageServiceComponentsOnBackground());
 
             // Next, make any connections to these services.
             this.ConnectToServices();
@@ -117,9 +118,7 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.LanguageService
         }
 
         private object CreateComAggregate()
-        {
-            return Interop.ComAggregate.CreateAggregatedObject(this);
-        }
+            => Interop.ComAggregate.CreateAggregatedObject(this);
 
         internal void TearDown()
         {
@@ -177,9 +176,7 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.LanguageService
         }
 
         protected virtual void DisconnectFromServices()
-        {
-            Marshal.ThrowExceptionForHR(this.Debugger.UnadviseDebuggerEvents(_debuggerEventsCookie));
-        }
+            => Marshal.ThrowExceptionForHR(this.Debugger.UnadviseDebuggerEvents(_debuggerEventsCookie));
 
         /// <summary>
         /// Called right after we instantiate the language service.  Used to set up any internal
@@ -200,7 +197,7 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.LanguageService
             UninitializeLanguageDebugInfo();
         }
 
-        private void PrimeLanguageServiceComponentsOnBackground(IComponentModel componentModel)
+        private void PrimeLanguageServiceComponentsOnBackground()
         {
             var formatter = this.Workspace.Services.GetLanguageServices(RoslynLanguageName).GetService<ISyntaxFormattingService>();
             if (formatter != null)
@@ -323,7 +320,6 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.LanguageService
 
         private bool StartsWithRegionTag(ITextSnapshotLine line)
         {
-            var snapshot = line.Snapshot;
             var start = line.GetFirstNonWhitespacePosition();
             if (start != null)
             {
@@ -348,9 +344,7 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.LanguageService
         }
 
         private void InitializeLanguageDebugInfo()
-        {
-            this.LanguageDebugInfo = this.CreateLanguageDebugInfo();
-        }
+            => this.LanguageDebugInfo = this.CreateLanguageDebugInfo();
 
         protected abstract Guid DebuggerLanguageId { get; }
 
@@ -367,9 +361,7 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.LanguageService
         }
 
         private void UninitializeLanguageDebugInfo()
-        {
-            this.LanguageDebugInfo = null;
-        }
+            => this.LanguageDebugInfo = null;
 
         private void InitializeDebugMode()
         {

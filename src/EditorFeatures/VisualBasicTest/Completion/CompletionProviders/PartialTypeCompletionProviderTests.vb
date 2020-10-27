@@ -2,7 +2,6 @@
 ' The .NET Foundation licenses this file to you under the MIT license.
 ' See the LICENSE file in the project root for more information.
 
-Imports Microsoft.CodeAnalysis.Completion
 Imports Microsoft.CodeAnalysis.Editor.UnitTests.Workspaces
 Imports Microsoft.CodeAnalysis.VisualBasic.Completion.Providers
 
@@ -14,8 +13,8 @@ Namespace Microsoft.CodeAnalysis.Editor.VisualBasic.UnitTests.Completion.Complet
             MyBase.New(workspaceFixture)
         End Sub
 
-        Friend Overrides Function CreateCompletionProvider() As CompletionProvider
-            Return New PartialTypeCompletionProvider()
+        Friend Overrides Function GetCompletionProviderType() As Type
+            Return GetType(PartialTypeCompletionProvider)
         End Function
 
         <WorkItem(578224, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/578224")>
@@ -70,7 +69,7 @@ End Class
 
 Partial Class C(</text>
 
-            Await VerifyProviderCommitAsync(text.Value, "C(Of Bar)", expected.Value, "("c, "", SourceCodeKind.Regular)
+            Await VerifyProviderCommitAsync(text.Value, "C(Of Bar)", expected.Value, "("c, SourceCodeKind.Regular)
         End Function
 
         <Fact(Skip:="https://github.com/dotnet/roslyn/issues/11569"), Trait(Traits.Feature, Traits.Features.Completion)>
@@ -104,7 +103,7 @@ End Class
 
 Partial Class C(Of Bar)</text>
 
-            Await VerifyProviderCommitAsync(text.Value, "C(Of Bar)", expected.Value, Nothing, "", SourceCodeKind.Regular)
+            Await VerifyProviderCommitAsync(text.Value, "C(Of Bar)", expected.Value, Nothing, SourceCodeKind.Regular)
         End Function
 
         <Fact, Trait(Traits.Feature, Traits.Features.Completion)>
@@ -119,7 +118,7 @@ End Class
 
 Partial Class C(Of T) </text>
 
-            Await VerifyProviderCommitAsync(text.Value, "C(Of T)", expected.Value, " "c, "", SourceCodeKind.Regular)
+            Await VerifyProviderCommitAsync(text.Value, "C(Of T)", expected.Value, " "c, SourceCodeKind.Regular)
         End Function
 
         <Fact, Trait(Traits.Feature, Traits.Features.Completion)>
@@ -281,7 +280,7 @@ End Class
 
 Partial Class [Class]</text>
 
-            Await VerifyProviderCommitAsync(text.Value, "Class", expected.Value, Nothing, "", SourceCodeKind.Regular)
+            Await VerifyProviderCommitAsync(text.Value, "Class", expected.Value, Nothing, SourceCodeKind.Regular)
         End Function
 
         <Fact, Trait(Traits.Feature, Traits.Features.Completion)>
@@ -296,7 +295,7 @@ End Class
 
 Partial Class [Class](Of T)</text>
 
-            Await VerifyProviderCommitAsync(text.Value, "Class(Of T)", expected.Value, Nothing, "", SourceCodeKind.Regular)
+            Await VerifyProviderCommitAsync(text.Value, "Class(Of T)", expected.Value, Nothing, SourceCodeKind.Regular)
         End Function
 
         <Fact, Trait(Traits.Feature, Traits.Features.Completion)>
@@ -311,7 +310,7 @@ End Class
 
 Partial Class [Class](</text>
 
-            Await VerifyProviderCommitAsync(text.Value, "Class(Of T)", expected.Value, "("c, "", SourceCodeKind.Regular)
+            Await VerifyProviderCommitAsync(text.Value, "Class(Of T)", expected.Value, "("c, SourceCodeKind.Regular)
         End Function
 
         <Fact, Trait(Traits.Feature, Traits.Features.Completion)>
@@ -326,7 +325,7 @@ End Interface
 
 Partial Interface G(Of Out T)</text>
 
-            Await VerifyProviderCommitAsync(text.Value, "G(Of Out T)", expected.Value, Nothing, "", SourceCodeKind.Regular)
+            Await VerifyProviderCommitAsync(text.Value, "G(Of Out T)", expected.Value, Nothing, SourceCodeKind.Regular)
         End Function
 
     End Class

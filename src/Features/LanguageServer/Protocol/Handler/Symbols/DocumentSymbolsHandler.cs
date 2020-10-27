@@ -10,6 +10,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.CodeAnalysis.Editor;
 using Microsoft.CodeAnalysis.Editor.Extensibility.NavigationBar;
+using Microsoft.CodeAnalysis.Host.Mef;
 using Microsoft.CodeAnalysis.PooledObjects;
 using Microsoft.CodeAnalysis.Text;
 using Microsoft.VisualStudio.LanguageServer.Protocol;
@@ -20,12 +21,17 @@ namespace Microsoft.CodeAnalysis.LanguageServer.Handler
 {
     [Shared]
     [ExportLspMethod(Methods.TextDocumentDocumentSymbolName)]
-    internal class DocumentSymbolsHandler : IRequestHandler<DocumentSymbolParams, object[]>
+    internal class DocumentSymbolsHandler : AbstractRequestHandler<DocumentSymbolParams, object[]>
     {
-        public async Task<object[]> HandleRequestAsync(Solution solution, DocumentSymbolParams request,
-            ClientCapabilities clientCapabilities, CancellationToken cancellationToken)
+        [ImportingConstructor]
+        [Obsolete(MefConstruction.ImportingConstructorMessage, error: true)]
+        public DocumentSymbolsHandler(ILspSolutionProvider solutionProvider) : base(solutionProvider)
         {
-            var document = solution.GetDocumentFromURI(request.TextDocument.Uri);
+        }
+
+        public override async Task<object[]> HandleRequestAsync(DocumentSymbolParams request, RequestContext context, CancellationToken cancellationToken)
+        {
+            var document = SolutionProvider.GetDocument(request.TextDocument, context.ClientName);
             if (document == null)
             {
                 return Array.Empty<SymbolInformation>();
@@ -33,7 +39,7 @@ namespace Microsoft.CodeAnalysis.LanguageServer.Handler
 
             var symbols = ArrayBuilder<object>.GetInstance();
 
-            var navBarService = document.Project.LanguageServices.GetService<INavigationBarItemService>();
+            var navBarService = document.Project.LanguageServices.GetRequiredService<INavigationBarItemService>();
             var navBarItems = await navBarService.GetItemsAsync(document, cancellationToken).ConfigureAwait(false);
             if (navBarItems.Count == 0)
             {
@@ -46,7 +52,7 @@ namespace Microsoft.CodeAnalysis.LanguageServer.Handler
 
             // TODO - Return more than 2 levels of symbols.
             // https://github.com/dotnet/roslyn/projects/45#card-20033869
-            if (clientCapabilities?.TextDocument?.DocumentSymbol?.HierarchicalDocumentSymbolSupport == true)
+            if (context.ClientCapabilities?.TextDocument?.DocumentSymbol?.HierarchicalDocumentSymbolSupport == true)
             {
                 foreach (var item in navBarItems)
                 {
@@ -158,7 +164,7 @@ namespace Microsoft.CodeAnalysis.LanguageServer.Handler
 
                 while (node != null)
                 {
-                    var symbol = model.GetDeclaredSymbol(node);
+                    var symbol = model.GetDeclaredSymbol(node, cancellationToken);
                     if (symbol != null)
                     {
                         return symbol;

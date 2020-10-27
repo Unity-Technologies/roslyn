@@ -5,15 +5,15 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
-using System.Diagnostics;
 using System.Linq;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Editor.Shared.Utilities;
 using Microsoft.CodeAnalysis.Host;
-using Microsoft.VisualStudio.LanguageServices.Implementation.ProjectSystem.Extensions;
 
 namespace Microsoft.VisualStudio.LanguageServices.Implementation.ProjectSystem
 {
+#pragma warning disable IDE0060 // Remove unused parameter - compatibility shim for TypeScript
+
     [Obsolete("This is a compatibility shim for TypeScript; please do not use it.")]
     internal sealed partial class VisualStudioProjectTracker
     {

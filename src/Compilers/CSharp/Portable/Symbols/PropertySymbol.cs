@@ -6,7 +6,6 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Linq;
-using Microsoft.CodeAnalysis.CSharp.Symbols;
 using Roslyn.Utilities;
 
 namespace Microsoft.CodeAnalysis.CSharp.Symbols
@@ -51,6 +50,17 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
                 return this.OriginalDefinition;
             }
         }
+
+        /// <summary>
+        /// If a property is annotated with `[MemberNotNull(...)]` attributes, returns the list of members
+        /// listed in those attributes.
+        /// Otherwise, an empty array.
+        /// </summary>
+        internal virtual ImmutableArray<string> NotNullMembers => ImmutableArray<string>.Empty;
+
+        internal virtual ImmutableArray<string> NotNullWhenTrueMembers => ImmutableArray<string>.Empty;
+
+        internal virtual ImmutableArray<string> NotNullWhenFalseMembers => ImmutableArray<string>.Empty;
 
         /// <summary>
         /// Indicates whether or not the property returns by reference
@@ -243,8 +253,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
 
         internal PropertySymbol GetLeastOverriddenProperty(NamedTypeSymbol accessingTypeOpt)
         {
-            var accessingType = ((object)accessingTypeOpt == null ? this.ContainingType : accessingTypeOpt).OriginalDefinition;
-
+            accessingTypeOpt = accessingTypeOpt?.OriginalDefinition;
             PropertySymbol p = this;
             while (p.IsOverride && !p.HidesBasePropertiesByName)
             {
@@ -270,7 +279,8 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
                 // See InternalsVisibleToAndStrongNameTests: IvtVirtualCall1, IvtVirtualCall2, IvtVirtual_ParamsAndDynamic.
                 PropertySymbol overridden = p.OverriddenProperty;
                 HashSet<DiagnosticInfo> useSiteDiagnostics = null;
-                if ((object)overridden == null || !AccessCheck.IsSymbolAccessible(overridden, accessingType, ref useSiteDiagnostics))
+                if ((object)overridden == null ||
+                    (accessingTypeOpt is { } && !AccessCheck.IsSymbolAccessible(overridden, accessingTypeOpt, ref useSiteDiagnostics)))
                 {
                     break;
                 }
@@ -355,8 +365,8 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
             Debug.Assert(this.IsDefinition);
 
             // Check return type, custom modifiers and parameters:
-            if (DeriveUseSiteDiagnosticFromType(ref result, this.TypeWithAnnotations) ||
-                DeriveUseSiteDiagnosticFromCustomModifiers(ref result, this.RefCustomModifiers) ||
+            if (DeriveUseSiteDiagnosticFromType(ref result, this.TypeWithAnnotations, AllowedRequiredModifierType.None) ||
+                DeriveUseSiteDiagnosticFromCustomModifiers(ref result, this.RefCustomModifiers, AllowedRequiredModifierType.System_Runtime_InteropServices_InAttribute) ||
                 DeriveUseSiteDiagnosticFromParameters(ref result, this.Parameters))
             {
                 return true;
@@ -419,6 +429,11 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
             if (ReferenceEquals(this, other))
             {
                 return true;
+            }
+
+            if (other is NativeIntegerPropertySymbol nps)
+            {
+                return nps.Equals(this, compareKind);
             }
 
             // This checks if the property have the same definition and the type parameters on the containing types have been

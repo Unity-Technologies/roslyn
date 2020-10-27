@@ -22,6 +22,7 @@ namespace Microsoft.CodeAnalysis.MetadataAsSource
             private const string s_labelFormat = "{0}:";
             private static readonly string s_typeParameterHeader = FeaturesResources.Type_parameters_colon;
             private static readonly string s_returnsHeader = FeaturesResources.Returns_colon;
+            private static readonly string s_valueHeader = FeaturesResources.Value_colon;
             private static readonly string s_exceptionsHeader = FeaturesResources.Exceptions_colon;
             private static readonly string s_remarksHeader = FeaturesResources.Remarks_colon;
 
@@ -99,6 +100,14 @@ namespace Microsoft.CodeAnalysis.MetadataAsSource
                     formattedCommentLinesBuilder.AddRange(CreateWrappedTextFromRawText(formattedReturnsText));
                 }
 
+                var formattedValueText = docCommentFormattingService.Format(docComment.ValueText);
+                if (!string.IsNullOrWhiteSpace(formattedValueText))
+                {
+                    formattedCommentLinesBuilder.Add(string.Empty);
+                    formattedCommentLinesBuilder.Add(s_valueHeader);
+                    formattedCommentLinesBuilder.AddRange(CreateWrappedTextFromRawText(formattedValueText));
+                }
+
                 var exceptionTypes = docComment.ExceptionTypes;
                 if (exceptionTypes.Length > 0)
                 {
@@ -157,18 +166,16 @@ namespace Microsoft.CodeAnalysis.MetadataAsSource
 
             private static ImmutableArray<string> CreateWrappedTextFromRawText(string rawText)
             {
-                var lines = ArrayBuilder<string>.GetInstance();
+                using var _ = ArrayBuilder<string>.GetInstance(out var lines);
 
                 // First split the string into constituent lines.
                 var split = rawText.Split(new[] { "\r\n" }, System.StringSplitOptions.None);
 
                 // Now split each line into multiple lines.
                 foreach (var item in split)
-                {
                     SplitRawLineIntoFormattedLines(item, lines);
-                }
 
-                return lines.ToImmutableAndFree();
+                return lines.ToImmutable();
             }
 
             private static void SplitRawLineIntoFormattedLines(

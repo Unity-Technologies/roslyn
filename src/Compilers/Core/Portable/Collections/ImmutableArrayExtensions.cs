@@ -10,11 +10,14 @@ using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
-using System.Linq;
-using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Threading.Tasks;
 using Microsoft.CodeAnalysis.PooledObjects;
+
+#if DEBUG
+using System.Linq;
+#endif
 
 namespace Microsoft.CodeAnalysis
 {
@@ -256,16 +259,42 @@ namespace Microsoft.CodeAnalysis
             }
         }
 
+        public static ImmutableArray<TResult> ZipAsArray<T1, T2, TArg, TResult>(this ImmutableArray<T1> self, ImmutableArray<T2> other, TArg arg, Func<T1, T2, int, TArg, TResult> map)
+        {
+            Debug.Assert(self.Length == other.Length);
+            if (self.IsEmpty)
+            {
+                return ImmutableArray<TResult>.Empty;
+            }
+
+            var builder = ArrayBuilder<TResult>.GetInstance(self.Length);
+            for (int i = 0; i < self.Length; i++)
+            {
+                builder.Add(map(self[i], other[i], i, arg));
+            }
+            return builder.ToImmutableAndFree();
+        }
+
         /// <summary>
         /// Creates a new immutable array based on filtered elements by the predicate. The array must not be null.
         /// </summary>
-        /// <typeparam name="T"></typeparam>
         /// <param name="array">The array to process</param>
         /// <param name="predicate">The delegate that defines the conditions of the element to search for.</param>
-        /// <returns></returns>
         public static ImmutableArray<T> WhereAsArray<T>(this ImmutableArray<T> array, Func<T, bool> predicate)
+            => WhereAsArrayImpl<T, object?>(array, predicate, predicateWithArg: null, arg: null);
+
+        /// <summary>
+        /// Creates a new immutable array based on filtered elements by the predicate. The array must not be null.
+        /// </summary>
+        /// <param name="array">The array to process</param>
+        /// <param name="predicate">The delegate that defines the conditions of the element to search for.</param>
+        public static ImmutableArray<T> WhereAsArray<T, TArg>(this ImmutableArray<T> array, Func<T, TArg, bool> predicate, TArg arg)
+            => WhereAsArrayImpl(array, predicateWithoutArg: null, predicate, arg);
+
+        private static ImmutableArray<T> WhereAsArrayImpl<T, TArg>(ImmutableArray<T> array, Func<T, bool>? predicateWithoutArg, Func<T, TArg, bool>? predicateWithArg, TArg arg)
         {
             Debug.Assert(!array.IsDefault);
+            Debug.Assert(predicateWithArg != null ^ predicateWithoutArg != null);
 
             ArrayBuilder<T>? builder = null;
             bool none = true;
@@ -275,7 +304,8 @@ namespace Microsoft.CodeAnalysis
             for (int i = 0; i < n; i++)
             {
                 var a = array[i];
-                if (predicate(a))
+
+                if ((predicateWithoutArg != null) ? predicateWithoutArg(a) : predicateWithArg!(a, arg))
                 {
                     none = false;
                     if (all)
@@ -328,6 +358,54 @@ namespace Microsoft.CodeAnalysis
                 Debug.Assert(none);
                 return ImmutableArray<T>.Empty;
             }
+        }
+
+        public static bool Any<T, TArg>(this ImmutableArray<T> array, Func<T, TArg, bool> predicate, TArg arg)
+        {
+            int n = array.Length;
+            for (int i = 0; i < n; i++)
+            {
+                var a = array[i];
+
+                if (predicate(a, arg))
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        public static async Task<bool> AnyAsync<T>(this ImmutableArray<T> array, Func<T, Task<bool>> predicateAsync)
+        {
+            int n = array.Length;
+            for (int i = 0; i < n; i++)
+            {
+                var a = array[i];
+
+                if (await predicateAsync(a).ConfigureAwait(false))
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        public static async ValueTask<T?> FirstOrDefaultAsync<T>(this ImmutableArray<T> array, Func<T, Task<bool>> predicateAsync)
+        {
+            int n = array.Length;
+            for (int i = 0; i < n; i++)
+            {
+                var a = array[i];
+
+                if (await predicateAsync(a).ConfigureAwait(false))
+                {
+                    return a;
+                }
+            }
+
+            return default;
         }
 
         /// <summary>
@@ -484,6 +562,25 @@ namespace Microsoft.CodeAnalysis
             return first.AddRange(second);
         }
 
+        internal static ImmutableArray<T> Concat<T>(this ImmutableArray<T> first, ImmutableArray<T> second, ImmutableArray<T> third)
+        {
+            var builder = ArrayBuilder<T>.GetInstance(first.Length + second.Length + third.Length);
+            builder.AddRange(first);
+            builder.AddRange(second);
+            builder.AddRange(third);
+            return builder.ToImmutableAndFree();
+        }
+
+        internal static ImmutableArray<T> Concat<T>(this ImmutableArray<T> first, ImmutableArray<T> second, ImmutableArray<T> third, ImmutableArray<T> fourth)
+        {
+            var builder = ArrayBuilder<T>.GetInstance(first.Length + second.Length + third.Length + fourth.Length);
+            builder.AddRange(first);
+            builder.AddRange(second);
+            builder.AddRange(third);
+            builder.AddRange(fourth);
+            return builder.ToImmutableAndFree();
+        }
+
         internal static ImmutableArray<T> Concat<T>(this ImmutableArray<T> first, T second)
         {
             return first.Add(second);
@@ -555,6 +652,7 @@ namespace Microsoft.CodeAnalysis
         }
 
         internal static Dictionary<K, ImmutableArray<T>> ToDictionary<K, T>(this ImmutableArray<T> items, Func<T, K> keySelector, IEqualityComparer<K>? comparer = null)
+            where K : notnull
         {
             if (items.Length == 1)
             {
@@ -630,5 +728,8 @@ namespace Microsoft.CodeAnalysis
 
             return true;
         }
+
+        internal static int IndexOf<T>(this ImmutableArray<T> array, T item, IEqualityComparer<T> comparer)
+            => array.IndexOf(item, startIndex: 0, comparer);
     }
 }

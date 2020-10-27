@@ -19,7 +19,7 @@ namespace Microsoft.CodeAnalysis.Completion.Providers
 {
     internal abstract class AbstractTypeImportCompletionProvider : AbstractImportCompletionProvider
     {
-        protected override bool ShouldProvideCompletion(Document document, SyntaxContext syntaxContext)
+        protected override bool ShouldProvideCompletion(CompletionContext completionContext, SyntaxContext syntaxContext)
             => syntaxContext.IsTypeContext;
 
         protected override void LogCommit()
@@ -67,7 +67,7 @@ namespace Microsoft.CodeAnalysis.Completion.Providers
                     // the provider can not be used as a service by components that might be run in parallel 
                     // with completion, which would be a race.
                     completionContext.AddItem(item);
-                    counter.ItemsCount++; ;
+                    counter.ItemsCount++;
                 }
             }
         }
@@ -80,9 +80,7 @@ namespace Microsoft.CodeAnalysis.Completion.Providers
             public bool CacheMiss { get; set; }
 
             public TelemetryCounter()
-            {
-                Tick = Environment.TickCount;
-            }
+                => Tick = Environment.TickCount;
 
             public void Report()
             {

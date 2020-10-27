@@ -19,7 +19,7 @@ namespace Microsoft.CodeAnalysis.SolutionCrawler
 {
     internal sealed partial class SolutionCrawlerRegistrationService
     {
-        private sealed partial class WorkCoordinator
+        internal sealed partial class WorkCoordinator
         {
             private sealed partial class IncrementalAnalyzerProcessor
             {
@@ -44,9 +44,7 @@ namespace Microsoft.CodeAnalysis.SolutionCrawler
                     public int WorkItemCount => _workItemQueue.WorkItemCount;
 
                     protected override Task WaitAsync(CancellationToken cancellationToken)
-                    {
-                        return _workItemQueue.WaitAsync(cancellationToken);
-                    }
+                        => _workItemQueue.WaitAsync(cancellationToken);
 
                     protected override async Task ExecuteAsync()
                     {
@@ -152,7 +150,7 @@ namespace Microsoft.CodeAnalysis.SolutionCrawler
                                 {
                                     SolutionCrawlerLogger.LogProcessProjectNotExist(Processor._logAggregator);
 
-                                    RemoveProject(projectId);
+                                    await RemoveProjectAsync(projectId, cancellationToken).ConfigureAwait(false);
                                 }
 
                                 if (!cancellationToken.IsCancellationRequested)
@@ -183,11 +181,11 @@ namespace Microsoft.CodeAnalysis.SolutionCrawler
                         }
                     }
 
-                    private void RemoveProject(ProjectId projectId)
+                    private async Task RemoveProjectAsync(ProjectId projectId, CancellationToken cancellationToken)
                     {
                         foreach (var analyzer in Analyzers)
                         {
-                            analyzer.RemoveProject(projectId);
+                            await analyzer.RemoveProjectAsync(projectId, cancellationToken).ConfigureAwait(false);
                         }
                     }
 
@@ -197,24 +195,39 @@ namespace Microsoft.CodeAnalysis.SolutionCrawler
                         _workItemQueue.Dispose();
                     }
 
-                    internal void WaitUntilCompletion_ForTestingPurposesOnly(ImmutableArray<IIncrementalAnalyzer> analyzers, List<WorkItem> items)
+                    internal TestAccessor GetTestAccessor()
                     {
-                        var uniqueIds = new HashSet<ProjectId>();
-                        foreach (var item in items)
-                        {
-                            if (uniqueIds.Add(item.ProjectId))
-                            {
-                                ProcessProjectAsync(analyzers, item, CancellationToken.None).Wait();
-                            }
-                        }
+                        return new TestAccessor(this);
                     }
 
-                    internal void WaitUntilCompletion_ForTestingPurposesOnly()
+                    internal readonly struct TestAccessor
                     {
-                        // this shouldn't happen. would like to get some diagnostic
-                        while (_workItemQueue.HasAnyWork)
+                        private readonly LowPriorityProcessor _lowPriorityProcessor;
+
+                        internal TestAccessor(LowPriorityProcessor lowPriorityProcessor)
                         {
-                            Environment.FailFast("How?");
+                            _lowPriorityProcessor = lowPriorityProcessor;
+                        }
+
+                        internal void WaitUntilCompletion(ImmutableArray<IIncrementalAnalyzer> analyzers, List<WorkItem> items)
+                        {
+                            var uniqueIds = new HashSet<ProjectId>();
+                            foreach (var item in items)
+                            {
+                                if (uniqueIds.Add(item.ProjectId))
+                                {
+                                    _lowPriorityProcessor.ProcessProjectAsync(analyzers, item, CancellationToken.None).Wait();
+                                }
+                            }
+                        }
+
+                        internal void WaitUntilCompletion()
+                        {
+                            // this shouldn't happen. would like to get some diagnostic
+                            while (_lowPriorityProcessor._workItemQueue.HasAnyWork)
+                            {
+                                FailFast.Fail("How?");
+                            }
                         }
                     }
                 }

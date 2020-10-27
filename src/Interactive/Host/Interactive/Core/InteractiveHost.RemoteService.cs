@@ -2,6 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+#nullable enable
+
 using System;
 using System.Diagnostics;
 using System.IO;
@@ -9,6 +11,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.CodeAnalysis.ErrorReporting;
 using Roslyn.Utilities;
+using StreamJsonRpc;
 
 namespace Microsoft.CodeAnalysis.Interactive
 {
@@ -17,28 +20,27 @@ namespace Microsoft.CodeAnalysis.Interactive
         internal sealed class RemoteService
         {
             public readonly Process Process;
-            public readonly Service Service;
+            public readonly JsonRpc JsonRpc;
+            public readonly InteractiveHostPlatformInfo PlatformInfo;
+
             private readonly int _processId;
             private readonly SemaphoreSlim _disposeSemaphore = new SemaphoreSlim(initialCount: 1);
             private readonly bool _joinOutputWritingThreadsOnDisposal;
 
             // output pumping threads (stream output from stdout/stderr of the host process to the output/errorOutput writers)
-            private InteractiveHost _host;              // nulled on dispose
-            private Thread _readOutputThread;           // nulled on dispose	
-            private Thread _readErrorOutputThread;      // nulled on dispose
+            private InteractiveHost? _host;              // nulled on dispose
+            private Thread? _readOutputThread;           // nulled on dispose	
+            private Thread? _readErrorOutputThread;      // nulled on dispose
             private volatile ProcessExitHandlerStatus _processExitHandlerStatus;  // set to Handled on dispose
 
-            internal RemoteService(InteractiveHost host, Process process, int processId, Service service)
+            internal RemoteService(InteractiveHost host, Process process, int processId, JsonRpc jsonRpc, InteractiveHostPlatformInfo platformInfo)
             {
-                Debug.Assert(host != null);
-                Debug.Assert(process != null);
-                Debug.Assert(service != null);
-
                 Process = process;
-                Service = service;
+                JsonRpc = jsonRpc;
+                PlatformInfo = platformInfo;
 
                 _host = host;
-                _joinOutputWritingThreadsOnDisposal = host._joinOutputWritingThreadsOnDisposal;
+                _joinOutputWritingThreadsOnDisposal = _host._joinOutputWritingThreadsOnDisposal;
                 _processId = processId;
                 _processExitHandlerStatus = ProcessExitHandlerStatus.Uninitialized;
 
@@ -90,7 +92,7 @@ namespace Microsoft.CodeAnalysis.Interactive
                     var host = _host;
                     if (host != null)
                     {
-                        await host.OnProcessExited(Process).ConfigureAwait(false);
+                        await host.OnProcessExitedAsync(Process).ConfigureAwait(false);
                     }
                 }
                 catch (Exception e) when (FatalError.Report(e))

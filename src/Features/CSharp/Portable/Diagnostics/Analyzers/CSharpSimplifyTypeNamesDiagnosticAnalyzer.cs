@@ -39,51 +39,37 @@ namespace Microsoft.CodeAnalysis.CSharp.Diagnostics.SimplifyTypeNames
             return codeBlock.IsKind(
                 SyntaxKind.CompilationUnit,
                 SyntaxKind.ClassDeclaration,
+                SyntaxKind.RecordDeclaration,
                 SyntaxKind.StructDeclaration,
                 SyntaxKind.InterfaceDeclaration,
                 SyntaxKind.DelegateDeclaration,
                 SyntaxKind.EnumDeclaration);
         }
 
-        protected override void AnalyzeCodeBlock(CodeBlockAnalysisContext context)
+        protected override ImmutableArray<Diagnostic> AnalyzeCodeBlock(CodeBlockAnalysisContext context)
         {
             var semanticModel = context.SemanticModel;
             var cancellationToken = context.CancellationToken;
 
             var syntaxTree = semanticModel.SyntaxTree;
-            var options = context.Options;
-            var optionSet = options.GetDocumentOptionSetAsync(syntaxTree, cancellationToken).GetAwaiter().GetResult()!;
-
+            var optionSet = context.Options.GetAnalyzerOptionSet(syntaxTree, cancellationToken);
             var simplifier = new TypeSyntaxSimplifierWalker(this, semanticModel, optionSet, ignoredSpans: null, cancellationToken);
             simplifier.Visit(context.CodeBlock);
-            if (!simplifier.HasDiagnostics)
-                return;
-
-            foreach (var diagnostic in simplifier.Diagnostics)
-            {
-                context.ReportDiagnostic(diagnostic);
-            }
+            return simplifier.Diagnostics;
         }
 
-        protected override void AnalyzeSemanticModel(SemanticModelAnalysisContext context, SimpleIntervalTree<TextSpan, TextSpanIntervalIntrospector>? codeBlockIntervalTree)
+        protected override ImmutableArray<Diagnostic> AnalyzeSemanticModel(SemanticModelAnalysisContext context, SimpleIntervalTree<TextSpan, TextSpanIntervalIntrospector>? codeBlockIntervalTree)
         {
             var semanticModel = context.SemanticModel;
             var cancellationToken = context.CancellationToken;
 
             var syntaxTree = semanticModel.SyntaxTree;
-            var options = context.Options;
-            var optionSet = options.GetDocumentOptionSetAsync(syntaxTree, cancellationToken).GetAwaiter().GetResult()!;
+            var optionSet = context.Options.GetAnalyzerOptionSet(syntaxTree, cancellationToken);
             var root = syntaxTree.GetRoot(cancellationToken);
 
             var simplifier = new TypeSyntaxSimplifierWalker(this, semanticModel, optionSet, ignoredSpans: codeBlockIntervalTree, cancellationToken);
             simplifier.Visit(root);
-            if (!simplifier.HasDiagnostics)
-                return;
-
-            foreach (var diagnostic in simplifier.Diagnostics)
-            {
-                context.ReportDiagnostic(diagnostic);
-            }
+            return simplifier.Diagnostics;
         }
 
         internal override bool IsCandidate(SyntaxNode node)
@@ -127,12 +113,12 @@ namespace Microsoft.CodeAnalysis.CSharp.Diagnostics.SimplifyTypeNames
             }
 
             // set proper diagnostic ids.
-            if (replacementSyntax.HasAnnotations(nameof(CodeStyleOptions.PreferIntrinsicPredefinedTypeKeywordInDeclaration)))
+            if (replacementSyntax.HasAnnotations(nameof(CodeStyleOptions2.PreferIntrinsicPredefinedTypeKeywordInDeclaration)))
             {
                 inDeclaration = true;
                 diagnosticId = IDEDiagnosticIds.PreferBuiltInOrFrameworkTypeDiagnosticId;
             }
-            else if (replacementSyntax.HasAnnotations(nameof(CodeStyleOptions.PreferIntrinsicPredefinedTypeKeywordInMemberAccess)))
+            else if (replacementSyntax.HasAnnotations(nameof(CodeStyleOptions2.PreferIntrinsicPredefinedTypeKeywordInMemberAccess)))
             {
                 inDeclaration = false;
                 diagnosticId = IDEDiagnosticIds.PreferBuiltInOrFrameworkTypeDiagnosticId;
@@ -146,8 +132,6 @@ namespace Microsoft.CodeAnalysis.CSharp.Diagnostics.SimplifyTypeNames
         }
 
         protected override string GetLanguageName()
-        {
-            return LanguageNames.CSharp;
-        }
+            => LanguageNames.CSharp;
     }
 }

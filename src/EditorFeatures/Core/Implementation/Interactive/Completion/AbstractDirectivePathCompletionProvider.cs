@@ -59,9 +59,7 @@ namespace Microsoft.CodeAnalysis.Editor.Completion.FileSystem
         }
 
         public override bool ShouldTriggerCompletion(SourceText text, int caretPosition, CompletionTrigger trigger, OptionSet options)
-        {
-            return true;
-        }
+            => true;
 
         private static string GetPathThroughLastSlash(string quotedPath, int quotedPathStart, int position)
         {
@@ -104,9 +102,7 @@ namespace Microsoft.CodeAnalysis.Editor.Completion.FileSystem
         }
 
         private static bool EndsWithQuote(string quotedPath)
-        {
-            return quotedPath.Length >= 2 && quotedPath[quotedPath.Length - 1] == '"';
-        }
+            => quotedPath.Length >= 2 && quotedPath[quotedPath.Length - 1] == '"';
 
         /// <summary>
         /// Returns the index right after the last slash that precedes 'position'.  If there is no
@@ -130,7 +126,7 @@ namespace Microsoft.CodeAnalysis.Editor.Completion.FileSystem
 
         protected abstract Task ProvideCompletionsAsync(CompletionContext context, string pathThroughLastSlash);
 
-        protected FileSystemCompletionHelper GetFileSystemCompletionHelper(
+        protected static FileSystemCompletionHelper GetFileSystemCompletionHelper(
             Document document,
             Glyph itemGlyph,
             ImmutableArray<string> extensions,

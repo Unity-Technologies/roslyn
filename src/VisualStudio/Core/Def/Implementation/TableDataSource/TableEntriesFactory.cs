@@ -104,9 +104,7 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.TableDataSource
         }
 
         protected void UpdateVersion_NoLock()
-        {
-            _lastVersion++;
-        }
+            => _lastVersion++;
 
         public void Dispose()
         {
@@ -138,14 +136,10 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.TableDataSource
             }
 
             public void OnDataAddedOrChanged(object data)
-            {
-                _sources.OnDataAddedOrChanged(data, _tableSource);
-            }
+                => _sources.OnDataAddedOrChanged(data, _tableSource);
 
             public bool OnDataRemoved(object data)
-            {
-                return _sources.OnDataRemoved(data, _tableSource);
-            }
+                => _sources.OnDataRemoved(data, _tableSource);
 
             public ImmutableArray<TItem> GetItems()
             {
@@ -202,7 +196,7 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.TableDataSource
                 {
                 }
 
-                public override bool TryNavigateTo(int index, bool previewTab) => false;
+                public override bool TryNavigateTo(int index, bool previewTab, bool activate) => false;
 
                 public override bool TryGetValue(int index, string columnName, out object content)
                 {

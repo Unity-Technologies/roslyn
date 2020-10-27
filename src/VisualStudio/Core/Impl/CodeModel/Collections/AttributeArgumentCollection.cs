@@ -36,9 +36,7 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.CodeModel.Colle
         }
 
         private SyntaxNode LookupNode()
-        {
-            return this.ParentAttribute.LookupNode();
-        }
+            => this.ParentAttribute.LookupNode();
 
         protected override bool TryGetItemByIndex(int index, out EnvDTE.CodeElement element)
         {
@@ -47,7 +45,6 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.CodeModel.Colle
             var attributeArgumentNodes = CodeModelService.GetAttributeArgumentNodes(node);
             if (index >= 0 && index < attributeArgumentNodes.Count())
             {
-                var child = attributeArgumentNodes.ElementAt(index);
                 element = (EnvDTE.CodeElement)CodeAttributeArgument.Create(this.State, this.ParentAttribute, index);
                 return true;
             }

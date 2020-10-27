@@ -22,14 +22,13 @@ namespace Microsoft.CodeAnalysis.Editor.Implementation.Suggestions
     internal class FixAllGetFixesService : IFixAllGetFixesService, IWorkspaceServiceFactory
     {
         [ImportingConstructor]
+        [Obsolete(MefConstruction.ImportingConstructorMessage, error: true)]
         public FixAllGetFixesService()
         {
         }
 
         public IWorkspaceService CreateService(HostWorkspaceServices workspaceServices)
-        {
-            return this;
-        }
+            => this;
 
         public async Task<Solution> GetFixAllChangedSolutionAsync(FixAllContext fixAllContext)
         {
@@ -56,7 +55,7 @@ namespace Microsoft.CodeAnalysis.Editor.Implementation.Suggestions
                 codeAction, showPreviewChangesDialog, fixAllContext.State, fixAllContext.CancellationToken).ConfigureAwait(false);
         }
 
-        private async Task<CodeAction> GetFixAllCodeActionAsync(FixAllContext fixAllContext)
+        private static async Task<CodeAction> GetFixAllCodeActionAsync(FixAllContext fixAllContext)
         {
             using (Logger.LogBlock(
                 FunctionId.CodeFixes_FixAllOccurrencesComputation,
@@ -92,7 +91,7 @@ namespace Microsoft.CodeAnalysis.Editor.Implementation.Suggestions
             }
         }
 
-        private async Task<ImmutableArray<CodeActionOperation>> GetFixAllOperationsAsync(
+        private static async Task<ImmutableArray<CodeActionOperation>> GetFixAllOperationsAsync(
             CodeAction codeAction, bool showPreviewChangesDialog,
             FixAllState fixAllState, CancellationToken cancellationToken)
         {
@@ -194,7 +193,7 @@ namespace Microsoft.CodeAnalysis.Editor.Implementation.Suggestions
 
                 if (!foundApplyChanges)
                 {
-                    if (operation is ApplyChangesOperation applyChangesOperation)
+                    if (operation is ApplyChangesOperation)
                     {
                         foundApplyChanges = true;
                         result.Add(new ApplyChangesOperation(newSolution));

@@ -14,10 +14,11 @@ using Roslyn.Utilities;
 
 namespace Microsoft.CodeAnalysis.Editor.UnitTests.Preview
 {
-    [ExportWorkspaceService(typeof(IPreviewPaneService), ServiceLayer.Host), Shared]
+    [ExportWorkspaceService(typeof(IPreviewPaneService), ServiceLayer.Test), Shared, PartNotDiscoverable]
     internal class MockPreviewPaneService : IPreviewPaneService
     {
         [ImportingConstructor]
+        [Obsolete(MefConstruction.ImportingConstructorMessage, error: true)]
         public MockPreviewPaneService()
         {
         }

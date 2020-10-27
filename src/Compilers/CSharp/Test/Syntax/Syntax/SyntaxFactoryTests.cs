@@ -554,9 +554,9 @@ namespace Microsoft.CodeAnalysis.CSharp.UnitTests
                 attributeLists: default,
                 modifiers: default,
                 returnType: SyntaxFactory.ParseTypeName("int[]"),
-                explicitInterfaceSpecifier: default,
+                explicitInterfaceSpecifier: null,
                 identifier: SyntaxFactory.Identifier("M"),
-                typeParameterList: default,
+                typeParameterList: null,
                 parameterList: SyntaxFactory.ParseParameterList("()"),
                 constraintClauses: default,
                 body: (BlockSyntax)SyntaxFactory.ParseStatement("{}"),
@@ -587,6 +587,22 @@ namespace Microsoft.CodeAnalysis.CSharp.UnitTests
                 parameterList: SyntaxFactory.ParameterList(),
                 body: SyntaxFactory.LiteralExpression(SyntaxKind.NumericLiteralExpression, SyntaxFactory.Literal(1)));
             Assert.Equal(fullySpecified.ToFullString(), lambda.ToFullString());
+        }
+
+        [Fact]
+        public void TestParseNameWithOptions()
+        {
+            var type = "delegate*<void>";
+
+            var parsedWith8 = SyntaxFactory.ParseTypeName(type, options: TestOptions.Regular8);
+            parsedWith8.GetDiagnostics().Verify(
+                // (1,1): error CS8400: Feature 'function pointers' is not available in C# 8.0. Please use language version 9.0 or greater.
+                // delegate*<void>
+                Diagnostic(ErrorCode.ERR_FeatureNotAvailableInVersion8, "delegate*<void>").WithArguments("function pointers", "9.0").WithLocation(1, 1)
+            );
+
+            var parsedWithPreview = SyntaxFactory.ParseTypeName(type, options: TestOptions.Regular9);
+            parsedWithPreview.GetDiagnostics().Verify();
         }
     }
 }

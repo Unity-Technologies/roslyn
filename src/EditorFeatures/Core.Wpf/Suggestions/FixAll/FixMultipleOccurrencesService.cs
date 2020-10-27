@@ -23,10 +23,9 @@ namespace Microsoft.CodeAnalysis.Editor.Implementation.Suggestions
     internal class FixMultipleOccurrencesService : IFixMultipleOccurrencesService
     {
         [ImportingConstructor]
+        [Obsolete(MefConstruction.ImportingConstructorMessage, error: true)]
         public FixMultipleOccurrencesService(IAsynchronousOperationListenerProvider listenerProvider)
-        {
-            listenerProvider.GetListener(FeatureAttribute.LightBulb);
-        }
+            => listenerProvider.GetListener(FeatureAttribute.LightBulb);
 
         public Solution GetFix(
             ImmutableDictionary<Document, ImmutableArray<Diagnostic>> diagnosticsToFix,
@@ -64,7 +63,7 @@ namespace Microsoft.CodeAnalysis.Editor.Implementation.Suggestions
                 waitDialogMessage, cancellationToken);
         }
 
-        private Solution GetFixedSolution(
+        private static Solution GetFixedSolution(
             FixAllState fixAllState,
             Workspace workspace,
             string title,

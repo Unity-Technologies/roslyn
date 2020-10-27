@@ -22,15 +22,11 @@ namespace Microsoft.CodeAnalysis.Editor.UnitTests.CodeRefactoringService
     {
         [Fact]
         public async Task TestExceptionInComputeRefactorings()
-        {
-            await VerifyRefactoringDisabledAsync<ErrorCases.ExceptionInCodeActions>();
-        }
+            => await VerifyRefactoringDisabledAsync<ErrorCases.ExceptionInCodeActions>();
 
         [Fact]
         public async Task TestExceptionInComputeRefactoringsAsync()
-        {
-            await VerifyRefactoringDisabledAsync<ErrorCases.ExceptionInComputeRefactoringsAsync>();
-        }
+            => await VerifyRefactoringDisabledAsync<ErrorCases.ExceptionInComputeRefactoringsAsync>();
 
         [Fact]
         public async Task TestProjectRefactoringAsync()
@@ -39,7 +35,7 @@ namespace Microsoft.CodeAnalysis.Editor.UnitTests.CodeRefactoringService
     a
 ";
 
-            using var workspace = TestWorkspace.CreateCSharp(code);
+            using var workspace = TestWorkspace.CreateCSharp(code, composition: FeaturesTestCompositions.Features);
             var refactoringService = workspace.GetService<ICodeRefactoringService>();
 
             var reference = new StubAnalyzerReference();
@@ -51,17 +47,16 @@ namespace Microsoft.CodeAnalysis.Editor.UnitTests.CodeRefactoringService
             Assert.True(stubRefactoringAction is object);
         }
 
-        private async Task VerifyRefactoringDisabledAsync<T>()
+        private static async Task VerifyRefactoringDisabledAsync<T>()
             where T : CodeRefactoringProvider
         {
-            var exportProvider = ExportProviderCache.GetOrCreateExportProviderFactory(TestExportProvider.EntireAssemblyCatalogWithCSharpAndVisualBasic.WithPart(typeof(T))).CreateExportProvider();
-            using var workspace = TestWorkspace.CreateCSharp(@"class Program {}", exportProvider: exportProvider);
+            using var workspace = TestWorkspace.CreateCSharp(@"class Program {}", composition: EditorTestCompositions.EditorFeatures.AddParts(typeof(T)));
             var refactoringService = workspace.GetService<ICodeRefactoringService>();
-            var codeRefactoring = exportProvider.GetExportedValues<CodeRefactoringProvider>().OfType<T>().Single();
+            var codeRefactoring = workspace.ExportProvider.GetExportedValues<CodeRefactoringProvider>().OfType<T>().Single();
 
             var project = workspace.CurrentSolution.Projects.Single();
             var document = project.Documents.Single();
-            var extensionManager = document.Project.Solution.Workspace.Services.GetService<IExtensionManager>() as EditorLayerExtensionManager.ExtensionManager;
+            var extensionManager = (EditorLayerExtensionManager.ExtensionManager)document.Project.Solution.Workspace.Services.GetRequiredService<IExtensionManager>();
             var result = await refactoringService.GetRefactoringsAsync(document, TextSpan.FromBounds(0, 0), CancellationToken.None);
             Assert.True(extensionManager.IsDisabled(codeRefactoring));
             Assert.False(extensionManager.IsIgnored(codeRefactoring));
@@ -85,14 +80,10 @@ namespace Microsoft.CodeAnalysis.Editor.UnitTests.CodeRefactoringService
             public readonly CodeRefactoringProvider Refactoring;
 
             public StubAnalyzerReference()
-            {
-                Refactoring = new StubRefactoring();
-            }
+                => Refactoring = new StubRefactoring();
 
             public StubAnalyzerReference(CodeRefactoringProvider codeRefactoring)
-            {
-                Refactoring = codeRefactoring;
-            }
+                => Refactoring = codeRefactoring;
 
             public override string Display => nameof(StubAnalyzerReference);
 

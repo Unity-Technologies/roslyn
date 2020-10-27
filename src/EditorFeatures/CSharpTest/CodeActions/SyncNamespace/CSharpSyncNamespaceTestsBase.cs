@@ -24,27 +24,20 @@ namespace Microsoft.CodeAnalysis.Editor.CSharp.UnitTests.CodeActions.SyncNamespa
     {
         protected override ParseOptions GetScriptOptions() => Options.Script;
 
-        protected override string GetLanguage() => LanguageNames.CSharp;
+        protected internal override string GetLanguage() => LanguageNames.CSharp;
 
         protected override CodeRefactoringProvider CreateCodeRefactoringProvider(Workspace workspace, TestParameters parameters)
             => new CSharpSyncNamespaceCodeRefactoringProvider();
 
-        protected override TestWorkspace CreateWorkspaceFromFile(string initialMarkup, TestParameters parameters)
-        {
-            return TestWorkspace.IsWorkspaceElement(initialMarkup)
-                ? TestWorkspace.Create(initialMarkup)
-                : TestWorkspace.CreateCSharp(initialMarkup, parameters.parseOptions, parameters.compilationOptions);
-        }
-
-        protected string ProjectRootPath
+        protected static string ProjectRootPath
             => PathUtilities.IsUnixLikePlatform
             ? @"/ProjectA/"
             : @"C:\ProjectA\";
 
-        protected string ProjectFilePath
+        protected static string ProjectFilePath
             => PathUtilities.CombineAbsoluteAndRelativePaths(ProjectRootPath, "ProjectA.csproj");
 
-        protected (string folder, string filePath) CreateDocumentFilePath(string[] folder, string fileName = "DocumentA.cs")
+        protected static (string folder, string filePath) CreateDocumentFilePath(string[] folder, string fileName = "DocumentA.cs")
         {
             if (folder == null || folder.Length == 0)
             {
@@ -58,10 +51,8 @@ namespace Microsoft.CodeAnalysis.Editor.CSharp.UnitTests.CodeActions.SyncNamespa
             }
         }
 
-        protected string CreateFolderPath(params string[] folders)
-        {
-            return string.Join(PathUtilities.DirectorySeparatorStr, folders);
-        }
+        protected static string CreateFolderPath(params string[] folders)
+            => string.Join(PathUtilities.DirectorySeparatorStr, folders);
 
         protected async Task TestMoveFileToMatchNamespace(string initialMarkup, List<string[]> expectedFolders = null)
         {
