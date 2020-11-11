@@ -2,6 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+#nullable disable
+
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using Microsoft.CodeAnalysis.Options;
@@ -23,7 +25,7 @@ namespace Roslyn.VisualStudio.Next.UnitTests.Mocks
             _values = values;
         }
 
-        public override object GetOption(OptionKey optionKey)
+        private protected override object GetOptionCore(OptionKey optionKey)
         {
             Contract.ThrowIfFalse(_values.TryGetValue(optionKey, out var value));
 

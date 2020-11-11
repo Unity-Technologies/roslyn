@@ -21,10 +21,11 @@ namespace Microsoft.CodeAnalysis.CSharp
             LockStatementSyntax lockSyntax = (LockStatementSyntax)node.Syntax;
 
             BoundExpression rewrittenArgument = VisitExpression(node.Argument);
-            BoundStatement rewrittenBody = (BoundStatement)Visit(node.Body);
+            BoundStatement? rewrittenBody = VisitStatement(node.Body);
+            Debug.Assert(rewrittenBody is { });
 
-            TypeSymbol argumentType = rewrittenArgument.Type;
-            if ((object)argumentType == null)
+            TypeSymbol? argumentType = rewrittenArgument.Type;
+            if (argumentType is null)
             {
                 // This isn't particularly elegant, but hopefully locking on null is
                 // not very common.
@@ -68,7 +69,7 @@ namespace Microsoft.CodeAnalysis.CSharp
             }
             else
             {
-                exitCallExpr = new BoundBadExpression(lockSyntax, LookupResultKind.NotInvocable, ImmutableArray<Symbol>.Empty, ImmutableArray.Create<BoundExpression>(boundLockTemp), ErrorTypeSymbol.UnknownResultType);
+                exitCallExpr = new BoundBadExpression(lockSyntax, LookupResultKind.NotInvocable, ImmutableArray<Symbol?>.Empty, ImmutableArray.Create<BoundExpression>(boundLockTemp), ErrorTypeSymbol.UnknownResultType);
             }
 
             BoundStatement exitCall = new BoundExpressionStatement(lockSyntax, exitCallExpr);
@@ -127,7 +128,7 @@ namespace Microsoft.CodeAnalysis.CSharp
                         boundLockTakenTempInit,
                         new BoundTryStatement(
                             lockSyntax,
-                            BoundBlock.SynthesizedNoLocals(lockSyntax, ImmutableArray.Create(
+                            BoundBlock.SynthesizedNoLocals(lockSyntax, ImmutableArray.Create<BoundStatement>(
                                 enterCall,
                                 rewrittenBody)),
                             ImmutableArray<BoundCatchBlock>.Empty,
@@ -162,7 +163,7 @@ namespace Microsoft.CodeAnalysis.CSharp
                 }
                 else
                 {
-                    enterCallExpr = new BoundBadExpression(lockSyntax, LookupResultKind.NotInvocable, ImmutableArray<Symbol>.Empty, ImmutableArray.Create<BoundExpression>(boundLockTemp), ErrorTypeSymbol.UnknownResultType);
+                    enterCallExpr = new BoundBadExpression(lockSyntax, LookupResultKind.NotInvocable, ImmutableArray<Symbol?>.Empty, ImmutableArray.Create<BoundExpression>(boundLockTemp), ErrorTypeSymbol.UnknownResultType);
                 }
 
                 BoundStatement enterCall = new BoundExpressionStatement(

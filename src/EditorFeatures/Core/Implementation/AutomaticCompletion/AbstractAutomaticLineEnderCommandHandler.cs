@@ -2,6 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+#nullable disable
+
 using System;
 using System.Threading;
 using Microsoft.CodeAnalysis.Editor.Shared.Extensions;
@@ -53,9 +55,7 @@ namespace Microsoft.CodeAnalysis.Editor.Implementation.AutomaticCompletion
         protected abstract bool TreatAsReturn(Document document, int position, CancellationToken cancellationToken);
 
         public CommandState GetCommandState(AutomaticLineEnderCommandArgs args, Func<CommandState> nextHandler)
-        {
-            return CommandState.Available;
-        }
+            => CommandState.Available;
 
         public void ExecuteCommand(AutomaticLineEnderCommandArgs args, Action nextHandler, CommandExecutionContext context)
         {
@@ -133,7 +133,7 @@ namespace Microsoft.CodeAnalysis.Editor.Implementation.AutomaticCompletion
         /// <summary>
         /// return insertion point for the ending string
         /// </summary>
-        private int? GetInsertionPoint(Document document, ITextSnapshotLine line, CancellationToken cancellationToken)
+        private static int? GetInsertionPoint(Document document, ITextSnapshotLine line, CancellationToken cancellationToken)
         {
             var root = document.GetSyntaxRootSynchronously(cancellationToken);
             var text = root.SyntaxTree.GetText(cancellationToken);

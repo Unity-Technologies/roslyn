@@ -2,6 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+#nullable disable
+
 using System.Windows;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Editor.Wpf;
@@ -19,9 +21,7 @@ namespace Microsoft.VisualStudio.LanguageServices.FindUsages
             public readonly RoslynDefinitionBucket DefinitionBucket;
 
             protected Entry(RoslynDefinitionBucket definitionBucket)
-            {
-                DefinitionBucket = definitionBucket;
-            }
+                => DefinitionBucket = definitionBucket;
 
             public bool TryGetValue(string keyName, out object content)
             {

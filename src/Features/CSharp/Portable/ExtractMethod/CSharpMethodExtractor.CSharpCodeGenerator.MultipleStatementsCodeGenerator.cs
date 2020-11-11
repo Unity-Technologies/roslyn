@@ -2,12 +2,16 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+#nullable disable
+
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.ExtractMethod;
 using Microsoft.CodeAnalysis.Options;
+using Microsoft.CodeAnalysis.PooledObjects;
 using Roslyn.Utilities;
 
 namespace Microsoft.CodeAnalysis.CSharp.ExtractMethod
@@ -47,13 +51,13 @@ namespace Microsoft.CodeAnalysis.CSharp.ExtractMethod
 
                 protected override SyntaxToken CreateMethodName() => GenerateMethodNameForStatementGenerators();
 
-                protected override IEnumerable<StatementSyntax> GetInitialStatementsForMethodDefinitions()
+                protected override ImmutableArray<StatementSyntax> GetInitialStatementsForMethodDefinitions()
                 {
                     var firstSeen = false;
-                    var firstStatementUnderContainer = this.CSharpSelectionResult.GetFirstStatementUnderContainer();
-                    var lastStatementUnderContainer = this.CSharpSelectionResult.GetLastStatementUnderContainer();
+                    var firstStatementUnderContainer = CSharpSelectionResult.GetFirstStatementUnderContainer();
+                    var lastStatementUnderContainer = CSharpSelectionResult.GetLastStatementUnderContainer();
 
-                    var list = new List<StatementSyntax>();
+                    using var _ = ArrayBuilder<StatementSyntax>.GetInstance(out var list);
                     foreach (var statement in GetStatementsFromContainer(firstStatementUnderContainer.Parent))
                     {
                         // reset first seen
@@ -77,7 +81,7 @@ namespace Microsoft.CodeAnalysis.CSharp.ExtractMethod
                         }
                     }
 
-                    return list;
+                    return list.ToImmutable();
                 }
 
                 protected override SyntaxNode GetOutermostCallSiteContainerToProcess(CancellationToken cancellationToken)
@@ -89,12 +93,12 @@ namespace Microsoft.CodeAnalysis.CSharp.ExtractMethod
                     }
                     else
                     {
-                        var firstStatement = this.CSharpSelectionResult.GetFirstStatementUnderContainer();
+                        var firstStatement = CSharpSelectionResult.GetFirstStatementUnderContainer();
                         return firstStatement.Parent;
                     }
                 }
 
-                private SyntaxList<StatementSyntax> GetStatementsFromContainer(SyntaxNode node)
+                private static SyntaxList<StatementSyntax> GetStatementsFromContainer(SyntaxNode node)
                 {
                     Contract.ThrowIfNull(node);
                     Contract.ThrowIfFalse(node.IsStatementContainerNode());
@@ -103,25 +107,20 @@ namespace Microsoft.CodeAnalysis.CSharp.ExtractMethod
                     {
                         BlockSyntax blockNode => blockNode.Statements,
                         SwitchSectionSyntax switchSectionNode => switchSectionNode.Statements,
-                        _ => Contract.FailWithReturn<SyntaxList<StatementSyntax>>("unknown statements container!"),
+                        _ => throw ExceptionUtilities.UnexpectedValue(node),
                     };
                 }
 
                 protected override SyntaxNode GetFirstStatementOrInitializerSelectedAtCallSite()
-                {
-                    return this.CSharpSelectionResult.GetFirstStatementUnderContainer();
-                }
+                    => CSharpSelectionResult.GetFirstStatementUnderContainer();
 
                 protected override SyntaxNode GetLastStatementOrInitializerSelectedAtCallSite()
-                {
-                    return this.CSharpSelectionResult.GetLastStatementUnderContainer();
-                }
+                    => CSharpSelectionResult.GetLastStatementUnderContainer();
 
-                protected override Task<SyntaxNode> GetStatementOrInitializerContainingInvocationToExtractedMethodAsync(
-                    SyntaxAnnotation callSiteAnnotation, CancellationToken cancellationToken)
+                protected override Task<SyntaxNode> GetStatementOrInitializerContainingInvocationToExtractedMethodAsync(CancellationToken cancellationToken)
                 {
                     var statement = GetStatementContainingInvocationToExtractedMethodWorker();
-                    return Task.FromResult<SyntaxNode>(statement.WithAdditionalAnnotations(callSiteAnnotation));
+                    return Task.FromResult<SyntaxNode>(statement.WithAdditionalAnnotations(CallSiteAnnotation));
                 }
             }
         }

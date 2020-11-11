@@ -2,6 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+#nullable disable
+
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -204,7 +206,7 @@ namespace CSharpSyntaxGenerator
             do
             {
                 length = text.Length;
-                text = text.Replace("{\r\n\r\n", "{\r\n");
+                text = text.Replace($"{{{Environment.NewLine}{Environment.NewLine}", $"{{{Environment.NewLine}");
             } while (text.Length != length);
 
             try

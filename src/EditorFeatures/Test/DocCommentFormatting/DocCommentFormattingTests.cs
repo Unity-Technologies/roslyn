@@ -2,6 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+#nullable disable
+
 using Microsoft.CodeAnalysis.CSharp.DocumentationComments;
 using Microsoft.CodeAnalysis.Test.Utilities;
 using Microsoft.CodeAnalysis.VisualBasic.DocumentationComments;
@@ -25,9 +27,7 @@ namespace Microsoft.CodeAnalysis.Editor.UnitTests.DocCommentFormatting
         }
 
         private void TestFormat(string xmlFragment, string expected)
-        {
-            TestFormat(xmlFragment, expected, expected);
-        }
+            => TestFormat(xmlFragment, expected, expected);
 
         [Fact, Trait(Traits.Feature, Traits.Features.DocCommentFormatting)]
         public void CTag()

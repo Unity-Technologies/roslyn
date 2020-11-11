@@ -111,6 +111,13 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
             End Get
         End Property
 
+        ' https://github.com/dotnet/roslyn/issues/44870 VB will be able to consume 'init' set accessors
+        Private ReadOnly Property IMethodSymbol_IsInitOnly As Boolean Implements IMethodSymbol.IsInitOnly
+            Get
+                Return False
+            End Get
+        End Property
+
         ''' <summary>
         ''' Returns true if this method has no return type; i.e., is a Sub instead of a Function.
         ''' </summary>
@@ -561,7 +568,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
             typeArguments.CheckTypeArguments(Me.Arity)
         End Sub
 
-        ' Apply type substitution to a generic method to create an method symbol with the given type parameters supplied.
+        ' Apply type substitution to a generic method to create a method symbol with the given type parameters supplied.
         Public Overridable Function Construct(typeArguments As ImmutableArray(Of TypeSymbol)) As MethodSymbol
             CheckCanConstructAndTypeArguments(typeArguments)
 
@@ -1000,6 +1007,18 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
         Private ReadOnly Property IMethodSymbol_ReturnNullableAnnotation As NullableAnnotation Implements IMethodSymbol.ReturnNullableAnnotation
             Get
                 Return NullableAnnotation.None
+            End Get
+        End Property
+
+        Private ReadOnly Property IMethodSymbol_CallingConvention As Reflection.Metadata.SignatureCallingConvention Implements IMethodSymbol.CallingConvention
+            Get
+                Return Cci.CallingConventionUtils.ToSignatureConvention(CallingConvention)
+            End Get
+        End Property
+
+        Private ReadOnly Property IMethodSymbol_UnmanagedCallingConventionTypes As ImmutableArray(Of INamedTypeSymbol) Implements IMethodSymbol.UnmanagedCallingConventionTypes
+            Get
+                Return ImmutableArray(Of INamedTypeSymbol).Empty
             End Get
         End Property
 

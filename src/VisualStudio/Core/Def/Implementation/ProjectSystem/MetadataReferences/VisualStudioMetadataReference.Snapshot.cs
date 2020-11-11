@@ -2,14 +2,16 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+#nullable disable
+
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Threading;
 using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.Execution;
 using Microsoft.CodeAnalysis.Host;
+using Microsoft.CodeAnalysis.Serialization;
 using Microsoft.VisualStudio.LanguageServices.Implementation.DocumentationComments;
 using Roslyn.Utilities;
 
@@ -100,24 +102,16 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.ProjectSystem
             }
 
             protected override DocumentationProvider CreateDocumentationProvider()
-            {
-                return new VisualStudioDocumentationProvider(this.FilePath, _provider.XmlMemberIndexService);
-            }
+                => new VisualStudioDocumentationProvider(this.FilePath, _provider.XmlMemberIndexService);
 
             protected override PortableExecutableReference WithPropertiesImpl(MetadataReferenceProperties properties)
-            {
-                return new Snapshot(_provider, properties, this.FilePath, _fileChangeTrackerOpt);
-            }
+                => new Snapshot(_provider, properties, this.FilePath, _fileChangeTrackerOpt);
 
             private string GetDebuggerDisplay()
-            {
-                return "Metadata File: " + FilePath;
-            }
+                => "Metadata File: " + FilePath;
 
             public IEnumerable<ITemporaryStreamStorage> GetStorages()
-            {
-                return _provider.GetStorages(this.FilePath, _timestamp.Value);
-            }
+                => _provider.GetStorages(this.FilePath, _timestamp.Value);
         }
     }
 }

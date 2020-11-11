@@ -2,8 +2,11 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+#nullable disable
+
 using System;
 using System.ComponentModel.Composition;
+using System.Diagnostics.CodeAnalysis;
 using System.Threading.Tasks;
 using Microsoft.CodeAnalysis.Editor.FindUsages;
 using Microsoft.CodeAnalysis.Editor.Host;
@@ -33,6 +36,7 @@ namespace Microsoft.CodeAnalysis.Editor.FindReferences
         public string DisplayName => EditorFeaturesResources.Find_References;
 
         [ImportingConstructor]
+        [SuppressMessage("RoslynDiagnosticsReliability", "RS0033:Importing constructor should be [Obsolete]", Justification = "Used in test code: https://github.com/dotnet/roslyn/issues/42814")]
         public FindReferencesCommandHandler(
             IStreamingFindUsagesPresenter streamingPresenter,
             IAsynchronousOperationListenerProvider listenerProvider)
@@ -70,7 +74,7 @@ namespace Microsoft.CodeAnalysis.Editor.FindReferences
                     // user has selected a symbol that has another symbol touching it
                     // on the right (i.e.  Goo++  ), then we'll do the find-refs on the
                     // symbol selected, not the symbol following.
-                    if (TryExecuteCommand(selectedSpan.Start, document, service, context))
+                    if (TryExecuteCommand(selectedSpan.Start, document, service))
                     {
                         return true;
                     }
@@ -80,13 +84,13 @@ namespace Microsoft.CodeAnalysis.Editor.FindReferences
             return false;
         }
 
-        private (Document, IFindUsagesService) GetDocumentAndService(ITextSnapshot snapshot)
+        private static (Document, IFindUsagesService) GetDocumentAndService(ITextSnapshot snapshot)
         {
             var document = snapshot.GetOpenDocumentInCurrentContextWithChanges();
             return (document, document?.GetLanguageService<IFindUsagesService>());
         }
 
-        private bool TryExecuteCommand(int caretPosition, Document document, IFindUsagesService findUsagesService, CommandExecutionContext context)
+        private bool TryExecuteCommand(int caretPosition, Document document, IFindUsagesService findUsagesService)
         {
             // See if we're running on a host that can provide streaming results.
             // We'll both need a FAR service that can stream results to us, and 
@@ -135,7 +139,7 @@ namespace Microsoft.CodeAnalysis.Editor.FindReferences
             catch (OperationCanceledException)
             {
             }
-            catch (Exception e) when (FatalError.ReportWithoutCrash(e))
+            catch (Exception e) when (FatalError.ReportAndCatch(e))
             {
             }
         }

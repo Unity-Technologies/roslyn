@@ -21,6 +21,13 @@ namespace Microsoft.CodeAnalysis.CSharp
             return MakeAsOperator(node, node.Syntax, rewrittenOperand, rewrittenTargetType, node.Conversion, rewrittenType);
         }
 
+        public override BoundNode VisitTypeExpression(BoundTypeExpression node)
+        {
+            var result = base.VisitTypeExpression(node);
+            Debug.Assert(result is { });
+            return result;
+        }
+
         private BoundExpression MakeAsOperator(
             BoundAsOperator oldNode,
             SyntaxNode syntax,

@@ -2,6 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+#nullable disable
+
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics;
@@ -121,7 +123,7 @@ namespace Microsoft.CodeAnalysis.CSharp
                 ParameterSymbol parameter =>
                     // in Debug build hoist all parameters that can be hoisted:
                     !parameter.Type.IsRestrictedType(),
-                LocalSymbol { IsConst: false, IsPinned: false } local =>
+                LocalSymbol { IsConst: false, IsPinned: false, IsRef: false } local =>
                     // hoist all user-defined locals and long-lived temps that can be hoisted:
                     local.SynthesizedKind.MustSurviveStateMachineSuspension() &&
                     !local.Type.IsRestrictedType(),

@@ -23,7 +23,7 @@ namespace Microsoft.CodeAnalysis.Editor.Shared.Tagging
                 _service = service;
             }
 
-            private void OnDiagnosticsUpdated(object sender, DiagnosticsUpdatedArgs e)
+            private void OnDiagnosticsUpdated(object? sender, DiagnosticsUpdatedArgs e)
             {
                 var document = _subjectBuffer.AsTextContainer().GetOpenDocumentInCurrentContext();
 
@@ -34,14 +34,10 @@ namespace Microsoft.CodeAnalysis.Editor.Shared.Tagging
             }
 
             public override void Connect()
-            {
-                _service.DiagnosticsUpdated += OnDiagnosticsUpdated;
-            }
+                => _service.DiagnosticsUpdated += OnDiagnosticsUpdated;
 
             public override void Disconnect()
-            {
-                _service.DiagnosticsUpdated -= OnDiagnosticsUpdated;
-            }
+                => _service.DiagnosticsUpdated -= OnDiagnosticsUpdated;
         }
     }
 }

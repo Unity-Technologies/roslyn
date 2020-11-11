@@ -2,6 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+#nullable disable
+
 using System;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
@@ -49,19 +51,13 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.CodeModel.Inter
         }
 
         internal INamedTypeSymbol LookupTypeSymbol()
-        {
-            return (INamedTypeSymbol)LookupSymbol();
-        }
+            => (INamedTypeSymbol)LookupSymbol();
 
         protected override object GetExtenderNames()
-        {
-            return CodeModelService.GetTypeExtenderNames();
-        }
+            => CodeModelService.GetTypeExtenderNames();
 
         protected override object GetExtender(string name)
-        {
-            return CodeModelService.GetTypeExtender(name, this);
-        }
+            => CodeModelService.GetTypeExtender(name, this);
 
         public override object Parent
         {

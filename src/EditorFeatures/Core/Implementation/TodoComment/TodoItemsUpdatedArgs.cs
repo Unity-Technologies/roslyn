@@ -2,8 +2,11 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+#nullable disable
+
 using System.Collections.Immutable;
 using Microsoft.CodeAnalysis.Common;
+using Microsoft.CodeAnalysis.TodoComments;
 
 namespace Microsoft.CodeAnalysis.Editor
 {
@@ -17,10 +20,10 @@ namespace Microsoft.CodeAnalysis.Editor
         /// <summary>
         /// The task items associated with the ID.
         /// </summary>
-        public ImmutableArray<TodoItem> TodoItems { get; }
+        public ImmutableArray<TodoCommentData> TodoItems { get; }
 
         public TodoItemsUpdatedArgs(
-            object id, Workspace workspace, Solution solution, ProjectId projectId, DocumentId documentId, ImmutableArray<TodoItem> todoItems)
+            object id, Workspace workspace, Solution solution, ProjectId projectId, DocumentId documentId, ImmutableArray<TodoCommentData> todoItems)
             : base(id, workspace, projectId, documentId)
         {
             Solution = solution;

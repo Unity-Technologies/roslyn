@@ -2,6 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+#nullable disable
+
 using System;
 using System.Collections.Immutable;
 using System.Threading.Tasks;
@@ -39,7 +41,7 @@ namespace Microsoft.CodeAnalysis.Structure
 
                 ProvideBlockStructureWorker(context, syntaxRoot);
             }
-            catch (Exception e) when (FatalError.ReportUnlessCanceled(e))
+            catch (Exception e) when (FatalError.ReportAndPropagateUnlessCanceled(e))
             {
                 throw ExceptionUtilities.Unreachable;
             }
@@ -56,7 +58,7 @@ namespace Microsoft.CodeAnalysis.Structure
 
                 ProvideBlockStructureWorker(context, syntaxRoot);
             }
-            catch (Exception e) when (FatalError.ReportUnlessCanceled(e))
+            catch (Exception e) when (FatalError.ReportAndPropagateUnlessCanceled(e))
             {
                 throw ExceptionUtilities.Unreachable;
             }
@@ -65,7 +67,7 @@ namespace Microsoft.CodeAnalysis.Structure
         private void ProvideBlockStructureWorker(
             BlockStructureContext context, SyntaxNode syntaxRoot)
         {
-            var spans = ArrayBuilder<BlockSpan>.GetInstance();
+            using var _ = ArrayBuilder<BlockSpan>.GetInstance(out var spans);
             BlockSpanCollector.CollectBlockSpans(
                 context.Document, syntaxRoot, _nodeProviderMap, _triviaProviderMap, spans, context.CancellationToken);
 
@@ -73,8 +75,6 @@ namespace Microsoft.CodeAnalysis.Structure
             {
                 context.AddBlockSpan(span);
             }
-
-            spans.Free();
         }
     }
 }

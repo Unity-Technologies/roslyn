@@ -2,9 +2,11 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+using System;
 using System.Composition;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.CodeAnalysis.Host.Mef;
 using Microsoft.CodeAnalysis.PooledObjects;
 using Microsoft.CodeAnalysis.Structure;
 using Microsoft.VisualStudio.LanguageServer.Protocol;
@@ -12,15 +14,22 @@ using Microsoft.VisualStudio.LanguageServer.Protocol;
 namespace Microsoft.CodeAnalysis.LanguageServer.Handler
 {
     [Shared]
-    [ExportLspMethod(Methods.TextDocumentFoldingRangeName)]
+    [ExportLspMethod(Methods.TextDocumentFoldingRangeName, mutatesSolutionState: false)]
     internal class FoldingRangesHandler : IRequestHandler<FoldingRangeParams, FoldingRange[]>
     {
-        public async Task<FoldingRange[]> HandleRequestAsync(Solution solution, FoldingRangeParams request,
-            ClientCapabilities clientCapabilities, CancellationToken cancellationToken)
+        [ImportingConstructor]
+        [Obsolete(MefConstruction.ImportingConstructorMessage, error: true)]
+        public FoldingRangesHandler()
+        {
+        }
+
+        public TextDocumentIdentifier? GetTextDocumentIdentifier(FoldingRangeParams request) => request.TextDocument;
+
+        public async Task<FoldingRange[]> HandleRequestAsync(FoldingRangeParams request, RequestContext context, CancellationToken cancellationToken)
         {
             var foldingRanges = ArrayBuilder<FoldingRange>.GetInstance();
 
-            var document = solution.GetDocumentFromURI(request.TextDocument.Uri);
+            var document = context.Document;
             if (document == null)
             {
                 return foldingRanges.ToArrayAndFree();
@@ -49,11 +58,17 @@ namespace Microsoft.CodeAnalysis.LanguageServer.Handler
 
                 var linePositionSpan = text.Lines.GetLinePositionSpan(span.TextSpan);
 
+                // Filter out single line spans.
+                if (linePositionSpan.Start.Line == linePositionSpan.End.Line)
+                {
+                    continue;
+                }
+
                 // TODO - Figure out which blocks should be returned as a folding range (and what kind).
                 // https://github.com/dotnet/roslyn/projects/45#card-20049168
-                var foldingRangeKind = span.Type switch
+                FoldingRangeKind? foldingRangeKind = span.Type switch
                 {
-                    BlockTypes.Comment => (FoldingRangeKind?)FoldingRangeKind.Comment,
+                    BlockTypes.Comment => FoldingRangeKind.Comment,
                     BlockTypes.Imports => FoldingRangeKind.Imports,
                     BlockTypes.PreprocessorRegion => FoldingRangeKind.Region,
                     _ => null,

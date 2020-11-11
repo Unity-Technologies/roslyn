@@ -10,19 +10,20 @@ namespace Microsoft.CodeAnalysis.Editor.Implementation.Workspaces
 {
     internal class EditorErrorReportingService : IErrorReportingService
     {
-        public void ShowDetailedErrorInfo(Exception exception)
-        {
-            Logger.Log(FunctionId.Extension_Exception, exception.StackTrace);
-        }
+        public string HostDisplayName => "host";
 
-        public void ShowErrorInfoInActiveView(string message, params InfoBarUI[] items)
-        {
-            ShowGlobalErrorInfo(message, items);
-        }
+        public void ShowDetailedErrorInfo(Exception exception)
+            => Logger.Log(FunctionId.Extension_Exception, exception.StackTrace);
 
         public void ShowGlobalErrorInfo(string message, params InfoBarUI[] items)
+            => Logger.Log(FunctionId.Extension_Exception, message);
+
+        public void ShowRemoteHostCrashedErrorInfo(Exception? exception)
+            => Logger.Log(FunctionId.Extension_Exception, exception?.Message);
+
+        public void ShowFeatureNotAvailableErrorInfo(string message, Exception? exception)
         {
-            Logger.Log(FunctionId.Extension_Exception, message);
+            // telemetry has already been reported
         }
     }
 }

@@ -2,6 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+#nullable disable
+
 using System.Collections.Immutable;
 using Microsoft.VisualStudio.Shell.TableControl;
 
@@ -13,9 +15,7 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.TableDataSource
         {
             private readonly ImmutableArray<EventProcessor> _additionalEventProcessors;
             public AggregateDiagnosticTableControlEventProcessor(params EventProcessor[] additionalEventProcessors)
-            {
-                _additionalEventProcessors = additionalEventProcessors.ToImmutableArray();
-            }
+                => _additionalEventProcessors = additionalEventProcessors.ToImmutableArray();
 
             public override void PostprocessSelectionChanged(TableSelectionChangedEventArgs e)
             {

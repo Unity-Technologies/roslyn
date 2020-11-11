@@ -2,6 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+#nullable disable
+
 using System;
 using System.Linq;
 using System.Threading;
@@ -2127,10 +2129,10 @@ public interface I1
                                                  targetFramework: TargetFramework.NetStandardLatest);
             Assert.True(compilation1.Assembly.RuntimeSupportsDefaultInterfaceImplementation);
             compilation1.VerifyDiagnostics(
-                // (4,13): error CS1014: A get or set accessor expected
+                // (4,13): error CS1014: A get, set or init accessor expected
                 //     int P1 {add; remove;} => 0;
                 Diagnostic(ErrorCode.ERR_GetOrSetExpected, "add").WithLocation(4, 13),
-                // (4,18): error CS1014: A get or set accessor expected
+                // (4,18): error CS1014: A get, set or init accessor expected
                 //     int P1 {add; remove;} => 0;
                 Diagnostic(ErrorCode.ERR_GetOrSetExpected, "remove").WithLocation(4, 18),
                 // (4,9): error CS0548: 'I1.P1': property or indexer must have at least one accessor
@@ -2192,15 +2194,15 @@ public interface I1
                                                  targetFramework: TargetFramework.NetStandardLatest);
             Assert.True(compilation1.Assembly.RuntimeSupportsDefaultInterfaceImplementation);
             compilation1.VerifyEmitDiagnostics(
-                // (4,13): error CS1014: A get or set accessor expected
+                // (4,13): error CS1014: A get, set or init accessor expected
                 //     int P1 {add; remove;} = 0;
                 Diagnostic(ErrorCode.ERR_GetOrSetExpected, "add").WithLocation(4, 13),
-                // (4,18): error CS1014: A get or set accessor expected
+                // (4,18): error CS1014: A get, set or init accessor expected
                 //     int P1 {add; remove;} = 0;
                 Diagnostic(ErrorCode.ERR_GetOrSetExpected, "remove").WithLocation(4, 18),
-                // (4,9): error CS8050: Only auto-implemented properties can have initializers.
+                // (4,9): error CS8053: Instance properties in interfaces cannot have initializers.
                 //     int P1 {add; remove;} = 0;
-                Diagnostic(ErrorCode.ERR_InitializerOnNonAutoProperty, "P1").WithArguments("I1.P1").WithLocation(4, 9),
+                Diagnostic(ErrorCode.ERR_InstancePropertyInitializerInInterface, "P1").WithArguments("I1.P1").WithLocation(4, 9),
                 // (4,9): error CS0548: 'I1.P1': property or indexer must have at least one accessor
                 //     int P1 {add; remove;} = 0;
                 Diagnostic(ErrorCode.ERR_PropertyWithNoAccessors, "P1").WithArguments("I1.P1").WithLocation(4, 9)
@@ -2229,9 +2231,9 @@ public interface I1
                                                  targetFramework: TargetFramework.NetStandardLatest);
             Assert.True(compilation1.Assembly.RuntimeSupportsDefaultInterfaceImplementation);
             compilation1.VerifyEmitDiagnostics(
-                // (4,9): error CS8050: Only auto-implemented properties can have initializers.
+                // (4,9): error CS8053: Instance properties in interfaces cannot have initializers..
                 //     int P1 {get; set;} = 0;
-                Diagnostic(ErrorCode.ERR_InitializerOnNonAutoProperty, "P1").WithArguments("I1.P1").WithLocation(4, 9)
+                Diagnostic(ErrorCode.ERR_InstancePropertyInitializerInInterface, "P1").WithArguments("I1.P1").WithLocation(4, 9)
                 );
 
             var p1 = compilation1.GetMember<PropertySymbol>("I1.P1");
@@ -3490,10 +3492,10 @@ public interface I1
                                                  targetFramework: TargetFramework.NetStandardLatest);
             Assert.True(compilation1.Assembly.RuntimeSupportsDefaultInterfaceImplementation);
             compilation1.VerifyDiagnostics(
-                // (4,22): error CS1014: A get or set accessor expected
+                // (4,22): error CS1014: A get, set or init accessor expected
                 //     int this[int i] {add; remove;} => 0;
                 Diagnostic(ErrorCode.ERR_GetOrSetExpected, "add").WithLocation(4, 22),
-                // (4,27): error CS1014: A get or set accessor expected
+                // (4,27): error CS1014: A get, set or init accessor expected
                 //     int this[int i] {add; remove;} => 0;
                 Diagnostic(ErrorCode.ERR_GetOrSetExpected, "remove").WithLocation(4, 27),
                 // (4,9): error CS0548: 'I1.this[int]': property or indexer must have at least one accessor
@@ -3555,13 +3557,13 @@ public interface I1
                                                  targetFramework: TargetFramework.NetStandardLatest);
             Assert.True(compilation1.Assembly.RuntimeSupportsDefaultInterfaceImplementation);
             compilation1.VerifyDiagnostics(
-                // (4,36): error CS1519: Invalid token '=' in class, struct, or interface member declaration
+                // (4,36): error CS1519: Invalid token '=' in class, record, struct, or interface member declaration
                 //     int this[int i] {add; remove;} = 0;
                 Diagnostic(ErrorCode.ERR_InvalidMemberDecl, "=").WithArguments("=").WithLocation(4, 36),
-                // (4,22): error CS1014: A get or set accessor expected
+                // (4,22): error CS1014: A get, set or init accessor expected
                 //     int this[int i] {add; remove;} = 0;
                 Diagnostic(ErrorCode.ERR_GetOrSetExpected, "add").WithLocation(4, 22),
-                // (4,27): error CS1014: A get or set accessor expected
+                // (4,27): error CS1014: A get, set or init accessor expected
                 //     int this[int i] {add; remove;} = 0;
                 Diagnostic(ErrorCode.ERR_GetOrSetExpected, "remove").WithLocation(4, 27),
                 // (4,9): error CS0548: 'I1.this[int]': property or indexer must have at least one accessor
@@ -3592,7 +3594,7 @@ public interface I1
                                                  targetFramework: TargetFramework.NetStandardLatest);
             Assert.True(compilation1.Assembly.RuntimeSupportsDefaultInterfaceImplementation);
             compilation1.VerifyDiagnostics(
-                // (4,33): error CS1519: Invalid token '=' in class, struct, or interface member declaration
+                // (4,33): error CS1519: Invalid token '=' in class, record, struct, or interface member declaration
                 //     int this[int i] {get; set;} = 0;
                 Diagnostic(ErrorCode.ERR_InvalidMemberDecl, "=").WithArguments("=").WithLocation(4, 33)
                 );
@@ -5125,7 +5127,7 @@ class Test1 : I1
 ";
             ValidateEventImplementation_101(source1,
                 new[] {
-                // (8,7): error CS1519: Invalid token '=>' in class, struct, or interface member declaration
+                // (8,7): error CS1519: Invalid token '=>' in class, record, struct, or interface member declaration
                 //     } => 0;
                 Diagnostic(ErrorCode.ERR_InvalidMemberDecl, "=>").WithArguments("=>").WithLocation(8, 7),
                 // (6,9): error CS1055: An add or remove accessor expected
@@ -9199,27 +9201,27 @@ public partial interface I1
 }
 ";
             var compilation1 = CreateCompilation(source1, options: TestOptions.DebugDll,
-                                                 parseOptions: TestOptions.Regular,
+                                                 parseOptions: TestOptions.RegularWithExtendedPartialMethods,
                                                  targetFramework: TargetFramework.NetStandardLatest);
 
             compilation1.VerifyDiagnostics(
-                // (4,24): error CS0766: Partial methods must have a void return type
+                // (4,24): error CS8794: Partial method 'I1.M1()' must have accessibility modifiers because it has a non-void return type.
                 //     static partial int M1();
-                Diagnostic(ErrorCode.ERR_PartialMethodMustReturnVoid, "M1").WithLocation(4, 24),
-                // (5,32): error CS0750: A partial method cannot have access modifiers or the virtual, abstract, override, new, sealed, or extern modifiers
+                Diagnostic(ErrorCode.ERR_PartialMethodWithNonVoidReturnMustHaveAccessMods, "M1").WithArguments("I1.M1()").WithLocation(4, 24),
+                // (5,32): error CS8793: Partial method 'I1.M2()' must have an implementation part because it has accessibility modifiers.
                 //     public static partial void M2();
-                Diagnostic(ErrorCode.ERR_PartialMethodInvalidModifier, "M2").WithLocation(5, 32),
-                // (6,34): error CS0750: A partial method cannot have access modifiers or the virtual, abstract, override, new, sealed, or extern modifiers
+                Diagnostic(ErrorCode.ERR_PartialMethodWithAccessibilityModsMustHaveImplementation, "M2").WithArguments("I1.M2()").WithLocation(5, 32),
+                // (6,34): error CS8793: Partial method 'I1.M3()' must have an implementation part because it has accessibility modifiers.
                 //     internal static partial void M3();
-                Diagnostic(ErrorCode.ERR_PartialMethodInvalidModifier, "M3").WithLocation(6, 34),
-                // (7,33): error CS0750: A partial method cannot have access modifiers or the virtual, abstract, override, new, sealed, or extern modifiers
+                Diagnostic(ErrorCode.ERR_PartialMethodWithAccessibilityModsMustHaveImplementation, "M3").WithArguments("I1.M3()").WithLocation(6, 34),
+                // (7,33): error CS8793: Partial method 'I1.M4()' must have an implementation part because it has accessibility modifiers.
                 //     private static partial void M4();
-                Diagnostic(ErrorCode.ERR_PartialMethodInvalidModifier, "M4").WithLocation(7, 33),
-                // (8,25): error CS0752: A partial method cannot have out parameters
+                Diagnostic(ErrorCode.ERR_PartialMethodWithAccessibilityModsMustHaveImplementation, "M4").WithArguments("I1.M4()").WithLocation(7, 33),
+                // (8,25): error CS8795: Partial method 'I1.M5(out int)' must have accessibility modifiers because it has 'out' parameters.
                 //     static partial void M5(out int x);
-                Diagnostic(ErrorCode.ERR_PartialMethodCannotHaveOutParameters, "M5").WithLocation(8, 25),
+                Diagnostic(ErrorCode.ERR_PartialMethodWithOutParamMustHaveAccessMods, "M5").WithArguments("I1.M5(out int)").WithLocation(8, 25),
                 // (11,25): error CS0759: No defining declaration found for implementing declaration of partial method 'I1.M8()'
-                //     static partial void M8() {} 
+                //     static partial void M8() {}
                 Diagnostic(ErrorCode.ERR_PartialMethodMustHaveLatent, "M8").WithArguments("I1.M8()").WithLocation(11, 25),
                 // (18,17): error CS0111: Type 'I1' already defines a member called 'M6' with the same parameter types
                 //     static void M6() {}
@@ -9228,56 +9230,59 @@ public partial interface I1
                 //     static partial void M7();
                 Diagnostic(ErrorCode.ERR_MemberAlreadyExists, "M7").WithArguments("M7", "I1").WithLocation(19, 25),
                 // (20,25): error CS0757: A partial method may not have multiple implementing declarations
-                //     static partial void M8() {} 
+                //     static partial void M8() {}
                 Diagnostic(ErrorCode.ERR_PartialMethodOnlyOneActual, "M8").WithLocation(20, 25),
+                // (20,25): error CS0111: Type 'I1' already defines a member called 'M8' with the same parameter types
+                //     static partial void M8() {}
+                Diagnostic(ErrorCode.ERR_MemberAlreadyExists, "M8").WithArguments("M8", "I1").WithLocation(20, 25),
                 // (21,25): error CS0756: A partial method may not have multiple defining declarations
-                //     static partial void M9(); 
+                //     static partial void M9();
                 Diagnostic(ErrorCode.ERR_PartialMethodOnlyOneLatent, "M9").WithLocation(21, 25),
-                // (22,32): error CS0750: A partial method cannot have access modifiers or the virtual, abstract, override, new, sealed, or extern modifiers
-                //     static extern partial void M10(); 
-                Diagnostic(ErrorCode.ERR_PartialMethodInvalidModifier, "M10").WithLocation(22, 32),
-                // (22,32): error CS0756: A partial method may not have multiple defining declarations
-                //     static extern partial void M10(); 
-                Diagnostic(ErrorCode.ERR_PartialMethodOnlyOneLatent, "M10").WithLocation(22, 32),
-                // (23,35): error CS0750: A partial method cannot have access modifiers or the virtual, abstract, override, new, sealed, or extern modifiers
+                // (21,25): error CS0111: Type 'I1' already defines a member called 'M9' with the same parameter types
+                //     static partial void M9();
+                Diagnostic(ErrorCode.ERR_MemberAlreadyExists, "M9").WithArguments("M9", "I1").WithLocation(21, 25),
+                // (22,32): error CS8796: Partial method 'I1.M10()' must have accessibility modifiers because it has a 'virtual', 'override', 'sealed', 'new', or 'extern' modifier.
+                //     static extern partial void M10();
+                Diagnostic(ErrorCode.ERR_PartialMethodWithExtendedModMustHaveAccessMods, "M10").WithArguments("I1.M10()").WithLocation(22, 32),
+                // (23,35): error CS8793: Partial method 'I1.M11()' must have an implementation part because it has accessibility modifiers.
                 //     protected static partial void M11();
-                Diagnostic(ErrorCode.ERR_PartialMethodInvalidModifier, "M11").WithLocation(23, 35),
-                // (24,44): error CS0750: A partial method cannot have access modifiers or the virtual, abstract, override, new, sealed, or extern modifiers
+                Diagnostic(ErrorCode.ERR_PartialMethodWithAccessibilityModsMustHaveImplementation, "M11").WithArguments("I1.M11()").WithLocation(23, 35),
+                // (24,44): error CS8793: Partial method 'I1.M12()' must have an implementation part because it has accessibility modifiers.
                 //     protected internal static partial void M12();
-                Diagnostic(ErrorCode.ERR_PartialMethodInvalidModifier, "M12").WithLocation(24, 44),
-                // (25,43): error CS0750: A partial method cannot have access modifiers or the virtual, abstract, override, new, sealed, or extern modifiers
+                Diagnostic(ErrorCode.ERR_PartialMethodWithAccessibilityModsMustHaveImplementation, "M12").WithArguments("I1.M12()").WithLocation(24, 44),
+                // (25,43): error CS8793: Partial method 'I1.M13()' must have an implementation part because it has accessibility modifiers.
                 //     private protected static partial void M13();
-                Diagnostic(ErrorCode.ERR_PartialMethodInvalidModifier, "M13").WithLocation(25, 43)
+                Diagnostic(ErrorCode.ERR_PartialMethodWithAccessibilityModsMustHaveImplementation, "M13").WithArguments("I1.M13()").WithLocation(25, 43)
                 );
 
             var compilation2 = CreateCompilation(source1, options: TestOptions.DebugDll,
-                                                 parseOptions: TestOptions.Regular,
+                                                 parseOptions: TestOptions.RegularWithExtendedPartialMethods,
                                                  targetFramework: TargetFramework.DesktopLatestExtended);
 
             compilation2.VerifyDiagnostics(
-                // (4,24): error CS0766: Partial methods must have a void return type
+                // (4,24): error CS8794: Partial method 'I1.M1()' must have accessibility modifiers because it has a non-void return type.
                 //     static partial int M1();
-                Diagnostic(ErrorCode.ERR_PartialMethodMustReturnVoid, "M1").WithLocation(4, 24),
-                // (5,32): error CS0750: A partial method cannot have access modifiers or the virtual, abstract, override, new, sealed, or extern modifiers
+                Diagnostic(ErrorCode.ERR_PartialMethodWithNonVoidReturnMustHaveAccessMods, "M1").WithArguments("I1.M1()").WithLocation(4, 24),
+                // (5,32): error CS8793: Partial method 'I1.M2()' must have an implementation part because it has accessibility modifiers.
                 //     public static partial void M2();
-                Diagnostic(ErrorCode.ERR_PartialMethodInvalidModifier, "M2").WithLocation(5, 32),
-                // (6,34): error CS0750: A partial method cannot have access modifiers or the virtual, abstract, override, new, sealed, or extern modifiers
+                Diagnostic(ErrorCode.ERR_PartialMethodWithAccessibilityModsMustHaveImplementation, "M2").WithArguments("I1.M2()").WithLocation(5, 32),
+                // (6,34): error CS8793: Partial method 'I1.M3()' must have an implementation part because it has accessibility modifiers.
                 //     internal static partial void M3();
-                Diagnostic(ErrorCode.ERR_PartialMethodInvalidModifier, "M3").WithLocation(6, 34),
-                // (7,33): error CS0750: A partial method cannot have access modifiers or the virtual, abstract, override, new, sealed, or extern modifiers
+                Diagnostic(ErrorCode.ERR_PartialMethodWithAccessibilityModsMustHaveImplementation, "M3").WithArguments("I1.M3()").WithLocation(6, 34),
+                // (7,33): error CS8793: Partial method 'I1.M4()' must have an implementation part because it has accessibility modifiers.
                 //     private static partial void M4();
-                Diagnostic(ErrorCode.ERR_PartialMethodInvalidModifier, "M4").WithLocation(7, 33),
-                // (8,25): error CS0752: A partial method cannot have out parameters
+                Diagnostic(ErrorCode.ERR_PartialMethodWithAccessibilityModsMustHaveImplementation, "M4").WithArguments("I1.M4()").WithLocation(7, 33),
+                // (8,25): error CS8795: Partial method 'I1.M5(out int)' must have accessibility modifiers because it has 'out' parameters.
                 //     static partial void M5(out int x);
-                Diagnostic(ErrorCode.ERR_PartialMethodCannotHaveOutParameters, "M5").WithLocation(8, 25),
+                Diagnostic(ErrorCode.ERR_PartialMethodWithOutParamMustHaveAccessMods, "M5").WithArguments("I1.M5(out int)").WithLocation(8, 25),
                 // (10,17): error CS8701: Target runtime doesn't support default interface implementation.
                 //     static void M7() {}
                 Diagnostic(ErrorCode.ERR_RuntimeDoesNotSupportDefaultInterfaceImplementation, "M7").WithLocation(10, 17),
                 // (11,25): error CS8701: Target runtime doesn't support default interface implementation.
-                //     static partial void M8() {} 
+                //     static partial void M8() {}
                 Diagnostic(ErrorCode.ERR_RuntimeDoesNotSupportDefaultInterfaceImplementation, "M8").WithLocation(11, 25),
                 // (11,25): error CS0759: No defining declaration found for implementing declaration of partial method 'I1.M8()'
-                //     static partial void M8() {} 
+                //     static partial void M8() {}
                 Diagnostic(ErrorCode.ERR_PartialMethodMustHaveLatent, "M8").WithArguments("I1.M8()").WithLocation(11, 25),
                 // (18,17): error CS8701: Target runtime doesn't support default interface implementation.
                 //     static void M6() {}
@@ -9289,32 +9294,35 @@ public partial interface I1
                 //     static partial void M7();
                 Diagnostic(ErrorCode.ERR_MemberAlreadyExists, "M7").WithArguments("M7", "I1").WithLocation(19, 25),
                 // (20,25): error CS8701: Target runtime doesn't support default interface implementation.
-                //     static partial void M8() {} 
+                //     static partial void M8() {}
                 Diagnostic(ErrorCode.ERR_RuntimeDoesNotSupportDefaultInterfaceImplementation, "M8").WithLocation(20, 25),
                 // (20,25): error CS0757: A partial method may not have multiple implementing declarations
-                //     static partial void M8() {} 
+                //     static partial void M8() {}
                 Diagnostic(ErrorCode.ERR_PartialMethodOnlyOneActual, "M8").WithLocation(20, 25),
+                // (20,25): error CS0111: Type 'I1' already defines a member called 'M8' with the same parameter types
+                //     static partial void M8() {}
+                Diagnostic(ErrorCode.ERR_MemberAlreadyExists, "M8").WithArguments("M8", "I1").WithLocation(20, 25),
                 // (21,25): error CS0756: A partial method may not have multiple defining declarations
-                //     static partial void M9(); 
+                //     static partial void M9();
                 Diagnostic(ErrorCode.ERR_PartialMethodOnlyOneLatent, "M9").WithLocation(21, 25),
+                // (21,25): error CS0111: Type 'I1' already defines a member called 'M9' with the same parameter types
+                //     static partial void M9();
+                Diagnostic(ErrorCode.ERR_MemberAlreadyExists, "M9").WithArguments("M9", "I1").WithLocation(21, 25),
                 // (22,32): error CS8701: Target runtime doesn't support default interface implementation.
-                //     static extern partial void M10(); 
+                //     static extern partial void M10();
                 Diagnostic(ErrorCode.ERR_RuntimeDoesNotSupportDefaultInterfaceImplementation, "M10").WithLocation(22, 32),
-                // (22,32): error CS0750: A partial method cannot have access modifiers or the virtual, abstract, override, new, sealed, or extern modifiers
-                //     static extern partial void M10(); 
-                Diagnostic(ErrorCode.ERR_PartialMethodInvalidModifier, "M10").WithLocation(22, 32),
-                // (22,32): error CS0756: A partial method may not have multiple defining declarations
-                //     static extern partial void M10(); 
-                Diagnostic(ErrorCode.ERR_PartialMethodOnlyOneLatent, "M10").WithLocation(22, 32),
-                // (23,35): error CS0750: A partial method cannot have access modifiers or the virtual, abstract, override, new, sealed, or extern modifiers
+                // (22,32): error CS8796: Partial method 'I1.M10()' must have accessibility modifiers because it has a 'virtual', 'override', 'sealed', 'new', or 'extern' modifier.
+                //     static extern partial void M10();
+                Diagnostic(ErrorCode.ERR_PartialMethodWithExtendedModMustHaveAccessMods, "M10").WithArguments("I1.M10()").WithLocation(22, 32),
+                // (23,35): error CS8793: Partial method 'I1.M11()' must have an implementation part because it has accessibility modifiers.
                 //     protected static partial void M11();
-                Diagnostic(ErrorCode.ERR_PartialMethodInvalidModifier, "M11").WithLocation(23, 35),
-                // (24,44): error CS0750: A partial method cannot have access modifiers or the virtual, abstract, override, new, sealed, or extern modifiers
+                Diagnostic(ErrorCode.ERR_PartialMethodWithAccessibilityModsMustHaveImplementation, "M11").WithArguments("I1.M11()").WithLocation(23, 35),
+                // (24,44): error CS8793: Partial method 'I1.M12()' must have an implementation part because it has accessibility modifiers.
                 //     protected internal static partial void M12();
-                Diagnostic(ErrorCode.ERR_PartialMethodInvalidModifier, "M12").WithLocation(24, 44),
-                // (25,43): error CS0750: A partial method cannot have access modifiers or the virtual, abstract, override, new, sealed, or extern modifiers
+                Diagnostic(ErrorCode.ERR_PartialMethodWithAccessibilityModsMustHaveImplementation, "M12").WithArguments("I1.M12()").WithLocation(24, 44),
+                // (25,43): error CS8793: Partial method 'I1.M13()' must have an implementation part because it has accessibility modifiers.
                 //     private protected static partial void M13();
-                Diagnostic(ErrorCode.ERR_PartialMethodInvalidModifier, "M13").WithLocation(25, 43)
+                Diagnostic(ErrorCode.ERR_PartialMethodWithAccessibilityModsMustHaveImplementation, "M13").WithArguments("I1.M13()").WithLocation(25, 43)
                 );
         }
 
@@ -9350,38 +9358,47 @@ interface I2
 }
 ";
             var compilation1 = CreateCompilation(source1, options: TestOptions.DebugDll,
-                                                 parseOptions: TestOptions.Regular,
+                                                 parseOptions: TestOptions.RegularWithExtendedPartialMethods,
                                                  targetFramework: TargetFramework.NetStandardLatest);
 
             compilation1.VerifyDiagnostics(
-                // (4,25): error CS0750: A partial method cannot have access modifiers or the virtual, abstract, override, new, sealed, or extern modifiers
+                // (4,25): error CS8796: Partial method 'I1.M1()' must have accessibility modifiers because it has a 'virtual', 'override', 'sealed', 'new', or 'extern' modifier.
                 //     sealed partial void M1();
-                Diagnostic(ErrorCode.ERR_PartialMethodInvalidModifier, "M1").WithLocation(4, 25),
-                // (5,27): error CS0750: A partial method cannot have access modifiers or the virtual, abstract, override, new, sealed, or extern modifiers
+                Diagnostic(ErrorCode.ERR_PartialMethodWithExtendedModMustHaveAccessMods, "M1").WithArguments("I1.M1()").WithLocation(4, 25),
+                // (5,27): error CS0750: A partial method cannot have the 'abstract' modifier
                 //     abstract partial void M2();
                 Diagnostic(ErrorCode.ERR_PartialMethodInvalidModifier, "M2").WithLocation(5, 27),
-                // (6,26): error CS0750: A partial method cannot have access modifiers or the virtual, abstract, override, new, sealed, or extern modifiers
+                // (6,26): error CS8796: Partial method 'I1.M3()' must have accessibility modifiers because it has a 'virtual', 'override', 'sealed', 'new', or 'extern' modifier.
                 //     virtual partial void M3();
-                Diagnostic(ErrorCode.ERR_PartialMethodInvalidModifier, "M3").WithLocation(6, 26),
+                Diagnostic(ErrorCode.ERR_PartialMethodWithExtendedModMustHaveAccessMods, "M3").WithArguments("I1.M3()").WithLocation(6, 26),
                 // (10,21): error CS0754: A partial method may not explicitly implement an interface method
                 //     partial void I2.M7();
                 Diagnostic(ErrorCode.ERR_PartialMethodNotExplicit, "M7").WithLocation(10, 21),
-                // (15,25): error CS0750: A partial method cannot have access modifiers or the virtual, abstract, override, new, sealed, or extern modifiers
+                // (15,25): error CS8796: Partial method 'I1.M4()' must have accessibility modifiers because it has a 'virtual', 'override', 'sealed', 'new', or 'extern' modifier.
                 //     sealed partial void M4() {}
-                Diagnostic(ErrorCode.ERR_PartialMethodInvalidModifier, "M4").WithLocation(15, 25),
-                // (16,27): error CS0750: A partial method cannot have access modifiers or the virtual, abstract, override, new, sealed, or extern modifiers
-                //     abstract partial void M5(); 
+                Diagnostic(ErrorCode.ERR_PartialMethodWithExtendedModMustHaveAccessMods, "M4").WithArguments("I1.M4()").WithLocation(15, 25),
+                // (15,25): error CS8798: Both partial method declarations must have identical combinations of 'virtual', 'override', 'sealed', and 'new' modifiers.
+                //     sealed partial void M4() {}
+                Diagnostic(ErrorCode.ERR_PartialMethodExtendedModDifference, "M4").WithLocation(15, 25),
+                // (16,27): error CS0750: A partial method cannot have the 'abstract' modifier
+                //     abstract partial void M5();
                 Diagnostic(ErrorCode.ERR_PartialMethodInvalidModifier, "M5").WithLocation(16, 27),
                 // (16,27): error CS0756: A partial method may not have multiple defining declarations
-                //     abstract partial void M5(); 
+                //     abstract partial void M5();
                 Diagnostic(ErrorCode.ERR_PartialMethodOnlyOneLatent, "M5").WithLocation(16, 27),
-                // (17,26): error CS0750: A partial method cannot have access modifiers or the virtual, abstract, override, new, sealed, or extern modifiers
+                // (16,27): error CS0111: Type 'I1' already defines a member called 'M5' with the same parameter types
+                //     abstract partial void M5();
+                Diagnostic(ErrorCode.ERR_MemberAlreadyExists, "M5").WithArguments("M5", "I1").WithLocation(16, 27),
+                // (17,26): error CS8796: Partial method 'I1.M6()' must have accessibility modifiers because it has a 'virtual', 'override', 'sealed', 'new', or 'extern' modifier.
                 //     virtual partial void M6() {}
-                Diagnostic(ErrorCode.ERR_PartialMethodInvalidModifier, "M6").WithLocation(17, 26),
+                Diagnostic(ErrorCode.ERR_PartialMethodWithExtendedModMustHaveAccessMods, "M6").WithArguments("I1.M6()").WithLocation(17, 26),
+                // (17,26): error CS8798: Both partial method declarations must have identical combinations of 'virtual', 'override', 'sealed', and 'new' modifiers.
+                //     virtual partial void M6() {}
+                Diagnostic(ErrorCode.ERR_PartialMethodExtendedModDifference, "M6").WithLocation(17, 26),
                 // (19,21): error CS0754: A partial method may not explicitly implement an interface method
                 //     partial void I2.M7() {}
                 Diagnostic(ErrorCode.ERR_PartialMethodNotExplicit, "M7").WithLocation(19, 21),
-                // (25,18): error CS0751: A partial method must be declared within a partial class, partial struct, or partial interface
+                // (25,18): error CS0751: A partial method must be declared within a partial type
                 //     partial void M8();
                 Diagnostic(ErrorCode.ERR_PartialMethodOnlyInPartialClass, "M8").WithLocation(25, 18)
                 );
@@ -9448,7 +9465,7 @@ public partial interface I1
                 // (10,27): error CS0762: Cannot create delegate from method 'I1.M2()' because it is a partial method without an implementing declaration
                 //         new System.Action(M2).Invoke();
                 Diagnostic(ErrorCode.ERR_PartialMethodToDelegate, "M2").WithArguments("I1.M2()").WithLocation(10, 27),
-                // (13,5): error CS0267: The 'partial' modifier can only appear immediately before 'class', 'struct', 'interface', or 'void'
+                // (13,5): error CS0267: The 'partial' modifier can only appear immediately before 'class', 'record', 'struct', 'interface', or a method return type.
                 //     partial static void M4();
                 Diagnostic(ErrorCode.ERR_PartialMisplaced, "partial").WithLocation(13, 5)
                 );
@@ -11585,9 +11602,9 @@ public interface I1
                                                  targetFramework: TargetFramework.NetStandardLatest);
             Assert.True(compilation1.Assembly.RuntimeSupportsDefaultInterfaceImplementation);
             compilation1.VerifyEmitDiagnostics(
-                // (4,24): error CS8050: Only auto-implemented properties can have initializers.
+                // (4,24): error CS8053: Instance properties in interfaces cannot have initializers.
                 //     public virtual int P1 { get; } = 0; 
-                Diagnostic(ErrorCode.ERR_InitializerOnNonAutoProperty, "P1").WithArguments("I1.P1").WithLocation(4, 24),
+                Diagnostic(ErrorCode.ERR_InstancePropertyInitializerInInterface, "P1").WithArguments("I1.P1").WithLocation(4, 24),
                 // (4,29): error CS0501: 'I1.P1.get' must declare a body because it is not marked abstract, extern, or partial
                 //     public virtual int P1 { get; } = 0; 
                 Diagnostic(ErrorCode.ERR_ConcreteMissingBody, "get").WithArguments("I1.P1.get").WithLocation(4, 29)
@@ -12396,9 +12413,9 @@ class Test1 : I1
                 // (8,24): error CS0238: 'I1.P3' cannot be sealed because it is not an override
                 //     sealed private int P3 
                 Diagnostic(ErrorCode.ERR_SealedNonOverride, "P3").WithArguments("I1.P3").WithLocation(8, 24),
-                // (14,17): error CS8050: Only auto-implemented properties can have initializers.
+                // (14,17): error CS8053: Instance properties in interfaces cannot have initializers.
                 //     private int P4 {get;} = 0;
-                Diagnostic(ErrorCode.ERR_InitializerOnNonAutoProperty, "P4").WithArguments("I1.P4").WithLocation(14, 17),
+                Diagnostic(ErrorCode.ERR_InstancePropertyInitializerInInterface, "P4").WithArguments("I1.P4").WithLocation(14, 17),
                 // (14,21): error CS0501: 'I1.P4.get' must declare a body because it is not marked abstract, extern, or partial
                 //     private int P4 {get;} = 0;
                 Diagnostic(ErrorCode.ERR_ConcreteMissingBody, "get").WithArguments("I1.P4.get").WithLocation(14, 21),
@@ -13761,9 +13778,9 @@ class Test2 : I1, I2, I3
 {}
 ";
             ValidatePropertyModifiers_14(source1,
-                // (4,23): error CS8050: Only auto-implemented properties can have initializers.
+                // (4,23): error CS8053: Instance properties in interfaces cannot have initializers.
                 //     public sealed int P1 {get;} = 0; 
-                Diagnostic(ErrorCode.ERR_InitializerOnNonAutoProperty, "P1").WithArguments("I1.P1").WithLocation(4, 23),
+                Diagnostic(ErrorCode.ERR_InstancePropertyInitializerInInterface, "P1").WithArguments("I1.P1").WithLocation(4, 23),
                 // (4,27): error CS0501: 'I1.P1.get' must declare a body because it is not marked abstract, extern, or partial
                 //     public sealed int P1 {get;} = 0; 
                 Diagnostic(ErrorCode.ERR_ConcreteMissingBody, "get").WithArguments("I1.P1.get").WithLocation(4, 27),
@@ -14024,9 +14041,9 @@ class Test2 : I0, I1, I2, I3, I4, I5, I6, I7, I8
                 // (44,26): error CS0503: The abstract property 'I8.P8' cannot be marked virtual
                 //     abstract virtual int P8 {get;} = 0;
                 Diagnostic(ErrorCode.ERR_AbstractNotVirtual, "P8").WithArguments("property", "I8.P8").WithLocation(44, 26),
-                // (44,26): error CS8050: Only auto-implemented properties can have initializers.
+                // (44,26): error CS8053: Instance properties in interfaces cannot have initializers.
                 //     abstract virtual int P8 {get;} = 0;
-                Diagnostic(ErrorCode.ERR_InitializerOnNonAutoProperty, "P8").WithArguments("I8.P8").WithLocation(44, 26),
+                Diagnostic(ErrorCode.ERR_InstancePropertyInitializerInInterface, "P8").WithArguments("I8.P8").WithLocation(44, 26),
                 // (90,15): error CS0535: 'Test2' does not implement interface member 'I0.P0'
                 // class Test2 : I0, I1, I2, I3, I4, I5, I6, I7, I8
                 Diagnostic(ErrorCode.ERR_UnimplementedInterfaceMember, "I0").WithArguments("Test2", "I0.P0").WithLocation(90, 15),
@@ -14472,9 +14489,9 @@ class Test2 : I1, I2, I3, I4, I5
                 // (16,47): error CS0179: 'I4.P4.set' cannot be extern and declare a body
                 //     private extern int P4 { get {throw null;} set {throw null;}}
                 Diagnostic(ErrorCode.ERR_ExternHasBody, "set").WithArguments("I4.P4.set").WithLocation(16, 47),
-                // (20,23): error CS8050: Only auto-implemented properties can have initializers.
+                // (20,23): error CS8053: Instance properties in interfaces cannot have initializers.
                 //     extern sealed int P5 {get;} = 0;
-                Diagnostic(ErrorCode.ERR_InitializerOnNonAutoProperty, "P5").WithArguments("I5.P5").WithLocation(20, 23),
+                Diagnostic(ErrorCode.ERR_InstancePropertyInitializerInInterface, "P5").WithArguments("I5.P5").WithLocation(20, 23),
                 // (23,15): error CS0535: 'Test1' does not implement interface member 'I1.P1'
                 // class Test1 : I1, I2, I3, I4, I5
                 Diagnostic(ErrorCode.ERR_UnimplementedInterfaceMember, "I1").WithArguments("Test1", "I1.P1").WithLocation(23, 15),
@@ -14704,9 +14721,9 @@ class Test2 : I1, I2, I3, I4, I5
                 // (20,25): error CS0106: The modifier 'override' is not valid for this item
                 //     override sealed int P5 {get;} = 0;
                 Diagnostic(ErrorCode.ERR_BadMemberFlag, "P5").WithArguments("override").WithLocation(20, 25),
-                // (20,25): error CS8050: Only auto-implemented properties can have initializers.
+                // (20,25): error CS8053: Instance properties in interfaces cannot have initializers.
                 //     override sealed int P5 {get;} = 0;
-                Diagnostic(ErrorCode.ERR_InitializerOnNonAutoProperty, "P5").WithArguments("I5.P5").WithLocation(20, 25),
+                Diagnostic(ErrorCode.ERR_InstancePropertyInitializerInInterface, "P5").WithArguments("I5.P5").WithLocation(20, 25),
                 // (20,29): error CS0501: 'I5.P5.get' must declare a body because it is not marked abstract, extern, or partial
                 //     override sealed int P5 {get;} = 0;
                 Diagnostic(ErrorCode.ERR_ConcreteMissingBody, "get").WithArguments("I5.P5.get").WithLocation(20, 29),
@@ -19560,7 +19577,7 @@ public interface I1
                                                  targetFramework: TargetFramework.NetStandardLatest);
             Assert.True(compilation1.Assembly.RuntimeSupportsDefaultInterfaceImplementation);
             compilation1.VerifyDiagnostics(
-                // (4,45): error CS1519: Invalid token '=' in class, struct, or interface member declaration
+                // (4,45): error CS1519: Invalid token '=' in class, record, struct, or interface member declaration
                 //     public virtual int this[int x] { get; } = 0; 
                 Diagnostic(ErrorCode.ERR_InvalidMemberDecl, "=").WithArguments("=").WithLocation(4, 45),
                 // (4,38): error CS0501: 'I1.this[int].get' must declare a body because it is not marked abstract, extern, or partial
@@ -19815,7 +19832,7 @@ class Test1 : I1
                                                  targetFramework: TargetFramework.NetStandardLatest);
             Assert.True(compilation1.Assembly.RuntimeSupportsDefaultInterfaceImplementation);
             compilation1.VerifyDiagnostics(
-                // (14,37): error CS1519: Invalid token '=' in class, struct, or interface member declaration
+                // (14,37): error CS1519: Invalid token '=' in class, record, struct, or interface member declaration
                 //     private int this[long x] {get;} = 0;
                 Diagnostic(ErrorCode.ERR_InvalidMemberDecl, "=").WithArguments("=").WithLocation(14, 37),
                 // (4,26): error CS0621: 'I1.this[byte]': virtual or abstract members cannot be private
@@ -20671,7 +20688,7 @@ class Test2 : I1, I2, I3
 {}
 ";
             ValidatePropertyModifiers_14(source1,
-                // (4,42): error CS1519: Invalid token '=' in class, struct, or interface member declaration
+                // (4,42): error CS1519: Invalid token '=' in class, record, struct, or interface member declaration
                 //     public sealed int this[int x] {get;} = 0; 
                 Diagnostic(ErrorCode.ERR_InvalidMemberDecl, "=").WithArguments("=").WithLocation(4, 42),
                 // (4,36): error CS0501: 'I1.this[int].get' must declare a body because it is not marked abstract, extern, or partial
@@ -21158,7 +21175,7 @@ class Test2 : I0, I1, I2, I3, I4, I5, I6, I7, I8
 {}
 ";
             ValidatePropertyModifiers_15(source1,
-                // (44,45): error CS1519: Invalid token '=' in class, struct, or interface member declaration
+                // (44,45): error CS1519: Invalid token '=' in class, record, struct, or interface member declaration
                 //     abstract virtual int this[int x] {get;} = 0;
                 Diagnostic(ErrorCode.ERR_InvalidMemberDecl, "=").WithArguments("=").WithLocation(44, 45),
                 // (4,26): error CS0503: The abstract property 'I0.this[int]' cannot be marked virtual
@@ -21381,7 +21398,7 @@ class Test2 : I1, I2, I3, I4, I5
 }
 ";
             ValidatePropertyModifiers_17(source1,
-                // (20,42): error CS1519: Invalid token '=' in class, struct, or interface member declaration
+                // (20,42): error CS1519: Invalid token '=' in class, record, struct, or interface member declaration
                 //     extern sealed int this[int x] {get;} = 0;
                 Diagnostic(ErrorCode.ERR_InvalidMemberDecl, "=").WithArguments("=").WithLocation(20, 42),
                 // (4,25): error CS0180: 'I1.this[int]' cannot be both extern and abstract
@@ -21460,7 +21477,7 @@ class Test2 : I1, I2, I3, I4, I5
 }
 ";
             ValidatePropertyModifiers_18(source1,
-                // (20,44): error CS1519: Invalid token '=' in class, struct, or interface member declaration
+                // (20,44): error CS1519: Invalid token '=' in class, record, struct, or interface member declaration
                 //     override sealed int this[int x] {get;} = 0;
                 Diagnostic(ErrorCode.ERR_InvalidMemberDecl, "=").WithArguments("=").WithLocation(20, 44),
                 // (4,31): error CS0500: 'I1.this[int].get' cannot declare a body because it is marked abstract
@@ -23541,7 +23558,7 @@ public interface I1
                                                  targetFramework: TargetFramework.NetStandardLatest);
             Assert.True(compilation1.Assembly.RuntimeSupportsDefaultInterfaceImplementation);
             compilation1.VerifyDiagnostics(
-                // (7,40): error CS1519: Invalid token '=' in class, struct, or interface member declaration
+                // (7,40): error CS1519: Invalid token '=' in class, record, struct, or interface member declaration
                 //     int this[ushort x] {internal get;} = 0;
                 Diagnostic(ErrorCode.ERR_InvalidMemberDecl, "=").WithArguments("=").WithLocation(7, 40),
                 // (4,42): error CS0442: 'I1.this[sbyte].get': abstract properties cannot have private accessors
@@ -23757,9 +23774,6 @@ public interface I1
                 // (15,48): error CS0073: An add or remove accessor must have a body
                 //     extern event System.Action P12 {add; remove;}
                 Diagnostic(ErrorCode.ERR_AddRemoveMustHaveBody, ";").WithLocation(15, 48),
-                // (16,32): warning CS0626: Method, operator, or accessor 'I1.P13.add' is marked external and has no attributes on it. Consider adding a DllImport attribute to specify the external implementation.
-                //     extern event System.Action P13;
-                Diagnostic(ErrorCode.WRN_ExternMethodNoImplementation, "P13").WithArguments("I1.P13.add").WithLocation(16, 32),
                 // (16,32): warning CS0626: Method, operator, or accessor 'I1.P13.remove' is marked external and has no attributes on it. Consider adding a DllImport attribute to specify the external implementation.
                 //     extern event System.Action P13;
                 Diagnostic(ErrorCode.WRN_ExternMethodNoImplementation, "P13").WithArguments("I1.P13.remove").WithLocation(16, 32)
@@ -24073,52 +24087,52 @@ public interface I1
                 // (4,32): error CS8703: The modifier 'public' is not valid for this item in C# 7.3. Please use language version '8.0' or greater.
                 //     public event System.Action P01;
                 Diagnostic(ErrorCode.ERR_DefaultInterfaceImplementationModifier, "P01").WithArguments("public", "7.3", "8.0").WithLocation(4, 32),
-                // (5,40): error CS8652: The feature 'default interface implementation' is not available in C# 7.3. Please use language version 8.0 or greater.
+                // (5,40): error CS8370: Feature 'default interface implementation' is not available in C# 7.3. Please use language version 8.0 or greater.
                 //     protected event System.Action P02 {add{}}
                 Diagnostic(ErrorCode.ERR_FeatureNotAvailableInVersion7_3, "add").WithArguments("default interface implementation", "8.0").WithLocation(5, 40),
-                // (6,49): error CS8652: The feature 'default interface implementation' is not available in C# 7.3. Please use language version 8.0 or greater.
+                // (6,49): error CS8370: Feature 'default interface implementation' is not available in C# 7.3. Please use language version 8.0 or greater.
                 //     protected internal event System.Action P03 {remove{}}
                 Diagnostic(ErrorCode.ERR_FeatureNotAvailableInVersion7_3, "remove").WithArguments("default interface implementation", "8.0").WithLocation(6, 49),
-                // (7,39): error CS8652: The feature 'default interface implementation' is not available in C# 7.3. Please use language version 8.0 or greater.
+                // (7,39): error CS8370: Feature 'default interface implementation' is not available in C# 7.3. Please use language version 8.0 or greater.
                 //     internal event System.Action P04 {add{}}
                 Diagnostic(ErrorCode.ERR_FeatureNotAvailableInVersion7_3, "add").WithArguments("default interface implementation", "8.0").WithLocation(7, 39),
-                // (8,38): error CS8652: The feature 'default interface implementation' is not available in C# 7.3. Please use language version 8.0 or greater.
+                // (8,38): error CS8370: Feature 'default interface implementation' is not available in C# 7.3. Please use language version 8.0 or greater.
                 //     private event System.Action P05 {remove{}}
                 Diagnostic(ErrorCode.ERR_FeatureNotAvailableInVersion7_3, "remove").WithArguments("default interface implementation", "8.0").WithLocation(8, 38),
-                // (9,37): error CS8652: The feature 'default interface implementation' is not available in C# 7.3. Please use language version 8.0 or greater.
+                // (9,37): error CS8370: Feature 'default interface implementation' is not available in C# 7.3. Please use language version 8.0 or greater.
                 //     static event System.Action P06 {add{}}
                 Diagnostic(ErrorCode.ERR_FeatureNotAvailableInVersion7_3, "add").WithArguments("default interface implementation", "8.0").WithLocation(9, 37),
-                // (10,38): error CS8652: The feature 'default interface implementation' is not available in C# 7.3. Please use language version 8.0 or greater.
+                // (10,38): error CS8370: Feature 'default interface implementation' is not available in C# 7.3. Please use language version 8.0 or greater.
                 //     virtual event System.Action P07 {remove{}}
                 Diagnostic(ErrorCode.ERR_FeatureNotAvailableInVersion7_3, "remove").WithArguments("default interface implementation", "8.0").WithLocation(10, 38),
-                // (11,37): error CS8652: The feature 'default interface implementation' is not available in C# 7.3. Please use language version 8.0 or greater.
+                // (11,37): error CS8370: Feature 'default interface implementation' is not available in C# 7.3. Please use language version 8.0 or greater.
                 //     sealed event System.Action P08 {add{}}
                 Diagnostic(ErrorCode.ERR_FeatureNotAvailableInVersion7_3, "add").WithArguments("default interface implementation", "8.0").WithLocation(11, 37),
                 // (12,34): error CS0106: The modifier 'override' is not valid for this item
                 //     override event System.Action P09 {remove{}}
                 Diagnostic(ErrorCode.ERR_BadMemberFlag, "P09").WithArguments("override").WithLocation(12, 34),
-                // (12,39): error CS8652: The feature 'default interface implementation' is not available in C# 7.3. Please use language version 8.0 or greater.
+                // (12,39): error CS8370: Feature 'default interface implementation' is not available in C# 7.3. Please use language version 8.0 or greater.
                 //     override event System.Action P09 {remove{}}
                 Diagnostic(ErrorCode.ERR_FeatureNotAvailableInVersion7_3, "remove").WithArguments("default interface implementation", "8.0").WithLocation(12, 39),
-                // (13,39): error CS8652: The feature 'default interface implementation' is not available in C# 7.3. Please use language version 8.0 or greater.
+                // (13,39): error CS8370: Feature 'default interface implementation' is not available in C# 7.3. Please use language version 8.0 or greater.
                 //     abstract event System.Action P10 {add{}}
                 Diagnostic(ErrorCode.ERR_FeatureNotAvailableInVersion7_3, "add").WithArguments("default interface implementation", "8.0").WithLocation(13, 39),
                 // (13,38): error CS8712: 'I1.P10': abstract event cannot use event accessor syntax
                 //     abstract event System.Action P10 {add{}}
                 Diagnostic(ErrorCode.ERR_AbstractEventHasAccessors, "{").WithArguments("I1.P10").WithLocation(13, 38),
-                // (14,37): error CS8652: The feature 'default interface implementation' is not available in C# 7.3. Please use language version 8.0 or greater.
+                // (14,37): error CS8370: Feature 'default interface implementation' is not available in C# 7.3. Please use language version 8.0 or greater.
                 //     extern event System.Action P11 {add{} remove{}}
                 Diagnostic(ErrorCode.ERR_FeatureNotAvailableInVersion7_3, "add").WithArguments("default interface implementation", "8.0").WithLocation(14, 37),
                 // (14,37): error CS0179: 'I1.P11.add' cannot be extern and declare a body
                 //     extern event System.Action P11 {add{} remove{}}
                 Diagnostic(ErrorCode.ERR_ExternHasBody, "add").WithArguments("I1.P11.add").WithLocation(14, 37),
-                // (14,43): error CS8652: The feature 'default interface implementation' is not available in C# 7.3. Please use language version 8.0 or greater.
+                // (14,43): error CS8370: Feature 'default interface implementation' is not available in C# 7.3. Please use language version 8.0 or greater.
                 //     extern event System.Action P11 {add{} remove{}}
                 Diagnostic(ErrorCode.ERR_FeatureNotAvailableInVersion7_3, "remove").WithArguments("default interface implementation", "8.0").WithLocation(14, 43),
                 // (14,43): error CS0179: 'I1.P11.remove' cannot be extern and declare a body
                 //     extern event System.Action P11 {add{} remove{}}
                 Diagnostic(ErrorCode.ERR_ExternHasBody, "remove").WithArguments("I1.P11.remove").WithLocation(14, 43),
-                // (15,37): error CS8652: The feature 'default interface implementation' is not available in C# 7.3. Please use language version 8.0 or greater.
+                // (15,37): error CS8370: Feature 'default interface implementation' is not available in C# 7.3. Please use language version 8.0 or greater.
                 //     extern event System.Action P12 {add; remove;}
                 Diagnostic(ErrorCode.ERR_FeatureNotAvailableInVersion7_3, "add").WithArguments("default interface implementation", "8.0").WithLocation(15, 37),
                 // (15,37): warning CS0626: Method, operator, or accessor 'I1.P12.add' is marked external and has no attributes on it. Consider adding a DllImport attribute to specify the external implementation.
@@ -24127,7 +24141,7 @@ public interface I1
                 // (15,40): error CS0073: An add or remove accessor must have a body
                 //     extern event System.Action P12 {add; remove;}
                 Diagnostic(ErrorCode.ERR_AddRemoveMustHaveBody, ";").WithLocation(15, 40),
-                // (15,42): error CS8652: The feature 'default interface implementation' is not available in C# 7.3. Please use language version 8.0 or greater.
+                // (15,42): error CS8370: Feature 'default interface implementation' is not available in C# 7.3. Please use language version 8.0 or greater.
                 //     extern event System.Action P12 {add; remove;}
                 Diagnostic(ErrorCode.ERR_FeatureNotAvailableInVersion7_3, "remove").WithArguments("default interface implementation", "8.0").WithLocation(15, 42),
                 // (15,42): warning CS0626: Method, operator, or accessor 'I1.P12.remove' is marked external and has no attributes on it. Consider adding a DllImport attribute to specify the external implementation.
@@ -24139,9 +24153,6 @@ public interface I1
                 // (16,32): error CS8703: The modifier 'extern' is not valid for this item in C# 7.3. Please use language version '8.0' or greater.
                 //     extern event System.Action P13;
                 Diagnostic(ErrorCode.ERR_DefaultInterfaceImplementationModifier, "P13").WithArguments("extern", "7.3", "8.0").WithLocation(16, 32),
-                // (16,32): warning CS0626: Method, operator, or accessor 'I1.P13.add' is marked external and has no attributes on it. Consider adding a DllImport attribute to specify the external implementation.
-                //     extern event System.Action P13;
-                Diagnostic(ErrorCode.WRN_ExternMethodNoImplementation, "P13").WithArguments("I1.P13.add").WithLocation(16, 32),
                 // (16,32): warning CS0626: Method, operator, or accessor 'I1.P13.remove' is marked external and has no attributes on it. Consider adding a DllImport attribute to specify the external implementation.
                 //     extern event System.Action P13;
                 Diagnostic(ErrorCode.WRN_ExternMethodNoImplementation, "P13").WithArguments("I1.P13.remove").WithLocation(16, 32),
@@ -24235,9 +24246,6 @@ public interface I1
                 // (16,32): error CS8701: Target runtime doesn't support default interface implementation.
                 //     extern event System.Action P13;
                 Diagnostic(ErrorCode.ERR_RuntimeDoesNotSupportDefaultInterfaceImplementation, "P13").WithLocation(16, 32),
-                // (16,32): warning CS0626: Method, operator, or accessor 'I1.P13.add' is marked external and has no attributes on it. Consider adding a DllImport attribute to specify the external implementation.
-                //     extern event System.Action P13;
-                Diagnostic(ErrorCode.WRN_ExternMethodNoImplementation, "P13").WithArguments("I1.P13.add").WithLocation(16, 32),
                 // (16,32): warning CS0626: Method, operator, or accessor 'I1.P13.remove' is marked external and has no attributes on it. Consider adding a DllImport attribute to specify the external implementation.
                 //     extern event System.Action P13;
                 Diagnostic(ErrorCode.WRN_ExternMethodNoImplementation, "P13").WithArguments("I1.P13.remove").WithLocation(16, 32),
@@ -27044,39 +27052,24 @@ class Test2 : I1, I2, I3, I4, I5
                 // (20,39): error CS8703: The modifier 'extern' is not valid for this item in C# 7.3. Please use language version '8.0' or greater.
                 //     extern sealed event System.Action P5;
                 Diagnostic(ErrorCode.ERR_DefaultInterfaceImplementationModifier, "P5").WithArguments("extern", "7.3", "8.0").WithLocation(20, 39),
-                // (26,9): error CS8652: The feature 'default interface implementation' is not available in C# 7.3. Please use language version 8.0 or greater.
+                // (26,9): error CS8370: Feature 'default interface implementation' is not available in C# 7.3. Please use language version 8.0 or greater.
                 //         add => throw null;
                 Diagnostic(ErrorCode.ERR_FeatureNotAvailableInVersion7_3, "add").WithArguments("default interface implementation", "8.0").WithLocation(26, 9),
-                // (27,9): error CS8652: The feature 'default interface implementation' is not available in C# 7.3. Please use language version 8.0 or greater.
+                // (27,9): error CS8370: Feature 'default interface implementation' is not available in C# 7.3. Please use language version 8.0 or greater.
                 //         remove => throw null;
                 Diagnostic(ErrorCode.ERR_FeatureNotAvailableInVersion7_3, "remove").WithArguments("default interface implementation", "8.0").WithLocation(27, 9),
-                // (8,40): warning CS0626: Method, operator, or accessor 'I2.P2.add' is marked external and has no attributes on it. Consider adding a DllImport attribute to specify the external implementation.
-                //     virtual extern event System.Action P2;
-                Diagnostic(ErrorCode.WRN_ExternMethodNoImplementation, "P2").WithArguments("I2.P2.add").WithLocation(8, 40),
                 // (8,40): warning CS0626: Method, operator, or accessor 'I2.P2.remove' is marked external and has no attributes on it. Consider adding a DllImport attribute to specify the external implementation.
                 //     virtual extern event System.Action P2;
                 Diagnostic(ErrorCode.WRN_ExternMethodNoImplementation, "P2").WithArguments("I2.P2.remove").WithLocation(8, 40),
-                // (12,39): warning CS0626: Method, operator, or accessor 'I3.P3.add' is marked external and has no attributes on it. Consider adding a DllImport attribute to specify the external implementation.
-                //     static extern event System.Action P3; 
-                Diagnostic(ErrorCode.WRN_ExternMethodNoImplementation, "P3").WithArguments("I3.P3.add").WithLocation(12, 39),
                 // (12,39): warning CS0626: Method, operator, or accessor 'I3.P3.remove' is marked external and has no attributes on it. Consider adding a DllImport attribute to specify the external implementation.
                 //     static extern event System.Action P3; 
                 Diagnostic(ErrorCode.WRN_ExternMethodNoImplementation, "P3").WithArguments("I3.P3.remove").WithLocation(12, 39),
-                // (16,40): warning CS0626: Method, operator, or accessor 'I4.P4.add' is marked external and has no attributes on it. Consider adding a DllImport attribute to specify the external implementation.
-                //     private extern event System.Action P4;
-                Diagnostic(ErrorCode.WRN_ExternMethodNoImplementation, "P4").WithArguments("I4.P4.add").WithLocation(16, 40),
                 // (16,40): warning CS0626: Method, operator, or accessor 'I4.P4.remove' is marked external and has no attributes on it. Consider adding a DllImport attribute to specify the external implementation.
                 //     private extern event System.Action P4;
                 Diagnostic(ErrorCode.WRN_ExternMethodNoImplementation, "P4").WithArguments("I4.P4.remove").WithLocation(16, 40),
-                // (20,39): warning CS0626: Method, operator, or accessor 'I5.P5.add' is marked external and has no attributes on it. Consider adding a DllImport attribute to specify the external implementation.
-                //     extern sealed event System.Action P5;
-                Diagnostic(ErrorCode.WRN_ExternMethodNoImplementation, "P5").WithArguments("I5.P5.add").WithLocation(20, 39),
                 // (20,39): warning CS0626: Method, operator, or accessor 'I5.P5.remove' is marked external and has no attributes on it. Consider adding a DllImport attribute to specify the external implementation.
                 //     extern sealed event System.Action P5;
                 Diagnostic(ErrorCode.WRN_ExternMethodNoImplementation, "P5").WithArguments("I5.P5.remove").WithLocation(20, 39),
-                // (4,32): warning CS0626: Method, operator, or accessor 'I1.P1.add' is marked external and has no attributes on it. Consider adding a DllImport attribute to specify the external implementation.
-                //     extern event System.Action P1; 
-                Diagnostic(ErrorCode.WRN_ExternMethodNoImplementation, "P1").WithArguments("I1.P1.add").WithLocation(4, 32),
                 // (4,32): warning CS0626: Method, operator, or accessor 'I1.P1.remove' is marked external and has no attributes on it. Consider adding a DllImport attribute to specify the external implementation.
                 //     extern event System.Action P1; 
                 Diagnostic(ErrorCode.WRN_ExternMethodNoImplementation, "P1").WithArguments("I1.P1.remove").WithLocation(4, 32)
@@ -27089,48 +27082,33 @@ class Test2 : I1, I2, I3, I4, I5
             Assert.False(compilation3.Assembly.RuntimeSupportsDefaultInterfaceImplementation);
 
             compilation3.VerifyDiagnostics(
-                // (4,32): error CS8501: Target runtime doesn't support default interface implementation.
+                // (4,32): error CS8701: Target runtime doesn't support default interface implementation.
                 //     extern event System.Action P1; 
                 Diagnostic(ErrorCode.ERR_RuntimeDoesNotSupportDefaultInterfaceImplementation, "P1").WithLocation(4, 32),
-                // (8,40): error CS8501: Target runtime doesn't support default interface implementation.
+                // (8,40): error CS8701: Target runtime doesn't support default interface implementation.
                 //     virtual extern event System.Action P2;
                 Diagnostic(ErrorCode.ERR_RuntimeDoesNotSupportDefaultInterfaceImplementation, "P2").WithLocation(8, 40),
-                // (16,40): error CS8501: Target runtime doesn't support default interface implementation.
+                // (16,40): error CS8701: Target runtime doesn't support default interface implementation.
                 //     private extern event System.Action P4;
                 Diagnostic(ErrorCode.ERR_RuntimeDoesNotSupportDefaultInterfaceImplementation, "P4").WithLocation(16, 40),
-                // (20,39): error CS8501: Target runtime doesn't support default interface implementation.
+                // (20,39): error CS8701: Target runtime doesn't support default interface implementation.
                 //     extern sealed event System.Action P5;
                 Diagnostic(ErrorCode.ERR_RuntimeDoesNotSupportDefaultInterfaceImplementation, "P5").WithLocation(20, 39),
-                // (8,40): warning CS0626: Method, operator, or accessor 'I2.P2.add' is marked external and has no attributes on it. Consider adding a DllImport attribute to specify the external implementation.
-                //     virtual extern event System.Action P2;
-                Diagnostic(ErrorCode.WRN_ExternMethodNoImplementation, "P2").WithArguments("I2.P2.add").WithLocation(8, 40),
                 // (8,40): warning CS0626: Method, operator, or accessor 'I2.P2.remove' is marked external and has no attributes on it. Consider adding a DllImport attribute to specify the external implementation.
                 //     virtual extern event System.Action P2;
                 Diagnostic(ErrorCode.WRN_ExternMethodNoImplementation, "P2").WithArguments("I2.P2.remove").WithLocation(8, 40),
                 // (12,39): error CS8701: Target runtime doesn't support default interface implementation.
                 //     static extern event System.Action P3; 
                 Diagnostic(ErrorCode.ERR_RuntimeDoesNotSupportDefaultInterfaceImplementation, "P3").WithLocation(12, 39),
-                // (12,39): warning CS0626: Method, operator, or accessor 'I3.P3.add' is marked external and has no attributes on it. Consider adding a DllImport attribute to specify the external implementation.
-                //     static extern event System.Action P3; 
-                Diagnostic(ErrorCode.WRN_ExternMethodNoImplementation, "P3").WithArguments("I3.P3.add").WithLocation(12, 39),
                 // (12,39): warning CS0626: Method, operator, or accessor 'I3.P3.remove' is marked external and has no attributes on it. Consider adding a DllImport attribute to specify the external implementation.
                 //     static extern event System.Action P3; 
                 Diagnostic(ErrorCode.WRN_ExternMethodNoImplementation, "P3").WithArguments("I3.P3.remove").WithLocation(12, 39),
-                // (16,40): warning CS0626: Method, operator, or accessor 'I4.P4.add' is marked external and has no attributes on it. Consider adding a DllImport attribute to specify the external implementation.
-                //     private extern event System.Action P4;
-                Diagnostic(ErrorCode.WRN_ExternMethodNoImplementation, "P4").WithArguments("I4.P4.add").WithLocation(16, 40),
                 // (16,40): warning CS0626: Method, operator, or accessor 'I4.P4.remove' is marked external and has no attributes on it. Consider adding a DllImport attribute to specify the external implementation.
                 //     private extern event System.Action P4;
                 Diagnostic(ErrorCode.WRN_ExternMethodNoImplementation, "P4").WithArguments("I4.P4.remove").WithLocation(16, 40),
-                // (20,39): warning CS0626: Method, operator, or accessor 'I5.P5.add' is marked external and has no attributes on it. Consider adding a DllImport attribute to specify the external implementation.
-                //     extern sealed event System.Action P5;
-                Diagnostic(ErrorCode.WRN_ExternMethodNoImplementation, "P5").WithArguments("I5.P5.add").WithLocation(20, 39),
                 // (20,39): warning CS0626: Method, operator, or accessor 'I5.P5.remove' is marked external and has no attributes on it. Consider adding a DllImport attribute to specify the external implementation.
                 //     extern sealed event System.Action P5;
                 Diagnostic(ErrorCode.WRN_ExternMethodNoImplementation, "P5").WithArguments("I5.P5.remove").WithLocation(20, 39),
-                // (4,32): warning CS0626: Method, operator, or accessor 'I1.P1.add' is marked external and has no attributes on it. Consider adding a DllImport attribute to specify the external implementation.
-                //     extern event System.Action P1; 
-                Diagnostic(ErrorCode.WRN_ExternMethodNoImplementation, "P1").WithArguments("I1.P1.add").WithLocation(4, 32),
                 // (4,32): warning CS0626: Method, operator, or accessor 'I1.P1.remove' is marked external and has no attributes on it. Consider adding a DllImport attribute to specify the external implementation.
                 //     extern event System.Action P1; 
                 Diagnostic(ErrorCode.WRN_ExternMethodNoImplementation, "P1").WithArguments("I1.P1.remove").WithLocation(4, 32),
@@ -27152,15 +27130,15 @@ class Test2 : I1, I2, I3, I4, I5
 @"
 public interface I1
 {
-    abstract extern event System.Action P1; 
+    abstract extern event System.Action P1;
 }
 public interface I2
 {
-    extern event System.Action P2 = null; 
+    extern event System.Action P2 = null;
 }
 public interface I3
 {
-    static extern event System.Action P3 {add => throw null; remove => throw null;} 
+    static extern event System.Action P3 {add => throw null; remove => throw null;}
 }
 public interface I4
 {
@@ -27181,16 +27159,16 @@ class Test2 : I1, I2, I3, I4
 ";
             ValidateEventModifiers_17(source1,
                 // (4,41): error CS0180: 'I1.P1' cannot be both extern and abstract
-                //     abstract extern event System.Action P1; 
+                //     abstract extern event System.Action P1;
                 Diagnostic(ErrorCode.ERR_AbstractAndExtern, "P1").WithArguments("I1.P1").WithLocation(4, 41),
                 // (8,32): error CS0068: 'I2.P2': instance event in interface cannot have initializer
-                //     extern event System.Action P2 = null; 
+                //     extern event System.Action P2 = null;
                 Diagnostic(ErrorCode.ERR_InterfaceEventInitializer, "P2").WithArguments("I2.P2").WithLocation(8, 32),
                 // (12,43): error CS0179: 'I3.P3.add' cannot be extern and declare a body
-                //     static extern event System.Action P3 {add => throw null; remove => throw null;} 
+                //     static extern event System.Action P3 {add => throw null; remove => throw null;}
                 Diagnostic(ErrorCode.ERR_ExternHasBody, "add").WithArguments("I3.P3.add").WithLocation(12, 43),
                 // (12,62): error CS0179: 'I3.P3.remove' cannot be extern and declare a body
-                //     static extern event System.Action P3 {add => throw null; remove => throw null;} 
+                //     static extern event System.Action P3 {add => throw null; remove => throw null;}
                 Diagnostic(ErrorCode.ERR_ExternHasBody, "remove").WithArguments("I3.P3.remove").WithLocation(12, 62),
                 // (16,45): error CS0179: 'I4.P4.add' cannot be extern and declare a body
                 //     private extern event System.Action P4 { add {throw null;} remove {throw null;}}
@@ -27207,8 +27185,11 @@ class Test2 : I1, I2, I3, I4
                 // (28,28): error CS0539: 'Test2.P4' in explicit interface declaration is not found among members of the interface that can be implemented
                 //     event System.Action I4.P4 { add => throw null; remove => throw null;}
                 Diagnostic(ErrorCode.ERR_InterfaceMemberNotFound, "P4").WithArguments("Test2.P4").WithLocation(28, 28),
+                // (8,32): warning CS0626: Method, operator, or accessor 'I2.P2.remove' is marked external and has no attributes on it. Consider adding a DllImport attribute to specify the external implementation.
+                //     extern event System.Action P2 = null;
+                Diagnostic(ErrorCode.WRN_ExternMethodNoImplementation, "P2").WithArguments("I2.P2.remove").WithLocation(8, 32),
                 // (8,32): warning CS0067: The event 'I2.P2' is never used
-                //     extern event System.Action P2 = null; 
+                //     extern event System.Action P2 = null;
                 Diagnostic(ErrorCode.WRN_UnreferencedEvent, "P2").WithArguments("I2.P2").WithLocation(8, 32)
                 );
         }
@@ -27419,9 +27400,6 @@ class Test2 : I1, I2, I3, I4, I5
                 // (33,28): error CS0539: 'Test2.P5' in explicit interface declaration is not found among members of the interface that can be implemented
                 //     event System.Action I5.P5 { add {throw null;} remove {throw null;}}
                 Diagnostic(ErrorCode.ERR_InterfaceMemberNotFound, "P5").WithArguments("Test2.P5").WithLocation(33, 28),
-                // (12,39): warning CS0626: Method, operator, or accessor 'I3.P3.add' is marked external and has no attributes on it. Consider adding a DllImport attribute to specify the external implementation.
-                //     static extern event System.Action P3;
-                Diagnostic(ErrorCode.WRN_ExternMethodNoImplementation, "P3").WithArguments("I3.P3.add").WithLocation(12, 39),
                 // (12,39): warning CS0626: Method, operator, or accessor 'I3.P3.remove' is marked external and has no attributes on it. Consider adding a DllImport attribute to specify the external implementation.
                 //     static extern event System.Action P3;
                 Diagnostic(ErrorCode.WRN_ExternMethodNoImplementation, "P3").WithArguments("I3.P3.remove").WithLocation(12, 39),
@@ -33510,9 +33488,9 @@ class Test2 : I4
                 // (43,21): error CS0501: 'I4.I3.M3.set' must declare a body because it is not marked abstract, extern, or partial
                 //     int I3.M3 {get; set;}
                 Diagnostic(ErrorCode.ERR_ConcreteMissingBody, "set").WithArguments("I4.I3.M3.set").WithLocation(43, 21),
-                // (44,12): error CS8050: Only auto-implemented properties can have initializers.
+                // (44,12): error CS8053: Instance properties in interfaces cannot have initializers.
                 //     int I3.M4 {get; set;} = 0;
-                Diagnostic(ErrorCode.ERR_InitializerOnNonAutoProperty, "M4").WithArguments("I4.I3.M4").WithLocation(44, 12),
+                Diagnostic(ErrorCode.ERR_InstancePropertyInitializerInInterface, "M4").WithArguments("I4.I3.M4").WithLocation(44, 12),
                 // (44,16): error CS0501: 'I4.I3.M4.get' must declare a body because it is not marked abstract, extern, or partial
                 //     int I3.M4 {get; set;} = 0;
                 Diagnostic(ErrorCode.ERR_ConcreteMissingBody, "get").WithArguments("I4.I3.M4.get").WithLocation(44, 16),
@@ -37346,7 +37324,7 @@ class Test2 : I4
 ";
 
             ValidatePropertyImplementationInDerived_05(source1,
-                // (44,38): error CS1519: Invalid token '=' in class, struct, or interface member declaration
+                // (44,38): error CS1519: Invalid token '=' in class, record, struct, or interface member declaration
                 //     int I3.this[short x] {get; set;} = 0;
                 Diagnostic(ErrorCode.ERR_InvalidMemberDecl, "=").WithArguments("=").WithLocation(44, 38),
                 // (10,12): error CS0551: Explicit interface implementation 'I2.I1.this[int]' is missing accessor 'I1.this[int].set'
@@ -38748,10 +38726,10 @@ interface I19
                 // (62,20): error CS0106: The modifier 'virtual' is not valid for this item
                 //     virtual static I13() => throw null;
                 Diagnostic(ErrorCode.ERR_BadMemberFlag, "I13").WithArguments("virtual").WithLocation(62, 20),
-                // (66,5): error CS0267: The 'partial' modifier can only appear immediately before 'class', 'struct', 'interface', or 'void'
+                // (66,5): error CS0267: The 'partial' modifier can only appear immediately before 'class', 'record', 'struct', 'interface', or a method return type.
                 //     partial static I14();
                 Diagnostic(ErrorCode.ERR_PartialMisplaced, "partial").WithLocation(66, 5),
-                // (66,5): error CS0267: The 'partial' modifier can only appear immediately before 'class', 'struct', 'interface', or 'void'
+                // (66,5): error CS0267: The 'partial' modifier can only appear immediately before 'class', 'record', 'struct', 'interface', or a method return type.
                 //     partial static I14();
                 Diagnostic(ErrorCode.ERR_PartialMisplaced, "partial").WithLocation(66, 5),
                 // (70,12): error CS0246: The type or namespace name 'partial' could not be found (are you missing a using directive or an assembly reference?)
@@ -38763,10 +38741,10 @@ interface I19
                 // (70,20): error CS0542: 'I15': member names cannot be the same as their enclosing type
                 //     static partial I15();
                 Diagnostic(ErrorCode.ERR_MemberNameSameAsType, "I15").WithArguments("I15").WithLocation(70, 20),
-                // (74,5): error CS0267: The 'partial' modifier can only appear immediately before 'class', 'struct', 'interface', or 'void'
+                // (74,5): error CS0267: The 'partial' modifier can only appear immediately before 'class', 'record', 'struct', 'interface', or a method return type.
                 //     partial static I16() {}
                 Diagnostic(ErrorCode.ERR_PartialMisplaced, "partial").WithLocation(74, 5),
-                // (74,5): error CS0267: The 'partial' modifier can only appear immediately before 'class', 'struct', 'interface', or 'void'
+                // (74,5): error CS0267: The 'partial' modifier can only appear immediately before 'class', 'record', 'struct', 'interface', or a method return type.
                 //     partial static I16() {}
                 Diagnostic(ErrorCode.ERR_PartialMisplaced, "partial").WithLocation(74, 5),
                 // (78,12): error CS0246: The type or namespace name 'partial' could not be found (are you missing a using directive or an assembly reference?)
@@ -39173,9 +39151,9 @@ public interface I1
                 // (4,26): error CS0501: 'I1.F1.set' must declare a body because it is not marked abstract, extern, or partial
                 //     private int F1 {get; set;}
                 Diagnostic(ErrorCode.ERR_ConcreteMissingBody, "set").WithArguments("I1.F1.set").WithLocation(4, 26),
-                // (5,17): error CS8050: Only auto-implemented properties can have initializers.
+                // (5,17): error CS8053: Instance properties in interfaces cannot have initializers.
                 //     private int F5 {get;} = 5;
-                Diagnostic(ErrorCode.ERR_InitializerOnNonAutoProperty, "F5").WithArguments("I1.F5").WithLocation(5, 17),
+                Diagnostic(ErrorCode.ERR_InstancePropertyInitializerInInterface, "F5").WithArguments("I1.F5").WithLocation(5, 17),
                 // (5,21): error CS0501: 'I1.F5.get' must declare a body because it is not marked abstract, extern, or partial
                 //     private int F5 {get;} = 5;
                 Diagnostic(ErrorCode.ERR_ConcreteMissingBody, "get").WithArguments("I1.F5.get").WithLocation(5, 21)
@@ -40805,6 +40783,7 @@ true
             MetadataReference metadataReference = compilation1.EmitToImageReference();
 
             var compilation2 = CreateCompilation(source2, new[] { compilationReference }, options: TestOptions.DebugExe,
+                                                 targetFramework: TargetFramework.NetStandardLatest,
                                                  parseOptions: TestOptions.Regular);
 
             compilation2.VerifyDiagnostics();
@@ -41055,6 +41034,7 @@ class Test3 : I1
 ";
 
             var compilation9 = CreateCompilation(source3, new[] { compilationReference }, options: TestOptions.DebugExe,
+                                                 targetFramework: TargetFramework.NetStandardLatest,
                                                  parseOptions: TestOptions.Regular7_3);
 
             var expected9 = new DiagnosticDescription[]
@@ -43477,7 +43457,7 @@ I2.-
         public void RuntimeFeature_01()
         {
             var compilation1 = CreateCompilation("", options: TestOptions.DebugDll,
-                                                 references: new[] { TestReferences.Net461.mscorlibRef },
+                                                 references: new[] { TestMetadata.Net461.mscorlib },
                                                  targetFramework: TargetFramework.Empty);
 
             Assert.False(compilation1.Assembly.RuntimeSupportsDefaultInterfaceImplementation);
@@ -43488,7 +43468,7 @@ I2.-
         public void RuntimeFeature_02()
         {
             var compilation1 = CreateCompilation("", options: TestOptions.DebugDll,
-                                                 references: new[] { TestReferences.NetCoreApp30.SystemRuntimeRef },
+                                                 references: new[] { TestMetadata.NetCoreApp31.SystemRuntime },
                                                  targetFramework: TargetFramework.Empty);
 
             Assert.True(compilation1.Assembly.RuntimeSupportsDefaultInterfaceImplementation);
@@ -43786,7 +43766,7 @@ namespace System
 ";
 
             var compilation1 = CreateCompilation(source, options: TestOptions.DebugDll,
-                                                 references: new[] { TestReferences.Net461.mscorlibRef },
+                                                 references: new[] { TestMetadata.Net461.mscorlib },
                                                  targetFramework: TargetFramework.Empty);
 
             Assert.False(compilation1.Assembly.RuntimeSupportsDefaultInterfaceImplementation);
@@ -45813,7 +45793,7 @@ class Test1 : I2
 ";
 
             var compilation1 = CreateCompilation(source1, options: TestOptions.DebugDll,
-                                                 parseOptions: TestOptions.Regular,
+                                                 parseOptions: TestOptions.RegularWithExtendedPartialMethods,
                                                  targetFramework: TargetFramework.NetStandardLatest);
             validate(compilation1.SourceModule);
 
@@ -45821,7 +45801,7 @@ class Test1 : I2
                 // (9,30): error CS0754: A partial method may not explicitly implement an interface method
                 //     abstract partial void I1.M1();
                 Diagnostic(ErrorCode.ERR_PartialMethodNotExplicit, "M1").WithLocation(9, 30),
-                // (9,30): error CS0750: A partial method cannot have access modifiers or the virtual, abstract, override, new, sealed, or extern modifiers
+                // (9,30): error CS0750: A partial method cannot have the 'abstract' modifier
                 //     abstract partial void I1.M1();
                 Diagnostic(ErrorCode.ERR_PartialMethodInvalidModifier, "M1").WithLocation(9, 30),
                 // (12,15): error CS0535: 'Test1' does not implement interface member 'I1.M1()'
@@ -49815,9 +49795,9 @@ class Test1 : I2
 }
 ";
             ValidatePropertyReAbstraction_014(source1,
-                // (9,21): error CS8050: Only auto-implemented properties can have initializers.
+                // (9,21): error CS8053: Instance properties in interfaces cannot have initializers.
                 //     abstract int I1.P1 { get; set; } = 0;
-                Diagnostic(ErrorCode.ERR_InitializerOnNonAutoProperty, "P1").WithArguments("I2.I1.P1").WithLocation(9, 21),
+                Diagnostic(ErrorCode.ERR_InstancePropertyInitializerInInterface, "P1").WithArguments("I2.I1.P1").WithLocation(9, 21),
                 // (12,15): error CS0535: 'Test1' does not implement interface member 'I1.P1'
                 // class Test1 : I2
                 Diagnostic(ErrorCode.ERR_UnimplementedInterfaceMember, "I2").WithArguments("Test1", "I1.P1").WithLocation(12, 15)
@@ -49844,9 +49824,9 @@ class Test1 : I2
 }
 ";
             ValidatePropertyReAbstraction_014(source1,
-                // (9,21): error CS8050: Only auto-implemented properties can have initializers.
+                // (9,21): error CS8053: Instance properties in interfaces cannot have initializers.
                 //     abstract int I1.P1 { get; } = 0;
-                Diagnostic(ErrorCode.ERR_InitializerOnNonAutoProperty, "P1").WithArguments("I2.I1.P1").WithLocation(9, 21),
+                Diagnostic(ErrorCode.ERR_InstancePropertyInitializerInInterface, "P1").WithArguments("I2.I1.P1").WithLocation(9, 21),
                 // (12,15): error CS0535: 'Test1' does not implement interface member 'I1.P1'
                 // class Test1 : I2
                 Diagnostic(ErrorCode.ERR_UnimplementedInterfaceMember, "I2").WithArguments("Test1", "I1.P1").WithLocation(12, 15)
@@ -49873,9 +49853,9 @@ class Test1 : I2
 }
 ";
             ValidatePropertyReAbstraction_014(source1,
-                // (9,21): error CS8050: Only auto-implemented properties can have initializers.
+                // (9,21): error CS8053: Instance properties in interfaces cannot have initializers.
                 //     abstract int I1.P1 { set; } = 0;
-                Diagnostic(ErrorCode.ERR_InitializerOnNonAutoProperty, "P1").WithArguments("I2.I1.P1").WithLocation(9, 21),
+                Diagnostic(ErrorCode.ERR_InstancePropertyInitializerInInterface, "P1").WithArguments("I2.I1.P1").WithLocation(9, 21),
                 // (12,15): error CS0535: 'Test1' does not implement interface member 'I1.P1'
                 // class Test1 : I2
                 Diagnostic(ErrorCode.ERR_UnimplementedInterfaceMember, "I2").WithArguments("Test1", "I1.P1").WithLocation(12, 15)
@@ -54388,7 +54368,7 @@ class Test1 : I2
 }
 ";
             ValidatePropertyReAbstraction_014(source1,
-                // (9,47): error CS1519: Invalid token '=' in class, struct, or interface member declaration
+                // (9,47): error CS1519: Invalid token '=' in class, record, struct, or interface member declaration
                 //     abstract int I1.this[int i] { get; set; } = 0;
                 Diagnostic(ErrorCode.ERR_InvalidMemberDecl, "=").WithArguments("=").WithLocation(9, 47),
                 // (12,15): error CS0535: 'Test1' does not implement interface member 'I1.this[int]'
@@ -54417,7 +54397,7 @@ class Test1 : I2
 }
 ";
             ValidatePropertyReAbstraction_014(source1,
-                // (9,42): error CS1519: Invalid token '=' in class, struct, or interface member declaration
+                // (9,42): error CS1519: Invalid token '=' in class, record, struct, or interface member declaration
                 //     abstract int I1.this[int i] { get; } = 0;
                 Diagnostic(ErrorCode.ERR_InvalidMemberDecl, "=").WithArguments("=").WithLocation(9, 42),
                 // (12,15): error CS0535: 'Test1' does not implement interface member 'I1.this[int]'
@@ -54446,7 +54426,7 @@ class Test1 : I2
 }
 ";
             ValidatePropertyReAbstraction_014(source1,
-                // (9,42): error CS1519: Invalid token '=' in class, struct, or interface member declaration
+                // (9,42): error CS1519: Invalid token '=' in class, record, struct, or interface member declaration
                 //     abstract int I1.this[int i] { set; } = 0;
                 Diagnostic(ErrorCode.ERR_InvalidMemberDecl, "=").WithArguments("=").WithLocation(9, 42),
                 // (12,15): error CS0535: 'Test1' does not implement interface member 'I1.this[int]'
@@ -54988,8 +54968,8 @@ class Test : C0, I1
         public void WindowsRuntimeEvent_01()
         {
             var ilSource =
-BuildAssemblyExternClause(TestReferences.NetCoreApp30.SystemRuntimeRef) +
-BuildAssemblyExternClause(TestReferences.NetCoreApp30.SystemRuntimeInteropServicesWindowsRuntimeRef) +
+BuildAssemblyExternClause(TestMetadata.NetCoreApp31.SystemRuntime) +
+BuildAssemblyExternClause(TestMetadata.NetCoreApp31.SystemRuntimeInteropServicesWindowsRuntime) +
 @"
 .class public auto ansi sealed Event
        extends [System.Runtime]System.MulticastDelegate
@@ -55238,7 +55218,7 @@ class C1 : I1, Interface
         public void ExplicitlyImplementedViaAccessors_01()
         {
             var ilSource =
-BuildAssemblyExternClause(TestReferences.NetCoreApp30.SystemRuntimeRef) +
+BuildAssemblyExternClause(TestMetadata.NetCoreApp31.SystemRuntime) +
 @"
 .class interface public abstract auto ansi I1
 {
@@ -55568,7 +55548,7 @@ class Test4 : C1, I1
         public void ExplicitlyImplementedViaAccessors_02()
         {
             var ilSource =
-BuildAssemblyExternClause(TestReferences.NetCoreApp30.SystemRuntimeRef) +
+BuildAssemblyExternClause(TestMetadata.NetCoreApp31.SystemRuntime) +
 @"
 .class interface public abstract auto ansi I1
 {
@@ -55729,7 +55709,7 @@ class Test4 : C1, I1
         public void ExplicitlyImplementedViaAccessors_03()
         {
             var ilSource =
-BuildAssemblyExternClause(TestReferences.NetCoreApp30.SystemRuntimeRef) +
+BuildAssemblyExternClause(TestMetadata.NetCoreApp31.SystemRuntime) +
 @"
 .class interface public abstract auto ansi I1
 {
@@ -55890,7 +55870,7 @@ class Test4 : C1, I1
         public void ExplicitlyImplementedViaAccessors_04()
         {
             var ilSource =
-BuildAssemblyExternClause(TestReferences.NetCoreApp30.SystemRuntimeRef) +
+BuildAssemblyExternClause(TestMetadata.NetCoreApp31.SystemRuntime) +
 @"
 .class interface public abstract auto ansi I1
 {
@@ -56189,7 +56169,7 @@ class C3 : C2, I1
         public void ExplicitlyImplementedViaAccessors_06()
         {
             var ilSource =
-BuildAssemblyExternClause(TestReferences.NetCoreApp30.SystemRuntimeRef) +
+BuildAssemblyExternClause(TestMetadata.NetCoreApp31.SystemRuntime) +
 @"
 .class interface public abstract auto ansi I1
 {
@@ -56433,7 +56413,7 @@ interface I3 : I2
         public void ExplicitlyImplementedViaAccessors_07()
         {
             var ilSource =
-BuildAssemblyExternClause(TestReferences.NetCoreApp30.SystemRuntimeRef) +
+BuildAssemblyExternClause(TestMetadata.NetCoreApp31.SystemRuntime) +
 @"
 .class interface public abstract auto ansi I1
 {
@@ -56544,7 +56524,7 @@ interface I3 : I2
         public void ExplicitlyImplementedViaAccessors_08()
         {
             var ilSource =
-BuildAssemblyExternClause(TestReferences.NetCoreApp30.SystemRuntimeRef) +
+BuildAssemblyExternClause(TestMetadata.NetCoreApp31.SystemRuntime) +
 @"
 .class interface public abstract auto ansi I1
 {
@@ -56655,7 +56635,7 @@ interface I3 : I2
         public void ExplicitlyImplementedViaAccessors_09()
         {
             var ilSource =
-BuildAssemblyExternClause(TestReferences.NetCoreApp30.SystemRuntimeRef) +
+BuildAssemblyExternClause(TestMetadata.NetCoreApp31.SystemRuntime) +
 @"
 .class interface public abstract auto ansi I1
 {
@@ -56770,7 +56750,7 @@ interface I3 : I2
         public void CheckForImplementationOfCorrespondingPropertyOrEvent_01()
         {
             var ilSource =
-BuildAssemblyExternClause(TestReferences.NetCoreApp30.SystemRuntimeRef) +
+BuildAssemblyExternClause(TestMetadata.NetCoreApp31.SystemRuntime) +
 @"
 .class interface public abstract auto ansi I1
 {
@@ -56845,7 +56825,7 @@ class C2 : C1, I1
         public void CheckForImplementationOfCorrespondingPropertyOrEvent_02()
         {
             var ilSource =
-BuildAssemblyExternClause(TestReferences.NetCoreApp30.SystemRuntimeRef) +
+BuildAssemblyExternClause(TestMetadata.NetCoreApp31.SystemRuntime) +
 @"
 .class interface public abstract auto ansi I1
 {
@@ -56924,7 +56904,7 @@ class C2 : C1, I1
         public void CheckForImplementationOfCorrespondingPropertyOrEvent_03()
         {
             var ilSource =
-BuildAssemblyExternClause(TestReferences.NetCoreApp30.SystemRuntimeRef) +
+BuildAssemblyExternClause(TestMetadata.NetCoreApp31.SystemRuntime) +
 @"
 .class interface public abstract auto ansi I1
 {
@@ -56998,7 +56978,7 @@ class C2 : C1, I1
         public void CheckForImplementationOfCorrespondingPropertyOrEvent_04()
         {
             var ilSource =
-BuildAssemblyExternClause(TestReferences.NetCoreApp30.SystemRuntimeRef) +
+BuildAssemblyExternClause(TestMetadata.NetCoreApp31.SystemRuntime) +
 @"
 .class interface public abstract auto ansi I1
 {
@@ -57290,7 +57270,7 @@ public class CD : CD.ICD.CB
                                                  targetFramework: TargetFramework.NetStandardLatest);
 
             compilation1.VerifyDiagnostics(
-                // (2,14): error CS0146: Circular base class dependency involving 'CD.ICD.CB' and 'CD'
+                // (2,14): error CS0146: Circular base type dependency involving 'CD.ICD.CB' and 'CD'
                 // public class CD : CD.ICD.CB
                 Diagnostic(ErrorCode.ERR_CircularBase, "CD").WithArguments("CD.ICD.CB", "CD").WithLocation(2, 14)
                 );
@@ -57378,7 +57358,7 @@ interface IB : CA.I1
                                                  targetFramework: TargetFramework.NetStandardLatest);
 
             compilation1.VerifyDiagnostics(
-                // (2,7): error CS0146: Circular base class dependency involving 'IB.CQ' and 'CA'
+                // (2,7): error CS0146: Circular base type dependency involving 'IB.CQ' and 'CA'
                 // class CA : IB.CQ
                 Diagnostic(ErrorCode.ERR_CircularBase, "CA").WithArguments("IB.CQ", "CA").WithLocation(2, 7),
                 // (8,11): error CS0529: Inherited interface 'CA.I1' causes a cycle in the interface hierarchy of 'IB'
@@ -57415,7 +57395,7 @@ class CA : IB.CQ
                 // (2,11): error CS0529: Inherited interface 'CA.I1' causes a cycle in the interface hierarchy of 'IB'
                 // interface IB : CA.I1
                 Diagnostic(ErrorCode.ERR_CycleInInterfaceInheritance, "IB").WithArguments("IB", "CA.I1").WithLocation(2, 11),
-                // (8,7): error CS0146: Circular base class dependency involving 'IB.CQ' and 'CA'
+                // (8,7): error CS0146: Circular base type dependency involving 'IB.CQ' and 'CA'
                 // class CA : IB.CQ
                 Diagnostic(ErrorCode.ERR_CircularBase, "CA").WithArguments("IB.CQ", "CA").WithLocation(8, 7)
                 );
@@ -59271,6 +59251,168 @@ interface I1<out T1, in T2>
         }
 
         [Fact]
+        public void VarianceSafety_13()
+        {
+            var source1 =
+@"
+class Program
+{
+    static void Main()
+    {
+        I2<string, string>.P1 = ""a"";
+        I2<string, string>.P2 = ""b"";
+        System.Console.WriteLine(I2<string, string>.P1);
+        System.Console.WriteLine(I2<string, string>.P2);
+    }
+}
+
+interface I2<out T1, in T2>
+{
+    static T1 P1 { get; set; }
+    static T2 P2 { get; set; }
+}
+";
+
+            var compilation1 = CreateCompilation(source1, options: TestOptions.DebugExe,
+                                                 parseOptions: TestOptions.Regular8,
+                                                 targetFramework: TargetFramework.NetStandardLatest);
+            compilation1.VerifyDiagnostics(
+                // (15,12): error CS8904: Invalid variance: The type parameter 'T1' must be invariantly valid on 'I2<T1, T2>.P1' unless language version 'preview' or greater is used. 'T1' is covariant.
+                //     static T1 P1 { get; set; }
+                Diagnostic(ErrorCode.ERR_UnexpectedVarianceStaticMember, "T1").WithArguments("I2<T1, T2>.P1", "T1", "covariant", "invariantly", "preview").WithLocation(15, 12),
+                // (16,12): error CS8904: Invalid variance: The type parameter 'T2' must be invariantly valid on 'I2<T1, T2>.P2' unless language version 'preview' or greater is used. 'T2' is contravariant.
+                //     static T2 P2 { get; set; }
+                Diagnostic(ErrorCode.ERR_UnexpectedVarianceStaticMember, "T2").WithArguments("I2<T1, T2>.P2", "T2", "contravariant", "invariantly", "preview").WithLocation(16, 12)
+                );
+
+            compilation1 = CreateCompilation(source1, options: TestOptions.DebugExe,
+                                                 parseOptions: TestOptions.RegularPreview,
+                                                 targetFramework: TargetFramework.NetStandardLatest);
+
+#if false   // https://github.com/dotnet/roslyn/issues/46533: enable this branch once https://github.com/dotnet/runtime/issues/39612 is fixed
+            CompileAndVerify(compilation1, verify: VerifyOnMonoOrCoreClr, expectedOutput: !ExecutionConditionUtil.IsMonoOrCoreClr ? null :
+@"a
+b").VerifyDiagnostics();
+#else
+            compilation1.VerifyEmitDiagnostics();
+#endif
+        }
+
+        [Fact]
+        public void VarianceSafety_14()
+        {
+            var source1 =
+@"
+class Program
+{
+    static void Main()
+    {
+        System.Console.WriteLine(I2<string, string>.M1(""a""));
+        System.Console.WriteLine(I2<string, string>.M2(""b""));
+    }
+}
+
+interface I2<out T1, in T2>
+{
+    static T1 M1(T1 x) => x;
+    static T2 M2(T2 x) => x;
+}
+";
+
+            var compilation1 = CreateCompilation(source1, options: TestOptions.DebugExe,
+                                                 parseOptions: TestOptions.Regular8,
+                                                 targetFramework: TargetFramework.NetStandardLatest);
+            compilation1.VerifyDiagnostics(
+                // (13,18): error CS8904: Invalid variance: The type parameter 'T1' must be contravariantly valid on 'I2<T1, T2>.M1(T1)' unless language version 'preview' or greater is used. 'T1' is covariant.
+                //     static T1 M1(T1 x) => x;
+                Diagnostic(ErrorCode.ERR_UnexpectedVarianceStaticMember, "T1").WithArguments("I2<T1, T2>.M1(T1)", "T1", "covariant", "contravariantly", "preview").WithLocation(13, 18),
+                // (14,12): error CS8904: Invalid variance: The type parameter 'T2' must be covariantly valid on 'I2<T1, T2>.M2(T2)' unless language version 'preview' or greater is used. 'T2' is contravariant.
+                //     static T2 M2(T2 x) => x;
+                Diagnostic(ErrorCode.ERR_UnexpectedVarianceStaticMember, "T2").WithArguments("I2<T1, T2>.M2(T2)", "T2", "contravariant", "covariantly", "preview").WithLocation(14, 12)
+                );
+
+            compilation1 = CreateCompilation(source1, options: TestOptions.DebugExe,
+                                                 parseOptions: TestOptions.RegularPreview,
+                                                 targetFramework: TargetFramework.NetStandardLatest);
+
+#if false   // https://github.com/dotnet/roslyn/issues/46533: enable this branch once https://github.com/dotnet/runtime/issues/39612 is fixed
+            CompileAndVerify(compilation1, verify: VerifyOnMonoOrCoreClr, expectedOutput: !ExecutionConditionUtil.IsMonoOrCoreClr ? null :
+@"a
+b").VerifyDiagnostics();
+#else
+            compilation1.VerifyEmitDiagnostics();
+#endif
+        }
+
+        [Fact]
+        public void VarianceSafety_15()
+        {
+            var source1 =
+@"
+class Program
+{
+    static void Main()
+    {
+        I2<string, string>.E1 += Print1;
+        I2<string, string>.E2 += Print2;
+        I2<string, string>.Raise();
+    }
+
+    static void Print1(System.Func<string, string> x)
+    {
+        System.Console.WriteLine(x(""a""));
+    }
+
+    static void Print2(System.Func<string, string> x)
+    {
+        System.Console.WriteLine(x(""b""));
+    }
+}
+
+interface I2<out T1, in T2>
+{
+    static event System.Action<System.Func<T1, T1>> E1;
+    static event System.Action<System.Func<T2, T2>> E2;
+
+    static void Raise()
+    {
+        E1(Print);
+        E2(Print);
+    }
+
+    static T3 Print<T3>(T3 x)
+    {
+        return x;
+    }
+}
+";
+
+            var compilation1 = CreateCompilation(source1, options: TestOptions.DebugExe,
+                                                 parseOptions: TestOptions.Regular8,
+                                                 targetFramework: TargetFramework.NetStandardLatest);
+            compilation1.VerifyDiagnostics(
+                // (24,53): error CS8904: Invalid variance: The type parameter 'T1' must be contravariantly valid on 'I2<T1, T2>.E1' unless language version 'preview' or greater is used. 'T1' is covariant.
+                //     static event System.Action<System.Func<T1, T1>> E1;
+                Diagnostic(ErrorCode.ERR_UnexpectedVarianceStaticMember, "E1").WithArguments("I2<T1, T2>.E1", "T1", "covariant", "contravariantly", "preview").WithLocation(24, 53),
+                // (25,53): error CS8904: Invalid variance: The type parameter 'T2' must be covariantly valid on 'I2<T1, T2>.E2' unless language version 'preview' or greater is used. 'T2' is contravariant.
+                //     static event System.Action<System.Func<T2, T2>> E2;
+                Diagnostic(ErrorCode.ERR_UnexpectedVarianceStaticMember, "E2").WithArguments("I2<T1, T2>.E2", "T2", "contravariant", "covariantly", "preview").WithLocation(25, 53)
+                );
+
+            compilation1 = CreateCompilation(source1, options: TestOptions.DebugExe,
+                                                 parseOptions: TestOptions.RegularPreview,
+                                                 targetFramework: TargetFramework.NetStandardLatest);
+
+#if false   // https://github.com/dotnet/roslyn/issues/46533: enable this branch once https://github.com/dotnet/runtime/issues/39612 is fixed
+            CompileAndVerify(compilation1, verify: VerifyOnMonoOrCoreClr, expectedOutput: !ExecutionConditionUtil.IsMonoOrCoreClr ? null :
+@"a
+b").VerifyDiagnostics();
+#else
+            compilation1.VerifyEmitDiagnostics();
+#endif
+        }
+
+        [Fact]
         [WorkItem(1029574, "https://dev.azure.com/devdiv/DevDiv/_workitems/edit/1029574")]
         public void Errors_01()
         {
@@ -59853,6 +59995,33 @@ interface I1<T>
                 // (4,9): error CS0540: 'I1<T>.P1': containing type does not implement interface 'I1<int>'
                 //     int I1<int>.P1 => throw null;
                 Diagnostic(ErrorCode.ERR_ClassDoesntImplementInterface, "I1<int>").WithArguments("I1<T>.P1", "I1<int>").WithLocation(4, 9)
+                );
+        }
+
+        [Fact, WorkItem(41481, "https://github.com/dotnet/roslyn/issues/41481")]
+        public void IncompletePropertyImplementationSyntax_01()
+        {
+            var source1 =
+@"interface A
+{
+    object A.B{";
+            var compilation1 = CreateCompilation(source1, options: TestOptions.DebugDll,
+                                                 parseOptions: TestOptions.Regular,
+                                                 targetFramework: TargetFramework.NetStandardLatest);
+            Assert.True(compilation1.Assembly.RuntimeSupportsDefaultInterfaceImplementation);
+            compilation1.VerifyDiagnostics(
+                // (3,12): error CS0540: 'A.B': containing type does not implement interface 'A'
+                //     object A.B{
+                Diagnostic(ErrorCode.ERR_ClassDoesntImplementInterface, "A").WithArguments("A.B", "A").WithLocation(3, 12),
+                // (3,14): error CS0548: 'A.B': property or indexer must have at least one accessor
+                //     object A.B{
+                Diagnostic(ErrorCode.ERR_PropertyWithNoAccessors, "B").WithArguments("A.B").WithLocation(3, 14),
+                // (3,16): error CS1513: } expected
+                //     object A.B{
+                Diagnostic(ErrorCode.ERR_RbraceExpected, "").WithLocation(3, 16),
+                // (3,16): error CS1513: } expected
+                //     object A.B{
+                Diagnostic(ErrorCode.ERR_RbraceExpected, "").WithLocation(3, 16)
                 );
         }
     }

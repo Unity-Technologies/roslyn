@@ -2,6 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+#nullable disable
+
 using System;
 using System.Globalization;
 using EnvDTE;
@@ -49,9 +51,7 @@ namespace Microsoft.VisualStudio.LanguageServices.Utilities
                 => this._propertyStorage = propertyStorage;
 
             public override void SetProperty(string buildPropertyName, string configurationPropertyName, string value)
-            {
-                _propertyStorage.SetPropertyValue(buildPropertyName, null, (uint)_PersistStorageType.PST_PROJECT_FILE, value);
-            }
+                => _propertyStorage.SetPropertyValue(buildPropertyName, null, (uint)_PersistStorageType.PST_PROJECT_FILE, value);
         }
 
         private sealed class PerConfigurationPropertyStorage : ProjectPropertyStorage

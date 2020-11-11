@@ -2,11 +2,13 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+#nullable disable
+
+using System;
 using System.Threading.Tasks;
 using Microsoft.CodeAnalysis.Completion;
 using Microsoft.CodeAnalysis.CSharp.Completion.Providers;
 using Microsoft.CodeAnalysis.Editor.CSharp.UnitTests.Completion.CompletionProviders;
-using Microsoft.CodeAnalysis.Editor.UnitTests.Workspaces;
 using Microsoft.CodeAnalysis.Test.Utilities;
 using Roslyn.Test.Utilities;
 using Xunit;
@@ -15,26 +17,16 @@ namespace Microsoft.CodeAnalysis.Editor.CSharp.UnitTests.IntelliSense.Completion
 {
     public class KeywordCompletionProviderTests : AbstractCSharpCompletionProviderTests
     {
-        public KeywordCompletionProviderTests(CSharpTestWorkspaceFixture workspaceFixture) : base(workspaceFixture)
-        {
-        }
-
-        internal override CompletionProvider CreateCompletionProvider()
-        {
-            return new KeywordCompletionProvider();
-        }
+        internal override Type GetCompletionProviderType()
+            => typeof(KeywordCompletionProvider);
 
         [Fact, Trait(Traits.Feature, Traits.Features.KeywordRecommending)]
         public async Task IsCommitCharacterTest()
-        {
-            await VerifyCommonCommitCharactersAsync("$$", textTypedSoFar: "");
-        }
+            => await VerifyCommonCommitCharactersAsync("$$", textTypedSoFar: "");
 
         [Fact, Trait(Traits.Feature, Traits.Features.KeywordRecommending)]
         public void IsTextualTriggerCharacterTest()
-        {
-            TestCommonIsTextualTriggerCharacter();
-        }
+            => TestCommonIsTextualTriggerCharacter();
 
         [Fact, Trait(Traits.Feature, Traits.Features.KeywordRecommending)]
         public async Task SendEnterThroughToEditorTest()
@@ -280,7 +272,7 @@ $$
     int P {get;
     void Main() { }
 }";
-            await VerifyProviderCommitAsync(markupBeforeCommit, "get", expectedCodeAfterCommit, commitChar: ';', textTypedSoFar: "g");
+            await VerifyProviderCommitAsync(markupBeforeCommit, "get", expectedCodeAfterCommit, commitChar: ';');
         }
 
         [WorkItem(7768, "https://github.com/dotnet/roslyn/issues/7768")]
@@ -299,7 +291,7 @@ $$
     int P {get;set;
     void Main() { }
 }";
-            await VerifyProviderCommitAsync(markupBeforeCommit, "set", expectedCodeAfterCommit, commitChar: ';', textTypedSoFar: "set");
+            await VerifyProviderCommitAsync(markupBeforeCommit, "set", expectedCodeAfterCommit, commitChar: ';');
         }
 
         [WorkItem(7768, "https://github.com/dotnet/roslyn/issues/7768")]
@@ -318,7 +310,7 @@ $$
     public static void Test() { return;
     void Main() { }
 }";
-            await VerifyProviderCommitAsync(markupBeforeCommit, "return", expectedCodeAfterCommit, commitChar: ';', textTypedSoFar: "return");
+            await VerifyProviderCommitAsync(markupBeforeCommit, "return", expectedCodeAfterCommit, commitChar: ';');
         }
 
         [WorkItem(14218, "https://github.com/dotnet/roslyn/issues/14218")]

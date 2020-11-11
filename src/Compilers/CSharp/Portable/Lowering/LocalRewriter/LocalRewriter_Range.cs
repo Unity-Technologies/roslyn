@@ -8,6 +8,7 @@ using Microsoft.CodeAnalysis.CSharp.Symbols;
 using Microsoft.CodeAnalysis.PooledObjects;
 using System.Linq;
 using Roslyn.Utilities;
+using System.Diagnostics.CodeAnalysis;
 
 namespace Microsoft.CodeAnalysis.CSharp
 {
@@ -57,6 +58,7 @@ namespace Microsoft.CodeAnalysis.CSharp
             {
                 Debug.Assert(operand != null);
                 operand = VisitExpression(operand);
+                Debug.Assert(operand.Type is { });
 
                 if (NullableNeverHasValue(operand))
                 {
@@ -65,6 +67,7 @@ namespace Microsoft.CodeAnalysis.CSharp
                 else
                 {
                     operand = NullableAlwaysHasValue(operand) ?? operand;
+                    Debug.Assert(operand.Type is { });
 
                     if (operand.Type.IsNullableType())
                     {
@@ -76,17 +79,18 @@ namespace Microsoft.CodeAnalysis.CSharp
             }
         }
 
-        private BoundExpression LiftRangeExpression(BoundRangeExpression node, BoundExpression left, BoundExpression right)
+        private BoundExpression LiftRangeExpression(BoundRangeExpression node, BoundExpression? left, BoundExpression? right)
         {
             Debug.Assert(node.Type.IsNullableType());
-            Debug.Assert(left?.Type.IsNullableType() == true || right?.Type.IsNullableType() == true);
+            Debug.Assert(left?.Type?.IsNullableType() == true || right?.Type?.IsNullableType() == true);
             Debug.Assert(!(left is null && right is null));
+            Debug.Assert(node.MethodOpt is { });
 
             var sideeffects = ArrayBuilder<BoundExpression>.GetInstance();
             var locals = ArrayBuilder<LocalSymbol>.GetInstance();
 
             // makeRange(left.GetValueOrDefault(), right.GetValueOrDefault())
-            BoundExpression condition = null;
+            BoundExpression? condition = null;
             left = getIndexFromPossibleNullable(left);
             right = getIndexFromPossibleNullable(right);
             var rangeExpr = MakeRangeExpression(node.MethodOpt, left, right);
@@ -123,12 +127,13 @@ namespace Microsoft.CodeAnalysis.CSharp
                 value: conditionalExpression,
                 type: node.Type);
 
-            BoundExpression getIndexFromPossibleNullable(BoundExpression arg)
+            BoundExpression? getIndexFromPossibleNullable(BoundExpression? arg)
             {
                 if (arg is null)
                     return null;
 
                 BoundExpression tempOperand = CaptureExpressionInTempIfNeeded(arg, sideeffects, locals);
+                Debug.Assert(tempOperand.Type is { });
 
                 if (tempOperand.Type.IsNullableType())
                 {
@@ -155,8 +160,8 @@ namespace Microsoft.CodeAnalysis.CSharp
 
         private BoundExpression MakeRangeExpression(
             MethodSymbol constructionMethod,
-            BoundExpression left,
-            BoundExpression right)
+            BoundExpression? left,
+            BoundExpression? right)
         {
             var F = _factory;
             // The construction method may vary based on what well-known
@@ -183,6 +188,7 @@ namespace Microsoft.CodeAnalysis.CSharp
                                  constructionMethod.MetadataName == "EndAt");
                     Debug.Assert(constructionMethod.IsStatic);
                     var arg = left ?? right;
+                    Debug.Assert(arg is { });
                     return F.StaticCall(constructionMethod, ImmutableArray.Create(arg));
 
                 case MethodKind.PropertyGet:

@@ -2,6 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+#nullable disable
+
 using System.Collections.Immutable;
 using System.Threading;
 using System.Threading.Tasks;
@@ -36,9 +38,7 @@ namespace Microsoft.CodeAnalysis.Completion.Providers
         }
 
         public static Task<CompletionDescription> GetDescriptionAsync(CompletionItem item, Document document, CancellationToken cancellationToken)
-        {
-            return SymbolCompletionItem.GetDescriptionAsync(item, document, cancellationToken);
-        }
+            => SymbolCompletionItem.GetDescriptionAsync(item, document, cancellationToken);
 
         public static DeclarationModifiers GetModifiers(CompletionItem item)
         {

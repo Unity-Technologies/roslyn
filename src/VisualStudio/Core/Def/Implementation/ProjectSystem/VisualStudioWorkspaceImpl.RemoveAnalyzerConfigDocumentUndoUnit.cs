@@ -21,7 +21,7 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.ProjectSystem
             protected override IReadOnlyList<DocumentId> GetDocumentIds(Project fromProject)
                 => fromProject.State.AnalyzerConfigDocumentIds.AsImmutable();
 
-            protected override TextDocument GetDocument(Solution currentSolution)
+            protected override TextDocument? GetDocument(Solution currentSolution)
                 => currentSolution.GetAnalyzerConfigDocument(this.DocumentId);
         }
     }

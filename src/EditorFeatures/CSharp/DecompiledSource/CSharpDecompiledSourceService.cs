@@ -2,6 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+#nullable disable
+
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -20,6 +22,7 @@ using ICSharpCode.Decompiler.Metadata;
 using ICSharpCode.Decompiler.TypeSystem;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.DocumentationComments;
+using Microsoft.CodeAnalysis.DecompiledSource;
 using Microsoft.CodeAnalysis.DocumentationComments;
 using Microsoft.CodeAnalysis.ErrorReporting;
 using Microsoft.CodeAnalysis.Formatting;
@@ -37,9 +40,7 @@ namespace Microsoft.CodeAnalysis.Editor.CSharp.DecompiledSource
         private static readonly FileVersionInfo decompilerVersion = FileVersionInfo.GetVersionInfo(typeof(CSharpDecompiler).Assembly.Location);
 
         public CSharpDecompiledSourceService(HostLanguageServices provider)
-        {
-            this.provider = provider;
-        }
+            => this.provider = provider;
 
         public async Task<Document> AddSourceToAsync(Document document, Compilation symbolCompilation, ISymbol symbol, CancellationToken cancellationToken)
         {
@@ -57,7 +58,7 @@ namespace Microsoft.CodeAnalysis.Editor.CSharp.DecompiledSource
                     var fullAssemblyName = symbol.ContainingAssembly.Identity.GetDisplayName();
                     GlobalAssemblyCache.Instance.ResolvePartialName(fullAssemblyName, out assemblyLocation, preferredCulture: CultureInfo.CurrentCulture);
                 }
-                catch (Exception e) when (FatalError.ReportWithoutCrash(e))
+                catch (Exception e) when (FatalError.ReportAndCatch(e))
                 {
                 }
             }
@@ -81,17 +82,24 @@ namespace Microsoft.CodeAnalysis.Editor.CSharp.DecompiledSource
             var docCommentFormattingService = document.GetLanguageService<IDocumentationCommentFormattingService>();
             document = await ConvertDocCommentsToRegularCommentsAsync(document, docCommentFormattingService, cancellationToken).ConfigureAwait(false);
 
+            return await FormatDocumentAsync(document, cancellationToken).ConfigureAwait(false);
+        }
+
+        public static async Task<Document> FormatDocumentAsync(Document document, CancellationToken cancellationToken)
+        {
             var node = await document.GetSyntaxRootAsync(cancellationToken).ConfigureAwait(false);
 
             // Apply formatting rules
-            document = await Formatter.FormatAsync(
-                  document, SpecializedCollections.SingletonEnumerable(node.FullSpan),
-                  options: null, Formatter.GetDefaultFormattingRules(document), cancellationToken).ConfigureAwait(false);
+            var formattedDoc = await Formatter.FormatAsync(
+                 document, SpecializedCollections.SingletonEnumerable(node.FullSpan),
+                 options: null,
+                 CSharpDecompiledSourceFormattingRule.Instance.Concat(Formatter.GetDefaultFormattingRules(document)),
+                 cancellationToken).ConfigureAwait(false);
 
-            return document;
+            return formattedDoc;
         }
 
-        private Document PerformDecompilation(Document document, string fullName, Compilation compilation, string assemblyLocation)
+        private static Document PerformDecompilation(Document document, string fullName, Compilation compilation, string assemblyLocation)
         {
             // Load the assembly.
             var file = new PEFile(assemblyLocation, PEStreamOptions.PrefetchEntireImage);
@@ -116,7 +124,7 @@ namespace Microsoft.CodeAnalysis.Editor.CSharp.DecompiledSource
             return document.WithText(SourceText.From(text));
         }
 
-        private async Task<Document> AddAssemblyInfoRegionAsync(Document document, ISymbol symbol, CancellationToken cancellationToken)
+        private static async Task<Document> AddAssemblyInfoRegionAsync(Document document, ISymbol symbol, CancellationToken cancellationToken)
         {
             var assemblyInfo = MetadataAsSourceHelpers.GetAssemblyInfo(symbol.ContainingAssembly);
             var compilation = await document.Project.GetCompilationAsync(cancellationToken).ConfigureAwait(false);
@@ -142,7 +150,7 @@ namespace Microsoft.CodeAnalysis.Editor.CSharp.DecompiledSource
             return document.WithSyntaxRoot(newRoot);
         }
 
-        private async Task<Document> ConvertDocCommentsToRegularCommentsAsync(Document document, IDocumentationCommentFormattingService docCommentFormattingService, CancellationToken cancellationToken)
+        private static async Task<Document> ConvertDocCommentsToRegularCommentsAsync(Document document, IDocumentationCommentFormattingService docCommentFormattingService, CancellationToken cancellationToken)
         {
             var syntaxRoot = await document.GetSyntaxRootAsync(cancellationToken).ConfigureAwait(false);
 
@@ -151,7 +159,7 @@ namespace Microsoft.CodeAnalysis.Editor.CSharp.DecompiledSource
             return document.WithSyntaxRoot(newSyntaxRoot);
         }
 
-        private string GetFullReflectionName(INamedTypeSymbol containingType)
+        private static string GetFullReflectionName(INamedTypeSymbol containingType)
         {
             var stack = new Stack<string>();
             stack.Push(containingType.MetadataName);

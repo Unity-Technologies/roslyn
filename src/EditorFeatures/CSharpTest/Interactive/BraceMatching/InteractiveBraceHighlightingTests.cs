@@ -2,6 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+#nullable disable
+
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -25,17 +27,14 @@ namespace Microsoft.CodeAnalysis.Editor.CSharp.UnitTests.BraceHighlighting
     [UseExportProvider]
     public class InteractiveBraceHighlightingTests
     {
-        private IEnumerable<T> Enumerable<T>(params T[] array)
-        {
-            return array;
-        }
+        private static IEnumerable<T> Enumerable<T>(params T[] array)
+            => array;
 
-        private async Task<IEnumerable<ITagSpan<BraceHighlightTag>>> ProduceTagsAsync(
+        private static async Task<IEnumerable<ITagSpan<BraceHighlightTag>>> ProduceTagsAsync(
             TestWorkspace workspace,
             ITextBuffer buffer,
             int position)
         {
-            var view = new Mock<ITextView>();
             var producer = new BraceHighlightingViewTaggerProvider(
                 workspace.ExportProvider.GetExportedValue<IThreadingContext>(),
                 workspace.GetService<IBraceMatchingService>(),
@@ -45,7 +44,7 @@ namespace Microsoft.CodeAnalysis.Editor.CSharp.UnitTests.BraceHighlighting
             var context = new TaggerContext<BraceHighlightTag>(
                 buffer.CurrentSnapshot.GetRelatedDocumentsWithChanges().FirstOrDefault(),
                 buffer.CurrentSnapshot, new SnapshotPoint(buffer.CurrentSnapshot, position));
-            await producer.ProduceTagsAsync_ForTestingPurposesOnly(context);
+            await producer.GetTestAccessor().ProduceTagsAsync(context);
 
             return context.tagSpans;
         }

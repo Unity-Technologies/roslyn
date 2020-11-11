@@ -2,6 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+#nullable disable
+
 using System;
 using System.Collections.Immutable;
 using System.Threading;
@@ -52,16 +54,14 @@ namespace Microsoft.CodeAnalysis.Editor.Completion.FileSystem
 
                 await ProvideCompletionsAsync(context, pathThroughLastSlash).ConfigureAwait(false);
             }
-            catch (Exception e) when (FatalError.ReportWithoutCrashUnlessCanceled(e))
+            catch (Exception e) when (FatalError.ReportAndCatchUnlessCanceled(e))
             {
                 // nop
             }
         }
 
         public override bool ShouldTriggerCompletion(SourceText text, int caretPosition, CompletionTrigger trigger, OptionSet options)
-        {
-            return true;
-        }
+            => true;
 
         private static string GetPathThroughLastSlash(string quotedPath, int quotedPathStart, int position)
         {
@@ -104,9 +104,7 @@ namespace Microsoft.CodeAnalysis.Editor.Completion.FileSystem
         }
 
         private static bool EndsWithQuote(string quotedPath)
-        {
-            return quotedPath.Length >= 2 && quotedPath[quotedPath.Length - 1] == '"';
-        }
+            => quotedPath.Length >= 2 && quotedPath[quotedPath.Length - 1] == '"';
 
         /// <summary>
         /// Returns the index right after the last slash that precedes 'position'.  If there is no
@@ -130,7 +128,7 @@ namespace Microsoft.CodeAnalysis.Editor.Completion.FileSystem
 
         protected abstract Task ProvideCompletionsAsync(CompletionContext context, string pathThroughLastSlash);
 
-        protected FileSystemCompletionHelper GetFileSystemCompletionHelper(
+        protected static FileSystemCompletionHelper GetFileSystemCompletionHelper(
             Document document,
             Glyph itemGlyph,
             ImmutableArray<string> extensions,

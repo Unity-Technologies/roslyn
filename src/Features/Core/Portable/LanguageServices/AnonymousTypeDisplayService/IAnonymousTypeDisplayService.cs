@@ -3,6 +3,7 @@
 // See the LICENSE file in the project root for more information.
 
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using Microsoft.CodeAnalysis.Host;
 
 namespace Microsoft.CodeAnalysis.LanguageServices
@@ -13,13 +14,11 @@ namespace Microsoft.CodeAnalysis.LanguageServices
             ISymbol orderSymbol,
             IEnumerable<INamedTypeSymbol> directNormalAnonymousTypeReferences,
             SemanticModel semanticModel,
-            int position,
-            ISymbolDisplayService displayService);
+            int position);
 
-        IEnumerable<SymbolDisplayPart> GetAnonymousTypeParts(
+        ImmutableArray<SymbolDisplayPart> GetAnonymousTypeParts(
             INamedTypeSymbol anonymousType,
             SemanticModel semanticModel,
-            int position,
-            ISymbolDisplayService displayService);
+            int position);
     }
 }

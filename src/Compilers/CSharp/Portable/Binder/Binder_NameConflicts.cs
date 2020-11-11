@@ -33,7 +33,7 @@ namespace Microsoft.CodeAnalysis.CSharp
             bool allowShadowingNames,
             DiagnosticBag diagnostics)
         {
-            PooledHashSet<string> tpNames = null;
+            PooledHashSet<string>? tpNames = null;
             if (!typeParameters.IsDefaultOrEmpty)
             {
                 tpNames = PooledHashSet<string>.GetInstance();
@@ -56,7 +56,7 @@ namespace Microsoft.CodeAnalysis.CSharp
                 }
             }
 
-            PooledHashSet<string> pNames = null;
+            PooledHashSet<string>? pNames = null;
             if (!parameters.IsDefaultOrEmpty)
             {
                 pNames = PooledHashSet<string>.GetInstance();
@@ -93,7 +93,7 @@ namespace Microsoft.CodeAnalysis.CSharp
         /// <remarks>
         /// Don't call this one directly - call one of the helpers.
         /// </remarks>
-        private bool ValidateNameConflictsInScope(Symbol symbol, Location location, string name, DiagnosticBag diagnostics)
+        private bool ValidateNameConflictsInScope(Symbol? symbol, Location location, string name, DiagnosticBag diagnostics)
         {
             if (string.IsNullOrEmpty(name))
             {
@@ -102,7 +102,7 @@ namespace Microsoft.CodeAnalysis.CSharp
 
             bool allowShadowing = Compilation.IsFeatureEnabled(MessageID.IDS_FeatureNameShadowingInNestedFunctions);
 
-            for (Binder binder = this; binder != null; binder = binder.Next)
+            for (Binder? binder = this; binder != null; binder = binder.Next)
             {
                 // no local scopes enclose members
                 if (binder is InContainerBinder)
@@ -121,9 +121,31 @@ namespace Microsoft.CodeAnalysis.CSharp
                 {
                     return false;
                 }
+
+                if (binder.IsLastBinderWithinMember())
+                {
+                    // Declarations within a member do not conflict with declarations outside.
+                    return false;
+                }
             }
 
             return false;
+        }
+
+        private bool IsLastBinderWithinMember()
+        {
+            var containingMemberOrLambda = this.ContainingMemberOrLambda;
+
+            switch (containingMemberOrLambda?.Kind)
+            {
+                case null:
+                case SymbolKind.NamedType:
+                case SymbolKind.Namespace:
+                    return true;
+                default:
+                    return containingMemberOrLambda.ContainingSymbol?.Kind == SymbolKind.NamedType &&
+                           this.Next?.ContainingMemberOrLambda != containingMemberOrLambda;
+            }
         }
     }
 }

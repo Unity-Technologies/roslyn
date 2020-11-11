@@ -2,6 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+#nullable disable
+
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -178,9 +180,7 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.Preview
         }
 
         public override void UpdatePreview()
-        {
-            engine.UpdatePreview(this.Id, (SpanChange)Children.Changes[0]);
-        }
+            => engine.UpdatePreview(this.Id, (SpanChange)Children.Changes[0]);
 
         private SourceText UpdateBufferText()
         {
@@ -195,9 +195,7 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.Preview
         }
 
         public TextDocument GetOldDocument()
-        {
-            return _left;
-        }
+            => _left;
 
         public TextDocument GetUpdatedDocument()
         {

@@ -2,6 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+#nullable disable
+
 using System.Threading;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Options;
@@ -15,10 +17,11 @@ namespace Microsoft.CodeAnalysis.CSharp.Structure
         protected override void CollectBlockSpans(
             DestructorDeclarationSyntax destructorDeclaration,
             ArrayBuilder<BlockSpan> spans,
+            bool isMetadataAsSource,
             OptionSet options,
             CancellationToken cancellationToken)
         {
-            CSharpStructureHelpers.CollectCommentBlockSpans(destructorDeclaration, spans);
+            CSharpStructureHelpers.CollectCommentBlockSpans(destructorDeclaration, spans, isMetadataAsSource);
 
             // fault tolerance
             if (destructorDeclaration.Body == null ||
@@ -31,6 +34,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Structure
             spans.AddIfNotNull(CSharpStructureHelpers.CreateBlockSpan(
                 destructorDeclaration,
                 destructorDeclaration.ParameterList.GetLastToken(includeZeroWidth: true),
+                compressEmptyLines: false,
                 autoCollapse: true,
                 type: BlockTypes.Member,
                 isCollapsible: true));

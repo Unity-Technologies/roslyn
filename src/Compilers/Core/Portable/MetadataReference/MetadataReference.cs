@@ -9,7 +9,6 @@ using System.ComponentModel;
 using System.IO;
 using System.Reflection;
 using System.Reflection.PortableExecutable;
-using Microsoft.CodeAnalysis.InternalUtilities;
 using Roslyn.Utilities;
 
 namespace Microsoft.CodeAnalysis
@@ -33,7 +32,7 @@ namespace Microsoft.CodeAnalysis
         /// <summary>
         /// Path or name used in error messages to identity the reference.
         /// </summary>
-        public virtual string Display { get { return null; } }
+        public virtual string? Display { get { return null; } }
 
         /// <summary>
         /// Returns true if this reference is an unresolved reference.
@@ -119,9 +118,9 @@ namespace Microsoft.CodeAnalysis
         /// <exception cref="ArgumentNullException"><paramref name="peImage"/> is null.</exception>
         public static PortableExecutableReference CreateFromImage(
             ImmutableArray<byte> peImage,
-            MetadataReferenceProperties properties = default(MetadataReferenceProperties),
-            DocumentationProvider documentation = null,
-            string filePath = null)
+            MetadataReferenceProperties properties = default,
+            DocumentationProvider? documentation = null,
+            string? filePath = null)
         {
             var metadata = AssemblyMetadata.CreateFromImage(peImage);
             return new MetadataImageReference(metadata, properties, documentation, filePath, display: null);
@@ -153,9 +152,9 @@ namespace Microsoft.CodeAnalysis
         /// <exception cref="ArgumentNullException"><paramref name="peImage"/> is null.</exception>
         public static PortableExecutableReference CreateFromImage(
             IEnumerable<byte> peImage,
-            MetadataReferenceProperties properties = default(MetadataReferenceProperties),
-            DocumentationProvider documentation = null,
-            string filePath = null)
+            MetadataReferenceProperties properties = default,
+            DocumentationProvider? documentation = null,
+            string? filePath = null)
         {
             var metadata = AssemblyMetadata.CreateFromImage(peImage);
             return new MetadataImageReference(metadata, properties, documentation, filePath, display: null);
@@ -190,9 +189,9 @@ namespace Microsoft.CodeAnalysis
         /// </remarks>
         public static PortableExecutableReference CreateFromStream(
             Stream peStream,
-            MetadataReferenceProperties properties = default(MetadataReferenceProperties),
-            DocumentationProvider documentation = null,
-            string filePath = null)
+            MetadataReferenceProperties properties = default,
+            DocumentationProvider? documentation = null,
+            string? filePath = null)
         {
             // Prefetch data and close the stream. 
             var metadata = AssemblyMetadata.CreateFromStream(peStream, PEStreamOptions.PrefetchEntireImage);
@@ -228,8 +227,8 @@ namespace Microsoft.CodeAnalysis
         /// </remarks>
         public static PortableExecutableReference CreateFromFile(
             string path,
-            MetadataReferenceProperties properties = default(MetadataReferenceProperties),
-            DocumentationProvider documentation = null)
+            MetadataReferenceProperties properties = default,
+            DocumentationProvider? documentation = null)
         {
             var peStream = FileUtilities.OpenFileStream(path);
 
@@ -292,7 +291,7 @@ namespace Microsoft.CodeAnalysis
         public static MetadataReference CreateFromAssembly(
             Assembly assembly,
             MetadataReferenceProperties properties,
-            DocumentationProvider documentation = null)
+            DocumentationProvider? documentation = null)
         {
             return CreateFromAssemblyInternal(assembly, properties, documentation);
         }
@@ -300,7 +299,7 @@ namespace Microsoft.CodeAnalysis
         internal static PortableExecutableReference CreateFromAssemblyInternal(
             Assembly assembly,
             MetadataReferenceProperties properties,
-            DocumentationProvider documentation = null)
+            DocumentationProvider? documentation = null)
         {
             // Note: returns MetadataReference and not PortableExecutableReference so that we can in future support assemblies that
             // which are not backed by PE image.

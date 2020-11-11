@@ -2,19 +2,19 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
-#nullable enable
-
 using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Collections.ObjectModel;
-using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.PooledObjects;
 using Roslyn.Utilities;
+
+#if DEBUG
+using System.Diagnostics;
+#endif
 
 namespace Roslyn.Utilities
 {
@@ -131,6 +131,9 @@ namespace Roslyn.Utilities
             return source as ISet<T> ?? new HashSet<T>(source);
         }
 
+        public static IReadOnlyCollection<T> ToCollection<T>(this IEnumerable<T> sequence)
+            => (sequence is IReadOnlyCollection<T> collection) ? collection : sequence.ToList();
+
         public static T? FirstOrNull<T>(this IEnumerable<T> source)
             where T : struct
         {
@@ -164,6 +167,17 @@ namespace Roslyn.Utilities
             return source.Cast<T?>().LastOrDefault();
         }
 
+        public static T? SingleOrNull<T>(this IEnumerable<T> source, Func<T, bool> predicate)
+            where T : struct
+        {
+            if (source == null)
+            {
+                throw new ArgumentNullException(nameof(source));
+            }
+
+            return source.Cast<T?>().SingleOrDefault(v => predicate(v!.Value));
+        }
+
         public static bool IsSingle<T>(this IEnumerable<T> list)
         {
             using var enumerator = list.GetEnumerator();
@@ -192,7 +206,7 @@ namespace Roslyn.Utilities
                 return str.Length == 0;
             }
 
-            foreach (var t in source)
+            foreach (var _ in source)
             {
                 return false;
             }
@@ -276,6 +290,54 @@ namespace Roslyn.Utilities
             }
 
             return true;
+        }
+
+        public static int IndexOf<T>(this IEnumerable<T> sequence, T value)
+        {
+            return sequence switch
+            {
+                IList<T> list => list.IndexOf(value),
+                IReadOnlyList<T> readOnlyList => IndexOf(readOnlyList, value, EqualityComparer<T>.Default),
+                _ => EnumeratingIndexOf(sequence, value, EqualityComparer<T>.Default)
+            };
+        }
+
+        public static int IndexOf<T>(this IEnumerable<T> sequence, T value, IEqualityComparer<T> comparer)
+        {
+            return sequence switch
+            {
+                IReadOnlyList<T> readOnlyList => IndexOf(readOnlyList, value, comparer),
+                _ => EnumeratingIndexOf(sequence, value, comparer)
+            };
+        }
+
+        private static int EnumeratingIndexOf<T>(this IEnumerable<T> sequence, T value, IEqualityComparer<T> comparer)
+        {
+            int i = 0;
+            foreach (var item in sequence)
+            {
+                if (comparer.Equals(item, value))
+                {
+                    return i;
+                }
+
+                i++;
+            }
+
+            return -1;
+        }
+
+        public static int IndexOf<T>(this IReadOnlyList<T> list, T value, IEqualityComparer<T> comparer)
+        {
+            for (int i = 0, length = list.Count; i < length; i++)
+            {
+                if (comparer.Equals(list[i], value))
+                {
+                    return i;
+                }
+            }
+
+            return -1;
         }
 
         public static IEnumerable<T> Flatten<T>(this IEnumerable<IEnumerable<T>> sequence)
@@ -447,7 +509,6 @@ namespace Roslyn.Utilities
         }
 #nullable enable
 
-#if !CODE_STYLE
         internal static Dictionary<K, ImmutableArray<T>> ToDictionary<K, T>(this IEnumerable<T> data, Func<T, K> keySelector, IEqualityComparer<K>? comparer = null)
             where K : notnull
         {
@@ -461,18 +522,16 @@ namespace Roslyn.Utilities
 
             return dictionary;
         }
-#endif
 
         /// <summary>
         /// Returns the only element of specified sequence if it has exactly one, and default(TSource) otherwise.
         /// Unlike <see cref="Enumerable.SingleOrDefault{TSource}(IEnumerable{TSource})"/> doesn't throw if there is more than one element in the sequence.
         /// </summary>
-        [return: MaybeNull]
-        internal static TSource AsSingleton<TSource>(this IEnumerable<TSource>? source)
+        internal static TSource? AsSingleton<TSource>(this IEnumerable<TSource>? source)
         {
             if (source == null)
             {
-                return default!;
+                return default;
             }
 
             if (source is IList<TSource> list)
@@ -483,13 +542,13 @@ namespace Roslyn.Utilities
             using IEnumerator<TSource> e = source.GetEnumerator();
             if (!e.MoveNext())
             {
-                return default!;
+                return default;
             }
 
             TSource result = e.Current;
             if (e.MoveNext())
             {
-                return default!;
+                return default;
             }
 
             return result;
@@ -559,14 +618,13 @@ namespace System.Linq
             return true;
         }
 
-        [return: MaybeNull]
-        public static T AggregateOrDefault<T>(this IEnumerable<T> source, Func<T, T, T> func)
+        public static T? AggregateOrDefault<T>(this IEnumerable<T> source, Func<T, T, T> func)
         {
             using (var e = source.GetEnumerator())
             {
                 if (!e.MoveNext())
                 {
-                    return default!;
+                    return default;
                 }
 
                 var result = e.Current;

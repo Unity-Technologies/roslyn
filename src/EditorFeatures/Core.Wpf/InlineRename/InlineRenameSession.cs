@@ -2,6 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+#nullable disable
+
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
@@ -103,6 +105,11 @@ namespace Microsoft.CodeAnalysis.Editor.Implementation.InlineRename
 
         private readonly IInlineRenameInfo _renameInfo;
 
+        /// <summary>
+        /// The initial text being renamed.
+        /// </summary>
+        private readonly string _initialRenameText;
+
         public InlineRenameSession(
             IThreadingContext threadingContext,
             InlineRenameService renameService,
@@ -150,7 +157,8 @@ namespace Microsoft.CodeAnalysis.Editor.Implementation.InlineRename
                 ? workspace.Options.WithChangedOption(RenameOptions.RenameOverloads, true)
                 : workspace.Options;
 
-            this.ReplacementText = triggerSpan.GetText();
+            _initialRenameText = triggerSpan.GetText();
+            this.ReplacementText = _initialRenameText;
 
             _baseSolution = _triggerDocument.Project.Solution;
             this.UndoManager = workspace.Services.GetService<IInlineRenameUndoManager>();
@@ -186,8 +194,10 @@ namespace Microsoft.CodeAnalysis.Editor.Implementation.InlineRename
         // Used to aid the investigation of https://github.com/dotnet/roslyn/issues/7364
         private class NullTextBufferException : Exception
         {
+#pragma warning disable IDE0052 // Remove unread private members
             private readonly Document _document;
             private readonly SourceText _text;
+#pragma warning restore IDE0052 // Remove unread private members
 
             public NullTextBufferException(Document document, SourceText text)
                 : base("Cannot retrieve textbuffer from document.")
@@ -216,7 +226,7 @@ namespace Microsoft.CodeAnalysis.Editor.Implementation.InlineRename
                     var textSnapshot = text.FindCorrespondingEditorTextSnapshot();
                     if (textSnapshot == null)
                     {
-                        FatalError.ReportWithoutCrash(new NullTextBufferException(document, text));
+                        FatalError.ReportAndCatch(new NullTextBufferException(document, text));
                         continue;
                     }
                     Contract.ThrowIfNull(textSnapshot.TextBuffer);
@@ -303,7 +313,6 @@ namespace Microsoft.CodeAnalysis.Editor.Implementation.InlineRename
                 // follow the originally-intended design.
                 // https://github.com/dotnet/roslyn/issues/40890
                 await ThreadingContext.JoinableTaskFactory.SwitchToMainThreadAsync(alwaysYield: true, _cancellationTokenSource.Token);
-                _cancellationTokenSource.Token.ThrowIfCancellationRequested();
 
                 RaiseSessionSpansUpdated(inlineRenameLocations.Locations.ToImmutableArray());
 
@@ -328,14 +337,10 @@ namespace Microsoft.CodeAnalysis.Editor.Implementation.InlineRename
         public event EventHandler ReplacementTextChanged;
 
         internal OpenTextBufferManager GetBufferManager(ITextBuffer buffer)
-        {
-            return _openTextBuffers[buffer];
-        }
+            => _openTextBuffers[buffer];
 
         internal bool TryGetBufferManager(ITextBuffer buffer, out OpenTextBufferManager bufferManager)
-        {
-            return _openTextBuffers.TryGetValue(buffer, out bufferManager);
-        }
+            => _openTextBuffers.TryGetValue(buffer, out bufferManager);
 
         public void RefreshRenameSessionWithOptionsChanged(Option<bool> renameOption, bool newValue)
         {
@@ -581,7 +586,6 @@ namespace Microsoft.CodeAnalysis.Editor.Implementation.InlineRename
                     async t =>
                     {
                         await ThreadingContext.JoinableTaskFactory.SwitchToMainThreadAsync(alwaysYield: true, _conflictResolutionTaskCancellationSource.Token);
-                        _conflictResolutionTaskCancellationSource.Token.ThrowIfCancellationRequested();
 
                         ApplyReplacements(t.Result.replacementInfo, t.Result.mergeResult, _conflictResolutionTaskCancellationSource.Token);
                     },
@@ -659,9 +663,7 @@ namespace Microsoft.CodeAnalysis.Editor.Implementation.InlineRename
         }
 
         public void Cancel()
-        {
-            Cancel(rollbackTemporaryEdits: true);
-        }
+            => Cancel(rollbackTemporaryEdits: true);
 
         private void Cancel(bool rollbackTemporaryEdits)
         {
@@ -674,14 +676,29 @@ namespace Microsoft.CodeAnalysis.Editor.Implementation.InlineRename
         }
 
         public void Commit(bool previewChanges = false)
+            => CommitWorker(previewChanges);
+
+        /// <returns><see langword="true"/> if the rename operation was commited, <see
+        /// langword="false"/> otherwise</returns>
+        private bool CommitWorker(bool previewChanges)
         {
             AssertIsForeground();
             VerifyNotDismissed();
 
-            if (this.ReplacementText == string.Empty)
+            // If the identifier was deleted (or didn't change at all) then cancel the operation.
+            // Note: an alternative approach would be for the work we're doing (like detecting
+            // conflicts) to quickly bail in the case of no change.  However, that involves deeper
+            // changes to the system and is less easy to validate that nothing happens.
+            //
+            // The only potential downside here would be if there was a language that wanted to
+            // still 'rename' even if the identifier went away (or was unchanged).  But that isn't
+            // a case we're aware of, so it's fine to be opinionated here that we can quickly bail
+            // in these cases.
+            if (this.ReplacementText == string.Empty ||
+                this.ReplacementText == _initialRenameText)
             {
                 Cancel();
-                return;
+                return false;
             }
 
             previewChanges = previewChanges || OptionSet.GetOption(RenameOptions.PreviewChanges);
@@ -697,7 +714,11 @@ namespace Microsoft.CodeAnalysis.Editor.Implementation.InlineRename
                 LogRenameSession(RenameLogMessage.UserActionOutcome.Canceled | RenameLogMessage.UserActionOutcome.Committed, previewChanges);
                 Dismiss(rollbackTemporaryEdits: true);
                 EndRenameSession();
+
+                return false;
             }
+
+            return true;
         }
 
         private void EndRenameSession()
@@ -842,6 +863,20 @@ namespace Microsoft.CodeAnalysis.Editor.Implementation.InlineRename
             }
 
             return false;
+        }
+
+        internal TestAccessor GetTestAccessor()
+            => new TestAccessor(this);
+
+        public struct TestAccessor
+        {
+            private readonly InlineRenameSession _inlineRenameSession;
+
+            public TestAccessor(InlineRenameSession inlineRenameSession)
+                => _inlineRenameSession = inlineRenameSession;
+
+            public bool CommitWorker(bool previewChanges)
+                => _inlineRenameSession.CommitWorker(previewChanges);
         }
     }
 }

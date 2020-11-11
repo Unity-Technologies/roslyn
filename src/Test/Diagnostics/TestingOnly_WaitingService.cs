@@ -7,18 +7,21 @@ using System.Composition;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Threading;
+using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.Host.Mef;
 using Microsoft.CodeAnalysis.Shared.TestHooks;
 using Roslyn.Utilities;
 
 namespace Roslyn.Hosting.Diagnostics.Waiters
 {
     [Export, Shared]
-    public class TestingOnly_WaitingService
+    internal class TestingOnly_WaitingService
     {
         private readonly AsynchronousOperationListenerProvider _provider;
 
         [ImportingConstructor]
-        private TestingOnly_WaitingService(IAsynchronousOperationListenerProvider provider)
+        [Obsolete(MefConstruction.ImportingConstructorMessage, error: true)]
+        public TestingOnly_WaitingService(IAsynchronousOperationListenerProvider provider)
         {
             _provider = (AsynchronousOperationListenerProvider)provider;
         }
@@ -40,11 +43,11 @@ namespace Roslyn.Hosting.Diagnostics.Waiters
             if (waitForWorkspaceFirst)
             {
                 // at least wait for the workspace to finish processing everything.
-                var task = workspaceWaiter.CreateExpeditedWaitTask();
+                var task = workspaceWaiter.ExpeditedWaitAsync();
                 task.Wait(cancellationTokenSource.Token);
             }
 
-            var waitTask = featureWaiter.CreateExpeditedWaitTask();
+            var waitTask = featureWaiter.ExpeditedWaitAsync();
             WaitForTask(waitTask, cancellationTokenSource.Token);
 
             // Debugging trick: don't let the listeners collection get optimized away during execution.
@@ -54,18 +57,9 @@ namespace Roslyn.Hosting.Diagnostics.Waiters
             GC.KeepAlive(featureWaiter);
         }
 
-        public void WaitForAllAsyncOperations(params string[] featureNames)
+        public void WaitForAllAsyncOperations(Workspace? workspace, TimeSpan timeout, params string[] featureNames)
         {
-            WaitForAllAsyncOperations(TimeSpan.FromMilliseconds(-1), featureNames);
-        }
-
-        public void WaitForAllAsyncOperations(TimeSpan timeout, params string[] featureNames)
-        {
-            var task = _provider.WaitAllAsync(
-                featureNames,
-#pragma warning disable VSTHRD001 // Avoid legacy thread switching APIs
-                eventProcessingAction: () => Dispatcher.CurrentDispatcher.Invoke(() => { }, DispatcherPriority.ApplicationIdle));
-#pragma warning restore VSTHRD001 // Avoid legacy thread switching APIs
+            var task = _provider.WaitAllAsync(workspace, featureNames, timeout: timeout);
 
             if (timeout == TimeSpan.FromMilliseconds(-1))
             {

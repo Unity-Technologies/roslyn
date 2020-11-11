@@ -2,8 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
-#nullable enable
-
 using System.Diagnostics.CodeAnalysis;
 
 namespace Roslyn.Utilities
@@ -17,7 +15,6 @@ namespace Roslyn.Utilities
     /// </summary>
     internal static class FileNameUtilities
     {
-        private const string DirectorySeparatorStr = "\\";
         internal const char DirectorySeparatorChar = '\\';
         internal const char AltDirectorySeparatorChar = '/';
         internal const char VolumeSeparatorChar = ':';

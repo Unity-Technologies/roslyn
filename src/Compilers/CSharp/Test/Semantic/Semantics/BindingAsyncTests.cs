@@ -2,6 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+#nullable disable
+
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
@@ -2596,7 +2598,7 @@ public class Test
         [Fact]
         public void UnobservedAwaitableExpression_ForgetAwait16()
         {
-            // invoke a method that returns an awaitable type in an non-async method
+            // invoke a method that returns an awaitable type in a non-async method
             var source = @"
 using System.Threading.Tasks;
 class Test
@@ -2625,7 +2627,7 @@ class Test
         [Fact]
         public void UnobservedAwaitableExpression_ForgetAwait17()
         {
-            // invoke a method that returns an awaitable type in an non-async method
+            // invoke a method that returns an awaitable type in a non-async method
             var source = @"
 using System;
 using System.Threading.Tasks;
@@ -2660,7 +2662,7 @@ class Test:IDisposable
         [Fact]
         public void UnobservedAwaitableExpression_ForgetAwait18()
         {
-            // invoke a method that returns an awaitable type in an non-async method
+            // invoke a method that returns an awaitable type in a non-async method
             var source = @"
 using System.Threading.Tasks;
 
@@ -2701,7 +2703,7 @@ class Test
         [Fact]
         public void UnobservedAwaitableExpression_ForgetAwait19()
         {
-            // invoke a method that returns an awaitable type in an non-async method
+            // invoke a method that returns an awaitable type in a non-async method
             var source = @"
 using System.Threading.Tasks;
 
@@ -2748,7 +2750,7 @@ class Test
         [Fact]
         public void UnobservedAwaitableExpression_ForgetAwait20()
         {
-            // invoke a method that returns an awaitable type in an non-async method
+            // invoke a method that returns an awaitable type in a non-async method
             var source = @"
 using System;
 using System.Threading.Tasks;
@@ -3194,10 +3196,7 @@ class Test
             CreateCompilationWithMscorlib45(source).VerifyDiagnostics(
                 // (9,9): error CS4012: Parameters or locals of type 'System.TypedReference' cannot be declared in async methods or lambda expressions
                 //         var tr = new TypedReference();
-                Diagnostic(ErrorCode.ERR_BadSpecialByRefLocal, "var").WithArguments("System.TypedReference"),
-                // (9,13): warning CS0219: The variable 'tr' is assigned but its value is never used
-                //         var tr = new TypedReference();
-                Diagnostic(ErrorCode.WRN_UnreferencedVarAssg, "tr").WithArguments("tr"));
+                Diagnostic(ErrorCode.ERR_BadSpecialByRefLocal, "var").WithArguments("System.TypedReference"));
         }
 
         [Fact]

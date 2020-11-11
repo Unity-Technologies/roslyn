@@ -2,6 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+#nullable disable
+
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.CodeAnalysis.CSharp.Completion.KeywordRecommenders;
@@ -359,9 +361,7 @@ $$"));
 
         [Fact, Trait(Traits.Feature, Traits.Features.KeywordRecommending)]
         public async Task TestVarPatternInIs()
-        {
-            await VerifyKeywordAsync(AddInsideMethod("var b = o is $$ "));
-        }
+            => await VerifyKeywordAsync(AddInsideMethod("var b = o is $$ "));
 
         [Fact, Trait(Traits.Feature, Traits.Features.KeywordRecommending)]
         public async Task TestNotAfterRefInMemberContext()
@@ -417,6 +417,28 @@ $$"));
         {
             await VerifyAbsenceAsync(AddInsideMethod(
 @"ref int x = ref $$"));
+        }
+
+        [WorkItem(10170, "https://github.com/dotnet/roslyn/issues/10170")]
+        [Fact, Trait(Traits.Feature, Traits.Features.KeywordRecommending)]
+        public async Task TestInPropertyPattern()
+        {
+            await VerifyKeywordAsync(
+@"
+using System;
+
+class Person { public string Name; }
+
+class Program
+{
+    void Goo(object o)
+    {
+        if (o is Person { Name: $$ })
+        {
+            Console.WriteLine(n);
+        }
+    }
+}");
         }
     }
 }

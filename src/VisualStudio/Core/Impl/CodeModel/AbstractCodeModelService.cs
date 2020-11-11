@@ -2,6 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+#nullable disable
+
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -75,9 +77,7 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.CodeModel
         }
 
         protected string GetNewLineCharacter(SourceText text)
-        {
-            return _editorOptionsFactoryService.GetEditorOptions(text).GetNewLineCharacter();
-        }
+            => _editorOptionsFactoryService.GetEditorOptions(text).GetNewLineCharacter();
 
         protected SyntaxToken GetTokenWithoutAnnotation(SyntaxToken current, Func<SyntaxToken, SyntaxToken> nextTokenGetter)
         {
@@ -120,9 +120,7 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.CodeModel
         }
 
         private IBidirectionalMap<SyntaxNodeKey, SyntaxNode> GetNodeKeyMap(SyntaxTree syntaxTree)
-        {
-            return _treeToNodeKeyMaps.GetValue(syntaxTree, BuildNodeKeyMap);
-        }
+            => _treeToNodeKeyMaps.GetValue(syntaxTree, BuildNodeKeyMap);
 
         public SyntaxNodeKey GetNodeKey(SyntaxNode node)
         {
@@ -175,19 +173,13 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.CodeModel
         public abstract IEnumerable<SyntaxNode> GetParameterNodes(SyntaxNode parent);
 
         protected IEnumerable<SyntaxNode> GetFlattenedMemberNodes(SyntaxTree syntaxTree)
-        {
-            return GetMemberNodes(syntaxTree.GetRoot(), includeSelf: true, recursive: true, logicalFields: true, onlySupportedNodes: true);
-        }
+            => GetMemberNodes(syntaxTree.GetRoot(), includeSelf: true, recursive: true, logicalFields: true, onlySupportedNodes: true);
 
         protected IEnumerable<SyntaxNode> GetLogicalMemberNodes(SyntaxNode container)
-        {
-            return GetMemberNodes(container, includeSelf: false, recursive: false, logicalFields: true, onlySupportedNodes: false);
-        }
+            => GetMemberNodes(container, includeSelf: false, recursive: false, logicalFields: true, onlySupportedNodes: false);
 
         public IEnumerable<SyntaxNode> GetLogicalSupportedMemberNodes(SyntaxNode container)
-        {
-            return GetMemberNodes(container, includeSelf: false, recursive: false, logicalFields: true, onlySupportedNodes: true);
-        }
+            => GetMemberNodes(container, includeSelf: false, recursive: false, logicalFields: true, onlySupportedNodes: true);
 
         /// <summary>
         /// Retrieves the members of a specified <paramref name="container"/> node. The members that are
@@ -523,14 +515,10 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.CodeModel
         public abstract string GetExternalSymbolFullName(ISymbol symbol);
 
         public VirtualTreePoint? GetStartPoint(SyntaxNode node, OptionSet options, EnvDTE.vsCMPart? part)
-        {
-            return _nodeLocator.GetStartPoint(node, options, part);
-        }
+            => _nodeLocator.GetStartPoint(node, options, part);
 
         public VirtualTreePoint? GetEndPoint(SyntaxNode node, OptionSet options, EnvDTE.vsCMPart? part)
-        {
-            return _nodeLocator.GetEndPoint(node, options, part);
-        }
+            => _nodeLocator.GetEndPoint(node, options, part);
 
         public abstract EnvDTE.vsCMAccess GetAccess(ISymbol symbol);
         public abstract EnvDTE.vsCMAccess GetAccess(SyntaxNode node);
@@ -675,9 +663,7 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.CodeModel
         public abstract string GetParameterName(SyntaxNode node);
 
         public virtual string GetParameterFullName(SyntaxNode node)
-        {
-            return GetParameterName(node);
-        }
+            => GetParameterName(node);
 
         public abstract EnvDTE80.vsCMParameterKind GetParameterKind(SyntaxNode node);
         public abstract SyntaxNode SetParameterKind(SyntaxNode node, EnvDTE80.vsCMParameterKind kind);
@@ -786,9 +772,7 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.CodeModel
         }
 
         public bool GetWithEvents(EnvDTE.vsCMAccess access)
-        {
-            return (access & EnvDTE.vsCMAccess.vsCMAccessWithEvents) != 0;
-        }
+            => (access & EnvDTE.vsCMAccess.vsCMAccessWithEvents) != 0;
 
         // TODO(DustinCa): Verify this list against VB
         protected SpecialType GetSpecialType(EnvDTE.vsCMTypeRef type)
@@ -810,9 +794,7 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.CodeModel
             };
 
         private ITypeSymbol GetSpecialType(EnvDTE.vsCMTypeRef type, Compilation compilation)
-        {
-            return compilation.GetSpecialType(GetSpecialType(type));
-        }
+            => compilation.GetSpecialType(GetSpecialType(type));
 
         protected abstract ITypeSymbol GetTypeSymbolFromPartialName(string partialName, SemanticModel semanticModel, int position);
         public abstract ITypeSymbol GetTypeSymbolFromFullName(string fullName, Compilation compilation);
@@ -1052,25 +1034,17 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.CodeModel
             }
         }
 
-        private int GetAttributeArgumentInsertionIndex(SyntaxNode container, int insertionIndex)
-        {
-            return insertionIndex;
-        }
+        private int GetAttributeArgumentInsertionIndex(int insertionIndex)
+            => insertionIndex;
 
-        private int GetAttributeInsertionIndex(SyntaxNode container, int insertionIndex)
-        {
-            return insertionIndex;
-        }
+        private int GetAttributeInsertionIndex(int insertionIndex)
+            => insertionIndex;
 
-        private int GetImportInsertionIndex(SyntaxNode container, int insertionIndex)
-        {
-            return insertionIndex;
-        }
+        private int GetImportInsertionIndex(int insertionIndex)
+            => insertionIndex;
 
-        private int GetParameterInsertionIndex(SyntaxNode container, int insertionIndex)
-        {
-            return insertionIndex;
-        }
+        private int GetParameterInsertionIndex(int insertionIndex)
+            => insertionIndex;
 
         protected abstract bool IsCodeModelNode(SyntaxNode node);
 
@@ -1192,7 +1166,7 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.CodeModel
             var finalNode = InsertNode(
                 document,
                 batchMode,
-                GetAttributeInsertionIndex(containerNode, insertionIndex),
+                GetAttributeInsertionIndex(insertionIndex),
                 containerNode,
                 attributeNode,
                 InsertAttributeListIntoContainer,
@@ -1214,7 +1188,7 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.CodeModel
             var finalNode = InsertNode(
                 document,
                 batchMode,
-                GetAttributeArgumentInsertionIndex(containerNode, insertionIndex),
+                GetAttributeArgumentInsertionIndex(insertionIndex),
                 containerNode,
                 attributeArgumentNode,
                 InsertAttributeArgumentIntoContainer,
@@ -1236,7 +1210,7 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.CodeModel
             var finalNode = InsertNode(
                 document,
                 batchMode,
-                GetImportInsertionIndex(containerNode, insertionIndex),
+                GetImportInsertionIndex(insertionIndex),
                 containerNode,
                 importNode,
                 InsertImportIntoContainer,
@@ -1258,7 +1232,7 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.CodeModel
             var finalNode = InsertNode(
                 document,
                 batchMode,
-                GetParameterInsertionIndex(containerNode, insertionIndex),
+                GetParameterInsertionIndex(insertionIndex),
                 containerNode,
                 parameterNode,
                 InsertParameterIntoContainer,
@@ -1291,9 +1265,7 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.CodeModel
         }
 
         public Queue<CodeModelEvent> CollectCodeModelEvents(SyntaxTree oldTree, SyntaxTree newTree)
-        {
-            return _eventCollector.Collect(oldTree, newTree);
-        }
+            => _eventCollector.Collect(oldTree, newTree);
 
         public abstract bool IsNamespace(SyntaxNode node);
         public abstract bool IsType(SyntaxNode node);

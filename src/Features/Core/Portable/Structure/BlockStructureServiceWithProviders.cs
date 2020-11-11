@@ -2,6 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+#nullable disable
+
 using System.Collections.Immutable;
 using System.Linq;
 using System.Threading;
@@ -27,9 +29,7 @@ namespace Microsoft.CodeAnalysis.Structure
         /// This does not included providers imported via MEF composition.
         /// </summary>
         protected virtual ImmutableArray<BlockStructureProvider> GetBuiltInProviders()
-        {
-            return ImmutableArray<BlockStructureProvider>.Empty;
-        }
+            => ImmutableArray<BlockStructureProvider>.Empty;
 
         private ImmutableArray<BlockStructureProvider> GetImportedProviders()
         {
@@ -52,7 +52,7 @@ namespace Microsoft.CodeAnalysis.Structure
                 await provider.ProvideBlockStructureAsync(context).ConfigureAwait(false);
             }
 
-            return CreateBlockStructure(document, context);
+            return CreateBlockStructure(context);
         }
 
         public override BlockStructure GetBlockStructure(
@@ -64,10 +64,10 @@ namespace Microsoft.CodeAnalysis.Structure
                 provider.ProvideBlockStructure(context);
             }
 
-            return CreateBlockStructure(document, context);
+            return CreateBlockStructure(context);
         }
 
-        private static BlockStructure CreateBlockStructure(Document document, BlockStructureContext context)
+        private static BlockStructure CreateBlockStructure(BlockStructureContext context)
         {
             var options = context.Document.Project.Solution.Workspace.Options;
             var language = context.Document.Project.Language;
@@ -79,7 +79,7 @@ namespace Microsoft.CodeAnalysis.Structure
             var showOutliningForDeclarationLevelConstructs = options.GetOption(BlockStructureOptions.ShowOutliningForDeclarationLevelConstructs, language);
             var showOutliningForCommentsAndPreprocessorRegions = options.GetOption(BlockStructureOptions.ShowOutliningForCommentsAndPreprocessorRegions, language);
 
-            var updatedSpans = ArrayBuilder<BlockSpan>.GetInstance();
+            using var _ = ArrayBuilder<BlockSpan>.GetInstance(out var updatedSpans);
             foreach (var span in context.Spans)
             {
                 var updatedSpan = UpdateBlockSpan(span,
@@ -92,7 +92,7 @@ namespace Microsoft.CodeAnalysis.Structure
                 updatedSpans.Add(updatedSpan);
             }
 
-            return new BlockStructure(updatedSpans.ToImmutableAndFree());
+            return new BlockStructure(updatedSpans.ToImmutable());
         }
 
         private static BlockSpan UpdateBlockSpan(BlockSpan blockSpan,

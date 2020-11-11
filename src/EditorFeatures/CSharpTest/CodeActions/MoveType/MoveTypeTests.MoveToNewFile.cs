@@ -2,6 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+#nullable disable
+
 using System.Collections.Immutable;
 using System.Threading.Tasks;
 using Microsoft.CodeAnalysis.Formatting;
@@ -883,7 +885,7 @@ partial class Outer
                 code, codeAfterMove, expectedDocumentName, destinationDocumentText,
                 onAfterWorkspaceCreated: w =>
                 {
-                    w.TryApplyChanges(w.CurrentSolution.WithOptions(w.CurrentSolution.Options.WithChangedOption(FormattingOptions.InsertFinalNewLine, true)));
+                    w.TryApplyChanges(w.CurrentSolution.WithOptions(w.CurrentSolution.Options.WithChangedOption(FormattingOptions2.InsertFinalNewLine, true)));
                 });
         }
 
@@ -924,7 +926,7 @@ partial class Outer
                 code, codeAfterMove, expectedDocumentName, destinationDocumentText,
                 onAfterWorkspaceCreated: w =>
                 {
-                    w.TryApplyChanges(w.CurrentSolution.WithOptions(w.CurrentSolution.Options.WithChangedOption(FormattingOptions.InsertFinalNewLine, false)));
+                    w.TryApplyChanges(w.CurrentSolution.WithOptions(w.CurrentSolution.Options.WithChangedOption(FormattingOptions2.InsertFinalNewLine, false)));
                 });
         }
 

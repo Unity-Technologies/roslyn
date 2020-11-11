@@ -2,6 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+#nullable disable
+
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -27,7 +29,7 @@ namespace Microsoft.CodeAnalysis.ExtractMethod
         }
 
         protected abstract Task<AnalyzerResult> AnalyzeAsync(SelectionResult selectionResult, bool localFunction, CancellationToken cancellationToken);
-        protected abstract Task<InsertionPoint> GetInsertionPointAsync(SemanticDocument document, int position, CancellationToken cancellationToken);
+        protected abstract Task<InsertionPoint> GetInsertionPointAsync(SemanticDocument document, CancellationToken cancellationToken);
         protected abstract Task<TriviaResult> PreserveTriviaAsync(SelectionResult selectionResult, CancellationToken cancellationToken);
         protected abstract Task<SemanticDocument> ExpandAsync(SelectionResult selection, CancellationToken cancellationToken);
 
@@ -53,7 +55,7 @@ namespace Microsoft.CodeAnalysis.ExtractMethod
                 return new FailedExtractMethodResult(operationStatus);
             }
 
-            var insertionPoint = await GetInsertionPointAsync(analyzeResult.SemanticDocument, OriginalSelectionResult.OriginalSpan.Start, cancellationToken).ConfigureAwait(false);
+            var insertionPoint = await GetInsertionPointAsync(analyzeResult.SemanticDocument, cancellationToken).ConfigureAwait(false);
             cancellationToken.ThrowIfCancellationRequested();
 
             var triviaResult = await PreserveTriviaAsync(OriginalSelectionResult.With(insertionPoint.SemanticDocument), cancellationToken).ConfigureAwait(false);
@@ -185,12 +187,12 @@ namespace Microsoft.CodeAnalysis.ExtractMethod
 
             if (camelCase && !prefix.IsEmpty())
             {
-                prefix = char.ToLowerInvariant(prefix[0]) + prefix.Substring(1);
+                prefix = char.ToLowerInvariant(prefix[0]) + prefix[1..];
             }
 
             return char.IsUpper(name[0]) ?
                 prefix + name :
-                prefix + char.ToUpper(name[0]).ToString() + name.Substring(1);
+                prefix + char.ToUpper(name[0]).ToString() + name[1..];
         }
     }
 }

@@ -2,7 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
-using System.Threading;
+#nullable disable
+
 using System.Threading.Tasks;
 using Microsoft.CodeAnalysis.Text;
 
@@ -14,23 +15,22 @@ namespace Microsoft.CodeAnalysis.FindSymbols
         {
             private readonly Solution _solution;
             private readonly IStreamingFindLiteralReferencesProgress _progress;
-            private readonly CancellationToken _cancellationToken;
 
             public FindLiteralsServerCallback(
                 Solution solution,
-                IStreamingFindLiteralReferencesProgress progress,
-                CancellationToken cancellationToken)
+                IStreamingFindLiteralReferencesProgress progress)
             {
                 _solution = solution;
                 _progress = progress;
-                _cancellationToken = cancellationToken;
             }
 
-            public Task ReportProgressAsync(int current, int maximum)
-                => _progress.ReportProgressAsync(current, maximum);
+            public ValueTask AddItemsAsync(int count)
+                => _progress.ProgressTracker.AddItemsAsync(count);
 
-            public async Task OnReferenceFoundAsync(
-                DocumentId documentId, TextSpan span)
+            public ValueTask ItemCompletedAsync()
+                => _progress.ProgressTracker.ItemCompletedAsync();
+
+            public async ValueTask OnLiteralReferenceFoundAsync(DocumentId documentId, TextSpan span)
             {
                 var document = _solution.GetDocument(documentId);
                 await _progress.OnReferenceFoundAsync(document, span).ConfigureAwait(false);

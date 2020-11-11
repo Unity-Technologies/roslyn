@@ -2,6 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+#nullable disable
+
 using System.Collections.Immutable;
 using System.Diagnostics;
 using Microsoft.CodeAnalysis;
@@ -268,7 +270,7 @@ namespace Microsoft.VisualStudio.LanguageServices.CSharp.ObjectBrowser
                 BuildAccessibility(memberSymbol);
             }
 
-            if (memberSymbol.IsUnsafe())
+            if (memberSymbol.RequiresUnsafeModifier())
             {
                 AddText("unsafe ");
             }
@@ -394,7 +396,6 @@ namespace Microsoft.VisualStudio.LanguageServices.CSharp.ObjectBrowser
                 }
 
                 AddText("new()");
-                isFirst = false;
             }
         }
 

@@ -29,7 +29,7 @@
       </trans-unit>
       <trans-unit id="Found_0_assemblies_for_1">
         <source>Found '{0}' assemblies for '{1}':</source>
-        <target state="translated">Обнаружены сборки ({0}) для "{1}":</target>
+        <target state="translated">Обнаружены сборки ("{0}") для "{1}":</target>
         <note />
       </trans-unit>
       <trans-unit id="Found_exact_match_0">
@@ -45,6 +45,11 @@
       <trans-unit id="Found_single_assembly_0">
         <source>Found single assembly: '{0}'</source>
         <target state="translated">Найдена одна сборка: "{0}"</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Generate_Event_Subscription">
+        <source>Generate Event Subscription</source>
+        <target state="translated">Создать подписку на события</target>
         <note />
       </trans-unit>
       <trans-unit id="Load_from_0">

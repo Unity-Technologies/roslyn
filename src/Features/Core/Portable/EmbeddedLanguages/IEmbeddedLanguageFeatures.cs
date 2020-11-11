@@ -2,6 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+#nullable disable
+
 using Microsoft.CodeAnalysis.Completion;
 using Microsoft.CodeAnalysis.Completion.Providers;
 using Microsoft.CodeAnalysis.DocumentHighlighting;
@@ -23,7 +25,7 @@ namespace Microsoft.CodeAnalysis.Features.EmbeddedLanguages
         /// An optional completion provider that can provide completion items for this
         /// specific embedded language.
         /// 
-        /// <see cref="EmbeddedLanguageCompletionProvider"/> will aggregate all these
+        /// <see cref="AbstractEmbeddedLanguageCompletionProvider"/> will aggregate all these
         /// individual providers and expose them as one single completion provider to
         /// the rest of Roslyn.
         /// </summary>

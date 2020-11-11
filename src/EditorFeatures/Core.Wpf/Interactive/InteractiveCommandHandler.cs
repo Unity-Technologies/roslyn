@@ -2,6 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+#nullable disable
+
 using System;
 using System.Diagnostics;
 using Microsoft.VisualStudio.InteractiveWindow;
@@ -29,8 +31,7 @@ namespace Microsoft.CodeAnalysis.Editor.Interactive
         protected InteractiveCommandHandler(
             IContentTypeRegistryService contentTypeRegistryService,
             IEditorOptionsFactoryService editorOptionsFactoryService,
-            IEditorOperationsFactoryService editorOperationsFactoryService,
-            IWaitIndicator waitIndicator)
+            IEditorOperationsFactoryService editorOperationsFactoryService)
         {
             _contentTypeRegistryService = contentTypeRegistryService;
             _editorOptionsFactoryService = editorOptionsFactoryService;
@@ -52,9 +53,7 @@ namespace Microsoft.CodeAnalysis.Editor.Interactive
         }
 
         CommandState ICommandHandler<ExecuteInInteractiveCommandArgs>.GetCommandState(ExecuteInInteractiveCommandArgs args)
-        {
-            return CommandState.Available;
-        }
+            => CommandState.Available;
 
         bool ICommandHandler<ExecuteInInteractiveCommandArgs>.ExecuteCommand(ExecuteInInteractiveCommandArgs args, CommandExecutionContext context)
         {
@@ -72,9 +71,7 @@ namespace Microsoft.CodeAnalysis.Editor.Interactive
         }
 
         CommandState ICommandHandler<CopyToInteractiveCommandArgs>.GetCommandState(CopyToInteractiveCommandArgs args)
-        {
-            return CommandState.Available;
-        }
+            => CommandState.Available;
 
         bool ICommandHandler<CopyToInteractiveCommandArgs>.ExecuteCommand(CopyToInteractiveCommandArgs args, CommandExecutionContext context)
         {

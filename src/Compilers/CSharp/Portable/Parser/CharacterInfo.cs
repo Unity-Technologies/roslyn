@@ -196,9 +196,9 @@ namespace Microsoft.CodeAnalysis.CSharp
         /// characters will have been dropped from the search string).
         /// See DevDiv #14432 for more.
         /// </summary>
-        internal static bool ContainsDroppedIdentifierCharacters(string name)
+        internal static bool ContainsDroppedIdentifierCharacters(string? name)
         {
-            if (string.IsNullOrEmpty(name))
+            if (RoslynString.IsNullOrEmpty(name))
             {
                 return false;
             }

@@ -2,6 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+#nullable disable
+
 using System.Collections.Immutable;
 using System.Threading;
 
@@ -23,8 +25,6 @@ namespace Microsoft.CodeAnalysis.Structure
         }
 
         public void AddBlockSpan(BlockSpan span)
-        {
-            _spans.Add(span);
-        }
+            => _spans.Add(span);
     }
 }

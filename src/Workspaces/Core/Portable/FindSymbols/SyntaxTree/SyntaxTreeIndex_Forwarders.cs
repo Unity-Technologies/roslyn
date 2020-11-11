@@ -2,6 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+#nullable disable
+
 using System.Collections.Immutable;
 using Microsoft.CodeAnalysis.LanguageServices;
 
@@ -11,11 +13,8 @@ namespace Microsoft.CodeAnalysis.FindSymbols
     {
         public ImmutableArray<DeclaredSymbolInfo> DeclaredSymbolInfos => _declarationInfo.DeclaredSymbolInfos;
 
-        public ImmutableDictionary<string, ImmutableArray<int>> SimpleExtensionMethodInfo
-            => _extensionMethodInfo.SimpleExtensionMethodInfo;
-
-        public ImmutableArray<int> ComplexExtensionMethodInfo
-            => _extensionMethodInfo.ComplexExtensionMethodInfo;
+        public ImmutableDictionary<string, ImmutableArray<int>> ReceiverTypeNameToExtensionMethodMap
+            => _extensionMethodInfo.ReceiverTypeNameToExtensionMethodMap;
 
         public bool ContainsExtensionMethod => _extensionMethodInfo.ContainsExtensionMethod;
 
@@ -31,6 +30,7 @@ namespace Microsoft.CodeAnalysis.FindSymbols
         public bool ContainsForEachStatement => _contextInfo.ContainsForEachStatement;
         public bool ContainsDeconstruction => _contextInfo.ContainsDeconstruction;
         public bool ContainsAwait => _contextInfo.ContainsAwait;
+        public bool ContainsImplicitObjectCreation => _contextInfo.ContainsImplicitObjectCreation;
         public bool ContainsLockStatement => _contextInfo.ContainsLockStatement;
         public bool ContainsUsingStatement => _contextInfo.ContainsUsingStatement;
         public bool ContainsQueryExpression => _contextInfo.ContainsQueryExpression;
@@ -39,5 +39,6 @@ namespace Microsoft.CodeAnalysis.FindSymbols
         public bool ContainsElementAccessExpression => _contextInfo.ContainsElementAccessExpression;
         public bool ContainsIndexerMemberCref => _contextInfo.ContainsIndexerMemberCref;
         public bool ContainsTupleExpressionOrTupleType => _contextInfo.ContainsTupleExpressionOrTupleType;
+        public bool ContainsGlobalAttributes => _contextInfo.ContainsGlobalAttributes;
     }
 }

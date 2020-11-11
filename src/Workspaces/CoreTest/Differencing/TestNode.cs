@@ -2,6 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+#nullable disable
+
 using System.Diagnostics;
 
 namespace Microsoft.CodeAnalysis.Differencing.UnitTests
@@ -47,8 +49,6 @@ namespace Microsoft.CodeAnalysis.Differencing.UnitTests
         }
 
         public override string ToString()
-        {
-            return string.Format("({0}, {1})", Label, Value);
-        }
+            => string.Format("({0}, {1})", Label, Value);
     }
 }

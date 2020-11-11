@@ -2,8 +2,13 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+#nullable disable
 
+#if CODE_STYLE
+namespace Microsoft.CodeAnalysis.Internal.Editing
+#else
 namespace Microsoft.CodeAnalysis.Editing
+#endif
 {
     public enum DeclarationKind
     {
@@ -35,6 +40,7 @@ namespace Microsoft.CodeAnalysis.Editing
         SetAccessor,
         AddAccessor,
         RemoveAccessor,
-        RaiseAccessor
+        RaiseAccessor,
+        Record,
     }
 }

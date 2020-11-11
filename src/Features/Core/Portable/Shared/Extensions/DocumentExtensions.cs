@@ -2,6 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+#nullable disable
+
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
@@ -10,8 +12,11 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.CodeAnalysis.Completion;
 using Microsoft.CodeAnalysis.Diagnostics.Analyzers.NamingStyles;
+using Microsoft.CodeAnalysis.Editing;
+using Microsoft.CodeAnalysis.Shared.Naming;
 using Microsoft.CodeAnalysis.Simplification;
 using Roslyn.Utilities;
+using static Microsoft.CodeAnalysis.Diagnostics.Analyzers.NamingStyles.SymbolSpecification;
 
 namespace Microsoft.CodeAnalysis.Shared.Extensions
 {
@@ -19,8 +24,8 @@ namespace Microsoft.CodeAnalysis.Shared.Extensions
     {
         public static bool ShouldHideAdvancedMembers(this Document document)
         {
-            // Since we don't actually have a way to configure this per-document, we can fetch from the core workspace
-            return document.Project.Solution.Workspace.Options.GetOption(CompletionOptions.HideAdvancedMembers, document.Project.Language);
+            // Since we don't actually have a way to configure this per-document, we can fetch from the solution
+            return document.Project.Solution.Options.GetOption(CompletionOptions.HideAdvancedMembers, document.Project.Language);
         }
 
         public static async Task<Document> ReplaceNodeAsync<TNode>(this Document document, TNode oldNode, TNode newNode, CancellationToken cancellationToken) where TNode : SyntaxNode
@@ -90,34 +95,64 @@ namespace Microsoft.CodeAnalysis.Shared.Extensions
             return false;
         }
 
-        public static IEnumerable<Document> GetLinkedDocuments(this Document document)
-        {
-            var solution = document.Project.Solution;
-
-            foreach (var linkedDocumentId in document.GetLinkedDocumentIds())
-            {
-                yield return solution.GetDocument(linkedDocumentId);
-            }
-        }
+        /// <summary>
+        /// Gets the set of naming rules the user has set for this document.  Will include a set of default naming rules
+        /// that match if the user hasn't specified any for a particular symbol type.  The are added at the end so they
+        /// will only be used if the user hasn't specified a preference.
+        /// </summary>
+        public static Task<ImmutableArray<NamingRule>> GetNamingRulesAsync(
+            this Document document, CancellationToken cancellationToken)
+            => document.GetNamingRulesAsync(FallbackNamingRules.Default, cancellationToken);
 
         /// <summary>
-        /// Get the user-specified naming rules, then add standard default naming rules (if provided). The standard 
-        /// naming rules (fallback rules) are added at the end so they will only be used if the user hasn't specified 
-        /// a preference.
+        /// Get the user-specified naming rules, with the added <paramref name="defaultRules"/>.
         /// </summary>
-        internal static async Task<ImmutableArray<NamingRule>> GetNamingRulesAsync(this Document document,
+        public static async Task<ImmutableArray<NamingRule>> GetNamingRulesAsync(this Document document,
             ImmutableArray<NamingRule> defaultRules, CancellationToken cancellationToken)
         {
             var options = await document.GetOptionsAsync(cancellationToken).ConfigureAwait(false);
-            var namingStyleOptions = options.GetOption(SimplificationOptions.NamingPreferences);
+            var namingStyleOptions = options.GetOption(NamingStyleOptions.NamingPreferences);
             var rules = namingStyleOptions.CreateRules().NamingRules;
 
-            if (defaultRules.Length > 0)
+            return defaultRules.IsDefaultOrEmpty ? rules : rules.AddRange(defaultRules);
+        }
+
+        public static async Task<NamingRule> GetApplicableNamingRuleAsync(this Document document, ISymbol symbol, CancellationToken cancellationToken)
+        {
+            var rules = await document.GetNamingRulesAsync(cancellationToken).ConfigureAwait(false);
+            foreach (var rule in rules)
             {
-                rules = rules.AddRange(defaultRules);
+                if (rule.SymbolSpecification.AppliesTo(symbol))
+                    return rule;
             }
 
-            return rules;
+            throw ExceptionUtilities.Unreachable;
+        }
+
+        public static async Task<NamingRule> GetApplicableNamingRuleAsync(
+            this Document document, SymbolKind symbolKind, Accessibility accessibility, CancellationToken cancellationToken)
+        {
+            var rules = await document.GetNamingRulesAsync(cancellationToken).ConfigureAwait(false);
+            foreach (var rule in rules)
+            {
+                if (rule.SymbolSpecification.AppliesTo(symbolKind, accessibility))
+                    return rule;
+            }
+
+            throw ExceptionUtilities.Unreachable;
+        }
+
+        public static async Task<NamingRule> GetApplicableNamingRuleAsync(
+            this Document document, SymbolKindOrTypeKind kind, DeclarationModifiers modifiers, Accessibility? accessibility, CancellationToken cancellationToken)
+        {
+            var rules = await document.GetNamingRulesAsync(cancellationToken).ConfigureAwait(false);
+            foreach (var rule in rules)
+            {
+                if (rule.SymbolSpecification.AppliesTo(kind, modifiers, accessibility))
+                    return rule;
+            }
+
+            throw ExceptionUtilities.Unreachable;
         }
     }
 }

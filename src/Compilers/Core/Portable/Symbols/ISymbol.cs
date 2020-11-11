@@ -2,8 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
-#nullable enable
-
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
@@ -129,7 +127,7 @@ namespace Microsoft.CodeAnalysis
 
         /// <summary>
         /// Returns true if this symbol was automatically created by the compiler, and does not have
-        /// an explicit corresponding source code declaration. 
+        /// an explicit corresponding source code declaration.
         /// </summary> 
         /// <remarks>
         /// This is intended for symbols that are ordinary symbols in the language sense, and may be
@@ -147,6 +145,9 @@ namespace Microsoft.CodeAnalysis
         /// <item><description>The parameters on indexer accessor methods (not on the indexer itself).</description></item>
         /// <item><description>Methods in anonymous types.</description></item>
         /// </list>
+        /// </para>
+        /// <para>
+        /// The class and entry point method for top-level statements are not considered as implicitly declared.
         /// </para>
         /// </remarks>
         bool IsImplicitlyDeclared { get; }
@@ -217,7 +218,7 @@ namespace Microsoft.CodeAnalysis
         /// <param name="expandIncludes">Optionally, expand &lt;include&gt; elements.  No impact on non-source documentation comments.</param>
         /// <param name="cancellationToken">Token allowing cancellation of request.</param>
         /// <returns>The XML that would be written to the documentation file for the symbol.</returns>
-        string? GetDocumentationCommentXml(CultureInfo? preferredCulture = null, bool expandIncludes = false, CancellationToken cancellationToken = default(CancellationToken));
+        string? GetDocumentationCommentXml(CultureInfo? preferredCulture = null, bool expandIncludes = false, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Converts the symbol to a string representation.

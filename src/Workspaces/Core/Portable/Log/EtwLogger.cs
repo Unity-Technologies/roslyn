@@ -2,6 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+#nullable disable
+
 using System;
 using System.Diagnostics.Tracing;
 using System.Threading;
@@ -21,29 +23,19 @@ namespace Microsoft.CodeAnalysis.Internal.Log
         private readonly RoslynEventSource _source = RoslynEventSource.Instance;
 
         public EtwLogger(IGlobalOptionService optionService)
-        {
-            _loggingChecker = new Lazy<Func<FunctionId, bool>>(() => Logger.GetLoggingChecker(optionService));
-        }
+            => _loggingChecker = new Lazy<Func<FunctionId, bool>>(() => Logger.GetLoggingChecker(optionService));
 
         public EtwLogger(Func<FunctionId, bool> loggingChecker)
-        {
-            _loggingChecker = new Lazy<Func<FunctionId, bool>>(() => loggingChecker);
-        }
+            => _loggingChecker = new Lazy<Func<FunctionId, bool>>(() => loggingChecker);
 
         public bool IsEnabled(FunctionId functionId)
-        {
-            return _source.IsEnabled() && _loggingChecker.Value(functionId);
-        }
+            => _source.IsEnabled() && _loggingChecker.Value(functionId);
 
         public void Log(FunctionId functionId, LogMessage logMessage)
-        {
-            _source.Log(GetMessage(logMessage), functionId);
-        }
+            => _source.Log(GetMessage(logMessage), functionId);
 
         public void LogBlockStart(FunctionId functionId, LogMessage logMessage, int uniquePairId, CancellationToken cancellationToken)
-        {
-            _source.BlockStart(GetMessage(logMessage), functionId, uniquePairId);
-        }
+            => _source.BlockStart(GetMessage(logMessage), functionId, uniquePairId);
 
         public void LogBlockEnd(FunctionId functionId, LogMessage logMessage, int uniquePairId, int delta, CancellationToken cancellationToken)
         {
@@ -64,8 +56,6 @@ namespace Microsoft.CodeAnalysis.Internal.Log
         }
 
         private string GetMessage(LogMessage logMessage)
-        {
-            return IsVerbose() ? logMessage.GetMessage() : string.Empty;
-        }
+            => IsVerbose() ? logMessage.GetMessage() : string.Empty;
     }
 }

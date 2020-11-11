@@ -2,6 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+#nullable disable
+
 using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Threading;
@@ -210,20 +212,15 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
             return this.OriginalDefinition.GetReturnTypeAttributes();
         }
 
+        internal sealed override UnmanagedCallersOnlyAttributeData GetUnmanagedCallersOnlyAttributeData(bool forceComplete)
+            => this.OriginalDefinition.GetUnmanagedCallersOnlyAttributeData(forceComplete);
+
         public sealed override Symbol AssociatedSymbol
         {
             get
             {
                 Symbol underlying = OriginalDefinition.AssociatedSymbol;
                 return ((object)underlying == null) ? null : underlying.SymbolAsMember(ContainingType);
-            }
-        }
-
-        public sealed override bool ReturnsVoid
-        {
-            get
-            {
-                return OriginalDefinition.ReturnsVoid;
             }
         }
 

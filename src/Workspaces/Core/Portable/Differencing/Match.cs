@@ -2,6 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+#nullable disable
+
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -33,8 +35,8 @@ namespace Microsoft.CodeAnalysis.Differencing
             _comparer = comparer;
 
             var labelCount = comparer.LabelCount;
-            CategorizeNodesByLabels(comparer, root1, labelCount, out var nodes1, out var count1);
-            CategorizeNodesByLabels(comparer, root2, labelCount, out var nodes2, out var count2);
+            CategorizeNodesByLabels(comparer, root1, labelCount, out var nodes1, out _);
+            CategorizeNodesByLabels(comparer, root2, labelCount, out var nodes2, out _);
 
             _oneToTwo = new Dictionary<TNode, TNode>();
             _twoToOne = new Dictionary<TNode, TNode>();
@@ -342,23 +344,17 @@ namespace Microsoft.CodeAnalysis.Differencing
         }
 
         public bool TryGetNewNode(TNode oldNode, out TNode newNode)
-        {
-            return _oneToTwo.TryGetValue(oldNode, out newNode);
-        }
+            => _oneToTwo.TryGetValue(oldNode, out newNode);
 
         public bool TryGetOldNode(TNode newNode, out TNode oldNode)
-        {
-            return _twoToOne.TryGetValue(newNode, out oldNode);
-        }
+            => _twoToOne.TryGetValue(newNode, out oldNode);
 
         /// <summary>
         /// Returns an edit script (a sequence of edits) that transform <see cref="OldRoot"/> subtree 
         /// to <see cref="NewRoot"/> subtree.
         /// </summary>
         public EditScript<TNode> GetTreeEdits()
-        {
-            return new EditScript<TNode>(this);
-        }
+            => new(this);
 
         /// <summary>
         /// Returns an edit script (a sequence of edits) that transform a sequence of nodes <paramref name="oldNodes"/>

@@ -2,6 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+#nullable disable
+
 using System.Collections.Generic;
 using Microsoft.CodeAnalysis.CodeGeneration;
 using Microsoft.CodeAnalysis.CSharp.Extensions;
@@ -15,9 +17,7 @@ namespace Microsoft.CodeAnalysis.CSharp.CodeGeneration
     internal static class DestructorGenerator
     {
         private static MemberDeclarationSyntax LastConstructorOrField(SyntaxList<MemberDeclarationSyntax> members)
-        {
-            return LastConstructor(members) ?? LastField(members);
-        }
+            => LastConstructor(members) ?? LastField(members);
 
         internal static TypeDeclarationSyntax AddDestructorTo(
             TypeDeclarationSyntax destination,
@@ -25,7 +25,7 @@ namespace Microsoft.CodeAnalysis.CSharp.CodeGeneration
             CodeGenerationOptions options,
             IList<bool> availableIndices)
         {
-            var destructorDeclaration = GenerateDestructorDeclaration(destructor, GetDestination(destination), options);
+            var destructorDeclaration = GenerateDestructorDeclaration(destructor, options);
 
             // Generate after the last constructor, or after the last field, or at the start of the
             // type.
@@ -36,7 +36,7 @@ namespace Microsoft.CodeAnalysis.CSharp.CodeGeneration
         }
 
         internal static DestructorDeclarationSyntax GenerateDestructorDeclaration(
-            IMethodSymbol destructor, CodeGenerationDestination destination, CodeGenerationOptions options)
+            IMethodSymbol destructor, CodeGenerationOptions options)
         {
             options ??= CodeGenerationOptions.Default;
 

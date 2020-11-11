@@ -2,6 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+#nullable disable
+
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Threading;
@@ -17,9 +19,7 @@ namespace Microsoft.CodeAnalysis.CodeFixes
             private readonly ImmutableArray<Diagnostic> _diagnostics;
 
             public FixAllPredefinedDiagnosticProvider(ImmutableArray<Diagnostic> diagnostics)
-            {
-                _diagnostics = diagnostics;
-            }
+                => _diagnostics = diagnostics;
 
             public override Task<IEnumerable<Diagnostic>> GetAllDiagnosticsAsync(Project project, CancellationToken cancellationToken)
                 => Task.FromResult<IEnumerable<Diagnostic>>(_diagnostics);

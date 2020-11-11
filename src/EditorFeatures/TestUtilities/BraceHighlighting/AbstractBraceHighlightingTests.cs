@@ -2,6 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+#nullable disable
+
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.CodeAnalysis.Editor.Implementation.BraceMatching;
@@ -50,7 +52,7 @@ namespace Microsoft.CodeAnalysis.Editor.UnitTests.BraceHighlighting
                 var context = new TaggerContext<BraceHighlightTag>(
                     document, buffer.CurrentSnapshot,
                     new SnapshotPoint(buffer.CurrentSnapshot, cursorPosition));
-                await provider.ProduceTagsAsync_ForTestingPurposesOnly(context);
+                await provider.GetTestAccessor().ProduceTagsAsync(context);
 
                 var expectedHighlights = expectedSpans.Select(ts => ts.ToSpan()).OrderBy(s => s.Start).ToList();
                 var actualHighlights = context.tagSpans.Select(ts => ts.Span.Span).OrderBy(s => s.Start).ToList();

@@ -2,6 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+#nullable disable
+
 using Microsoft.VisualStudio.Shell.TableControl;
 
 namespace Microsoft.VisualStudio.LanguageServices.Implementation.TableDataSource
@@ -13,9 +15,7 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.TableDataSource
             private readonly VisualStudioDiagnosticListSuppressionStateService _suppressionStateService;
 
             public SuppressionStateEventProcessor(VisualStudioDiagnosticListSuppressionStateService suppressionStateService)
-            {
-                _suppressionStateService = suppressionStateService;
-            }
+                => _suppressionStateService = suppressionStateService;
 
             public override void PostprocessSelectionChanged(TableSelectionChangedEventArgs e)
             {

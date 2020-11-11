@@ -2,6 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+#nullable disable
+
 using System.Collections.Immutable;
 
 namespace Microsoft.CodeAnalysis.CodeGeneration
@@ -67,6 +69,7 @@ namespace Microsoft.CodeAnalysis.CodeGeneration
         public override IMethodSymbol ConstructedFrom => _constructedFrom;
 
         public override bool IsReadOnly => _constructedFrom.IsReadOnly;
+        public override bool IsInitOnly => _constructedFrom.IsInitOnly;
 
         public override IMethodSymbol OverriddenMethod =>
                 // TODO(cyrusn): Construct this.
@@ -77,9 +80,7 @@ namespace Microsoft.CodeAnalysis.CodeGeneration
                 _constructedFrom.ReducedFrom;
 
         public override ITypeSymbol GetTypeInferredDuringReduction(ITypeParameterSymbol reducedFromTypeParameter)
-        {
-            throw new System.InvalidOperationException();
-        }
+            => throw new System.InvalidOperationException();
 
         public override IMethodSymbol ReduceExtensionMethod(ITypeSymbol receiverType)
         {
@@ -100,8 +101,6 @@ namespace Microsoft.CodeAnalysis.CodeGeneration
                 _constructedFrom.PartialImplementationPart;
 
         protected override CodeGenerationSymbol Clone()
-        {
-            return new CodeGenerationConstructedMethodSymbol(_constructedFrom, _typeArguments);
-        }
+            => new CodeGenerationConstructedMethodSymbol(_constructedFrom, _typeArguments);
     }
 }

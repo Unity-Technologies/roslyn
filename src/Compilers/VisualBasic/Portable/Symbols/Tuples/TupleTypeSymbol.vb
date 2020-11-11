@@ -603,7 +603,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
             Return "Item" & position
         End Function
 
-        Private Shared ForbiddenNames As HashSet(Of String) = New HashSet(Of String)(
+        Private Shared ReadOnly ForbiddenNames As HashSet(Of String) = New HashSet(Of String)(
             {"CompareTo", "Deconstruct", "Equals", "GetHashCode", "Rest", "ToString"},
             IdentifierComparison.Comparer)
 
@@ -942,7 +942,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
         End Function
 
         Public Overrides Function GetMembers(name As String) As ImmutableArray(Of Symbol)
-            Return Me.GetMembers().WhereAsArray(Function(m As Symbol) IdentifierComparison.Equals(m.Name, name))
+            Return Me.GetMembers().WhereAsArray(Function(member, name_) IdentifierComparison.Equals(member.Name, name_), name)
         End Function
 
         Public Overrides Function GetTypeMembers() As ImmutableArray(Of NamedTypeSymbol)

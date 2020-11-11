@@ -11,11 +11,11 @@ namespace Microsoft.CodeAnalysis.CSharp
     {
         public BoundExpression SetInferredTypeWithAnnotations(TypeWithAnnotations type)
         {
-            Debug.Assert((object)Type == null && type.HasType);
+            Debug.Assert(Type is null && type.HasType);
             return this.Update(type.Type);
         }
 
-        public BoundDiscardExpression FailInference(Binder binder, DiagnosticBag diagnosticsOpt)
+        public BoundDiscardExpression FailInference(Binder binder, DiagnosticBag? diagnosticsOpt)
         {
             if (diagnosticsOpt != null)
             {
@@ -28,7 +28,7 @@ namespace Microsoft.CodeAnalysis.CSharp
         {
             get
             {
-                Debug.Assert((object)this.Type != null);
+                Debug.Assert(this.Type is { });
                 return new DiscardSymbol(TypeWithAnnotations.Create(this.Type, this.TopLevelNullability.Annotation.ToInternalAnnotation()));
             }
         }

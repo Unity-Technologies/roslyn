@@ -2,6 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+#nullable disable
+
 using Microsoft.VisualStudio.Commanding;
 using Microsoft.VisualStudio.Text.Editor.Commanding.Commands;
 using Microsoft.CodeAnalysis.Editor.Shared.Extensions;
@@ -14,14 +16,10 @@ namespace Microsoft.CodeAnalysis.Editor.Implementation.InlineRename
         ICommandHandler<SelectAllCommandArgs>
     {
         public CommandState GetCommandState(SelectAllCommandArgs args)
-        {
-            return GetCommandState();
-        }
+            => GetCommandState();
 
         public bool ExecuteCommand(SelectAllCommandArgs args, CommandExecutionContext context)
-        {
-            return ExecuteSelectAll(args.SubjectBuffer, args.TextView);
-        }
+            => ExecuteSelectAll(args.SubjectBuffer, args.TextView);
 
         private bool ExecuteSelectAll(ITextBuffer subjectBuffer, ITextView view)
         {

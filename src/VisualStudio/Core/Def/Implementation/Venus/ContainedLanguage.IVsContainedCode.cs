@@ -2,6 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+#nullable disable
+
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
@@ -19,9 +21,7 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.Venus
     internal partial class ContainedLanguage : IVsContainedCode
     {
         public int HostSpansUpdated()
-        {
-            return VSConstants.S_OK;
-        }
+            => VSConstants.S_OK;
 
         /// <summary>
         /// Returns the list of code blocks in the generated .cs file that comes from the ASP.NET

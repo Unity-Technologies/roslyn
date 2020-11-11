@@ -374,7 +374,7 @@ namespace Microsoft.CodeAnalysis
             SymbolDisplayKindOptions kindOptions = default(SymbolDisplayKindOptions),
             SymbolDisplayMiscellaneousOptions miscellaneousOptions = default(SymbolDisplayMiscellaneousOptions))
             : this(
-                default(SymbolDisplayCompilerInternalOptions),
+                compilerInternalOptions: default,
                 globalNamespaceStyle,
                 typeQualificationStyle,
                 genericsOptions,

@@ -47,8 +47,8 @@ namespace Microsoft.CodeAnalysis.CSharp
                             // GenerateConversionForAssignment with objectType. However we want to preserve the original expression's
                             // natural type so that overload resolution may select a specialized implementation of string.Format,
                             // so we discard the result of that call and only preserve its diagnostics.
-                            BoundExpression alignment = null;
-                            BoundLiteral format = null;
+                            BoundExpression? alignment = null;
+                            BoundLiteral? format = null;
                             if (interpolation.AlignmentClause != null)
                             {
                                 alignment = GenerateConversionForAssignment(intType, BindValue(interpolation.AlignmentClause.Value, diagnostics, Binder.BindValueKind.RValue), diagnostics);

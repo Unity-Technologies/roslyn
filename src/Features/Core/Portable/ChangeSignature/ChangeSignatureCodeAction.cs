@@ -13,9 +13,9 @@ namespace Microsoft.CodeAnalysis.ChangeSignature
     internal class ChangeSignatureCodeAction : CodeActionWithOptions
     {
         private readonly AbstractChangeSignatureService _changeSignatureService;
-        private readonly ChangeSignatureAnalyzedContext _context;
+        private readonly ChangeSignatureAnalysisSucceededContext _context;
 
-        public ChangeSignatureCodeAction(AbstractChangeSignatureService changeSignatureService, ChangeSignatureAnalyzedContext context)
+        public ChangeSignatureCodeAction(AbstractChangeSignatureService changeSignatureService, ChangeSignatureAnalysisSucceededContext context)
         {
             _changeSignatureService = changeSignatureService;
             _context = context;
@@ -23,20 +23,18 @@ namespace Microsoft.CodeAnalysis.ChangeSignature
 
         public override string Title => FeaturesResources.Change_signature;
 
-        public override object GetOptions(CancellationToken cancellationToken)
-        {
-            return _changeSignatureService.GetChangeSignatureOptions(_context);
-        }
+        public override object? GetOptions(CancellationToken cancellationToken)
+            => AbstractChangeSignatureService.GetChangeSignatureOptions(_context);
 
         protected override Task<IEnumerable<CodeActionOperation>> ComputeOperationsAsync(object options, CancellationToken cancellationToken)
         {
-            if (options is ChangeSignatureOptionsResult changeSignatureOptions && !changeSignatureOptions.IsCancelled)
+            if (options is ChangeSignatureOptionsResult changeSignatureOptions && changeSignatureOptions != null)
             {
                 var changeSignatureResult = _changeSignatureService.ChangeSignatureWithContext(_context, changeSignatureOptions, cancellationToken);
 
                 if (changeSignatureResult.Succeeded)
                 {
-                    return Task.FromResult<IEnumerable<CodeActionOperation>>(new CodeActionOperation[] { new ApplyChangesOperation(changeSignatureResult.UpdatedSolution) });
+                    return Task.FromResult(SpecializedCollections.SingletonEnumerable<CodeActionOperation>(new ApplyChangesOperation(changeSignatureResult.UpdatedSolution!)));
                 }
             }
 

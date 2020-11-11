@@ -2,8 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
-#nullable enable
-
 using System;
 using System.Collections.Immutable;
 using System.Composition;
@@ -13,6 +11,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.CodeAnalysis.Host;
+using Microsoft.CodeAnalysis.Host.Mef;
 using Microsoft.CodeAnalysis.Internal.Log;
 using Microsoft.CodeAnalysis.Options;
 using Microsoft.CodeAnalysis.Options.Providers;
@@ -31,7 +30,7 @@ namespace Microsoft.CodeAnalysis
         /// User can override default value by setting DWORD value on FileLengthThreshold in 
         /// "[VS HIVE]\Roslyn\Internal\Performance\Text"
         /// </summary>
-        internal static readonly Option<long> FileLengthThreshold = new Option<long>(nameof(FileTextLoaderOptions), nameof(FileLengthThreshold), defaultValue: 100 * 1024 * 1024,
+        internal static readonly Option<long> FileLengthThreshold = new(nameof(FileTextLoaderOptions), nameof(FileLengthThreshold), defaultValue: 100 * 1024 * 1024,
             storageLocations: new LocalUserProfileStorageLocation(@"Roslyn\Internal\Performance\Text\FileLengthThreshold"));
     }
 
@@ -39,6 +38,7 @@ namespace Microsoft.CodeAnalysis
     internal class FileTextLoaderOptionsProvider : IOptionProvider
     {
         [ImportingConstructor]
+        [Obsolete(MefConstruction.ImportingConstructorMessage, error: true)]
         public FileTextLoaderOptionsProvider()
         {
         }
@@ -230,9 +230,7 @@ namespace Microsoft.CodeAnalysis
         }
 
         private string GetDebuggerDisplay()
-        {
-            return nameof(Path) + " = " + Path;
-        }
+            => nameof(Path) + " = " + Path;
 
         private static void ValidateFileLength(Workspace workspace, string path)
         {

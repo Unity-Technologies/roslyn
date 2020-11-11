@@ -2,6 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+#nullable disable
+
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Immutable;
@@ -66,24 +68,17 @@ namespace Microsoft.CodeAnalysis.DisposeAnalysis
 
         private static ImmutableHashSet<INamedTypeSymbol> GetDisposeOwnershipTransferLikelyTypes(Compilation compilation)
         {
-            var builder = PooledHashSet<INamedTypeSymbol>.GetInstance();
-            try
+            using var _ = PooledHashSet<INamedTypeSymbol>.GetInstance(out var builder);
+            foreach (var typeName in s_disposeOwnershipTransferLikelyTypes)
             {
-                foreach (var typeName in s_disposeOwnershipTransferLikelyTypes)
+                var typeSymbol = compilation.GetTypeByMetadataName(typeName);
+                if (typeSymbol != null)
                 {
-                    var typeSymbol = compilation.GetTypeByMetadataName(typeName);
-                    if (typeSymbol != null)
-                    {
-                        builder.Add(typeSymbol);
-                    }
+                    builder.Add(typeSymbol);
                 }
+            }
 
-                return builder.ToImmutableHashSet();
-            }
-            finally
-            {
-                builder.Free();
-            }
+            return builder.ToImmutableHashSet();
         }
 
         private void EnsureDisposableFieldsMap()

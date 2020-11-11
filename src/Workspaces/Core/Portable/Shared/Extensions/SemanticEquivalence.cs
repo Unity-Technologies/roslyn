@@ -2,6 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+#nullable disable
+
 using System;
 using System.Collections.Generic;
 using Microsoft.CodeAnalysis.Shared.Utilities;
@@ -75,11 +77,7 @@ namespace Microsoft.CodeAnalysis.Shared.Extensions
                 var b1 = e1.MoveNext();
                 var b2 = e2.MoveNext();
 
-                if (b1 != b2)
-                {
-                    Contract.Fail();
-                    return false;
-                }
+                Contract.ThrowIfTrue(b1 != b2);
 
                 if (b1 == false)
                 {

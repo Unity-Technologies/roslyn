@@ -3,10 +3,7 @@
 // See the LICENSE file in the project root for more information.
 
 using System.Collections.Immutable;
-using System.Diagnostics;
 using Microsoft.CodeAnalysis.CSharp.Symbols;
-
-#nullable enable
 
 namespace Microsoft.CodeAnalysis.CSharp
 {
@@ -34,10 +31,10 @@ namespace Microsoft.CodeAnalysis.CSharp
             /// </summary>
             public TLocalState StateFromTop;
 
-            public AbstractLocalFunctionState(TLocalState unreachableState)
+            public AbstractLocalFunctionState(TLocalState stateFromBottom, TLocalState stateFromTop)
             {
-                StateFromBottom = unreachableState.Clone();
-                StateFromTop = unreachableState.Clone();
+                StateFromBottom = stateFromBottom;
+                StateFromTop = stateFromTop;
             }
 
             public bool Visited = false;
@@ -51,7 +48,7 @@ namespace Microsoft.CodeAnalysis.CSharp
         {
             _localFuncVarUsages ??= new SmallDictionary<LocalFunctionSymbol, TLocalFunctionState>();
 
-            if (!_localFuncVarUsages.TryGetValue(localFunc, out TLocalFunctionState usages))
+            if (!_localFuncVarUsages.TryGetValue(localFunc, out TLocalFunctionState? usages))
             {
                 usages = CreateLocalFunctionState();
                 _localFuncVarUsages[localFunc] = usages;
@@ -155,7 +152,8 @@ namespace Microsoft.CodeAnalysis.CSharp
             TLocalFunctionState currentState,
             ref TLocalState stateAtReturn)
         {
-            bool anyChanged = Join(ref currentState.StateFromTop, ref stateAtReturn);
+            bool anyChanged = LocalFunctionEnd(savedState, currentState, ref stateAtReturn);
+            anyChanged |= Join(ref currentState.StateFromTop, ref stateAtReturn);
 
             if (NonMonotonicState.HasValue)
             {
@@ -166,10 +164,6 @@ namespace Microsoft.CodeAnalysis.CSharp
                 Meet(ref value, ref stateAtReturn);
                 anyChanged |= Join(ref currentState.StateFromBottom, ref value);
             }
-
-            // N.B. Do NOT shortcut this operation. LocalFunctionEnd may have important
-            // side effects to the local function state
-            anyChanged |= LocalFunctionEnd(savedState, currentState, ref stateAtReturn);
             return anyChanged;
         }
 

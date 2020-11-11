@@ -2,6 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+#nullable disable
+
 using System;
 using System.Composition;
 using System.Threading;
@@ -18,7 +20,6 @@ namespace Microsoft.CodeAnalysis.ExternalAccess.Debugger
     [Shared]
     internal sealed class DebuggerFindReferencesService
     {
-        private readonly IThreadingContext _threadingContext;
         private readonly Lazy<IStreamingFindUsagesPresenter> _streamingPresenter;
 
         [ImportingConstructor]
@@ -27,7 +28,6 @@ namespace Microsoft.CodeAnalysis.ExternalAccess.Debugger
             IThreadingContext threadingContext,
             Lazy<IStreamingFindUsagesPresenter> streamingPresenter)
         {
-            _threadingContext = threadingContext;
             _streamingPresenter = streamingPresenter;
         }
 
@@ -39,7 +39,7 @@ namespace Microsoft.CodeAnalysis.ExternalAccess.Debugger
             // the context object that the FAR service will push results into.
             var context = streamingPresenter.StartSearch(EditorFeaturesResources.Find_References, supportsReferences: true);
 
-            await AbstractFindUsagesService.FindSymbolReferencesAsync(_threadingContext, context, symbol, project, cancellationToken).ConfigureAwait(false);
+            await AbstractFindUsagesService.FindSymbolReferencesAsync(context, symbol, project).ConfigureAwait(false);
 
             // Note: we don't need to put this in a finally.  The only time we might not hit
             // this is if cancellation or another error gets thrown.  In the former case,

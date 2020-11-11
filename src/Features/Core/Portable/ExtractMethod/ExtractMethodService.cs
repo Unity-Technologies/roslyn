@@ -2,6 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+#nullable disable
+
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.CodeAnalysis.Options;
@@ -13,9 +15,6 @@ namespace Microsoft.CodeAnalysis.ExtractMethod
     internal static class ExtractMethodService
     {
         public static Task<ExtractMethodResult> ExtractMethodAsync(Document document, TextSpan textSpan, bool localFunction, OptionSet options = null, CancellationToken cancellationToken = default)
-        {
-            return document.GetLanguageService<IExtractMethodService>().ExtractMethodAsync(document, textSpan, localFunction, options, cancellationToken);
-        }
+            => document.GetLanguageService<IExtractMethodService>().ExtractMethodAsync(document, textSpan, localFunction, options, cancellationToken);
     }
-
 }

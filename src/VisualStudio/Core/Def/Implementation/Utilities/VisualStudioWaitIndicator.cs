@@ -2,6 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+#nullable disable
+
 using System;
 using System.ComponentModel.Composition;
 using System.Linq;
@@ -27,9 +29,7 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.Utilities
         [ImportingConstructor]
         [Obsolete(MefConstruction.ImportingConstructorMessage, error: true)]
         public VisualStudioWaitIndicator(SVsServiceProvider serviceProvider)
-        {
-            _serviceProvider = serviceProvider;
-        }
+            => _serviceProvider = serviceProvider;
 
         public WaitIndicatorResult Wait(
             string title, string message, bool allowCancel, bool showProgress, Action<IWaitContext> action)

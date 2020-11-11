@@ -2,6 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+#nullable disable
+
 using System;
 using System.Diagnostics;
 using System.Linq;
@@ -20,9 +22,7 @@ namespace Microsoft.VisualStudio.LanguageServices.CSharp.CodeModel
     internal partial class CSharpCodeModelService
     {
         protected override AbstractNodeLocator CreateNodeLocator()
-        {
-            return new NodeLocator();
-        }
+            => new NodeLocator();
 
         private class NodeLocator : AbstractNodeLocator
         {

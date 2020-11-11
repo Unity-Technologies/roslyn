@@ -2,6 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+#nullable disable
+
 using System.Threading;
 using Microsoft.CodeAnalysis.CodeStyle;
 using Microsoft.CodeAnalysis.CSharp.Extensions;
@@ -16,7 +18,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Simplification.Simplifiers
 
     internal class QualifiedCrefSimplifier : AbstractCSharpSimplifier<QualifiedCrefSyntax, CrefSyntax>
     {
-        public static readonly QualifiedCrefSimplifier Instance = new QualifiedCrefSimplifier();
+        public static readonly QualifiedCrefSimplifier Instance = new();
 
         private QualifiedCrefSimplifier()
         {
@@ -70,7 +72,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Simplification.Simplifiers
 
         private static TypeCrefSyntax CreateReplacement(QualifiedCrefSyntax crefSyntax, SyntaxKind keywordKind)
         {
-            var annotation = new SyntaxAnnotation(nameof(CodeStyleOptions.PreferIntrinsicPredefinedTypeKeywordInMemberAccess));
+            var annotation = new SyntaxAnnotation(nameof(CodeStyleOptions2.PreferIntrinsicPredefinedTypeKeywordInMemberAccess));
             var token = Token(crefSyntax.GetLeadingTrivia(), keywordKind, crefSyntax.GetTrailingTrivia());
             return TypeCref(PredefinedType(token)).WithAdditionalAnnotations(annotation);
         }
@@ -107,7 +109,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Simplification.Simplifiers
                 }
             }
 
-            replacementNode = default;
+            replacementNode = null;
             issueSpan = default;
             return false;
         }

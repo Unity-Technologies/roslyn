@@ -2,8 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
-#nullable enable
-
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -242,7 +240,7 @@ namespace Microsoft.CodeAnalysis
             public string Add(DiagnosticDescriptor descriptor)
             {
                 // Case 1: Descriptor has already been seen -> retrieve key from cache.
-                if (_keys.TryGetValue(descriptor, out string key))
+                if (_keys.TryGetValue(descriptor, out string? key))
                 {
                     return key;
                 }

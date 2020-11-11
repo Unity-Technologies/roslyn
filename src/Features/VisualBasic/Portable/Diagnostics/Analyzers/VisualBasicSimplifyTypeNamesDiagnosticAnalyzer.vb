@@ -34,44 +34,30 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.CodeFixes.SimplifyTypeNames
                 codeBlock.IsKind(SyntaxKind.DelegateFunctionStatement)
         End Function
 
-        Protected Overrides Sub AnalyzeCodeBlock(context As CodeBlockAnalysisContext)
+        Protected Overrides Function AnalyzeCodeBlock(context As CodeBlockAnalysisContext) As ImmutableArray(Of Diagnostic)
             Dim semanticModel = context.SemanticModel
             Dim cancellationToken = context.CancellationToken
 
             Dim syntaxTree = semanticModel.SyntaxTree
-            Dim options = context.Options
-            Dim optionSet = options.GetDocumentOptionSetAsync(syntaxTree, cancellationToken).GetAwaiter().GetResult()
+            Dim optionSet = context.Options.GetAnalyzerOptionSet(syntaxTree, cancellationToken)
 
             Dim simplifier As New TypeSyntaxSimplifierWalker(Me, semanticModel, optionSet, ignoredSpans:=Nothing, cancellationToken)
             simplifier.Visit(context.CodeBlock)
-            If Not simplifier.HasDiagnostics Then
-                Return
-            End If
+            Return simplifier.Diagnostics
+        End Function
 
-            For Each diagnostic In simplifier.Diagnostics
-                context.ReportDiagnostic(diagnostic)
-            Next
-        End Sub
-
-        Protected Overrides Sub AnalyzeSemanticModel(context As SemanticModelAnalysisContext, codeBlockIntervalTree As SimpleIntervalTree(Of TextSpan, TextSpanIntervalIntrospector))
+        Protected Overrides Function AnalyzeSemanticModel(context As SemanticModelAnalysisContext, codeBlockIntervalTree As SimpleIntervalTree(Of TextSpan, TextSpanIntervalIntrospector)) As ImmutableArray(Of Diagnostic)
             Dim semanticModel = context.SemanticModel
             Dim cancellationToken = context.CancellationToken
 
             Dim syntaxTree = semanticModel.SyntaxTree
-            Dim options = context.Options
-            Dim optionSet = options.GetDocumentOptionSetAsync(syntaxTree, cancellationToken).GetAwaiter().GetResult()
+            Dim optionSet = context.Options.GetAnalyzerOptionSet(syntaxTree, cancellationToken)
             Dim root = syntaxTree.GetRoot(cancellationToken)
 
             Dim simplifier As New TypeSyntaxSimplifierWalker(Me, semanticModel, optionSet, ignoredSpans:=codeBlockIntervalTree, cancellationToken)
             simplifier.Visit(root)
-            If Not simplifier.HasDiagnostics Then
-                Return
-            End If
-
-            For Each diagnostic In simplifier.Diagnostics
-                context.ReportDiagnostic(diagnostic)
-            Next
-        End Sub
+            Return simplifier.Diagnostics
+        End Function
 
         Private Shared Function IsNodeKindInteresting(node As SyntaxNode) As Boolean
             Return s_kindsOfInterest.Contains(node.Kind)
@@ -106,10 +92,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.CodeFixes.SimplifyTypeNames
             End If
 
             ' set proper diagnostic ids.
-            If replacementSyntax.HasAnnotations(NameOf(CodeStyleOptions.PreferIntrinsicPredefinedTypeKeywordInDeclaration)) Then
+            If replacementSyntax.HasAnnotations(NameOf(CodeStyleOptions2.PreferIntrinsicPredefinedTypeKeywordInDeclaration)) Then
                 inDeclaration = True
                 diagnosticId = IDEDiagnosticIds.PreferBuiltInOrFrameworkTypeDiagnosticId
-            ElseIf replacementSyntax.HasAnnotations(NameOf(CodeStyleOptions.PreferIntrinsicPredefinedTypeKeywordInMemberAccess)) Then
+            ElseIf replacementSyntax.HasAnnotations(NameOf(CodeStyleOptions2.PreferIntrinsicPredefinedTypeKeywordInMemberAccess)) Then
                 inDeclaration = False
                 diagnosticId = IDEDiagnosticIds.PreferBuiltInOrFrameworkTypeDiagnosticId
             ElseIf expression.Kind = SyntaxKind.SimpleMemberAccessExpression Then

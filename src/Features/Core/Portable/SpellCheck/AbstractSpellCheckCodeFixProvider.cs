@@ -2,6 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+#nullable disable
+
 using System;
 using System.Collections.Immutable;
 using System.Linq;
@@ -185,23 +187,28 @@ namespace Microsoft.CodeAnalysis.SpellCheck
             }
         }
 
-        private async Task<string> GetInsertionTextAsync(Document document, CompletionItem item, TextSpan completionListSpan, CancellationToken cancellationToken)
+        private static readonly char[] s_punctuation = new[] { '(', '[', '<' };
+
+        private static async Task<string> GetInsertionTextAsync(Document document, CompletionItem item, TextSpan completionListSpan, CancellationToken cancellationToken)
         {
             var service = CompletionService.GetService(document);
-            var change = await service.GetChangeAsync(document, item, completionListSpan, commitCharacter: null, cancellationToken).ConfigureAwait(false);
-
-            return change.TextChange.NewText;
+            var change = await service.GetChangeAsync(document, item, completionListSpan, commitCharacter: null, disallowAddingImports: false, cancellationToken).ConfigureAwait(false);
+            var text = change.TextChange.NewText;
+            var nonCharIndex = text.IndexOfAny(s_punctuation);
+            return nonCharIndex > 0
+                ? text[0..nonCharIndex]
+                : text;
         }
 
         private SpellCheckCodeAction CreateCodeAction(SyntaxToken nameToken, string oldName, string newName, Document document)
         {
             return new SpellCheckCodeAction(
                 string.Format(FeaturesResources.Change_0_to_1, oldName, newName),
-                c => Update(document, nameToken, newName, c),
+                c => UpdateAsync(document, nameToken, newName, c),
                 equivalenceKey: newName);
         }
 
-        private async Task<Document> Update(Document document, SyntaxToken nameToken, string newName, CancellationToken cancellationToken)
+        private async Task<Document> UpdateAsync(Document document, SyntaxToken nameToken, string newName, CancellationToken cancellationToken)
         {
             var root = await document.GetSyntaxRootAsync(cancellationToken).ConfigureAwait(false);
             var newRoot = root.ReplaceToken(nameToken, CreateIdentifier(nameToken, newName));
