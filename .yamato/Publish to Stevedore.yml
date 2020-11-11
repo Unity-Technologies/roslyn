@@ -1,17 +1,38 @@
-name: 'Publish to Stevedore'
+testing:
+    name: 'Publish to Stevedore (testing)'
 
-agent:
-  type: Unity::VM
-  image: cds-ops/cds-ubuntu-18.04-base:stable
-  flavor: b1.small
-dependencies:
-  - .yamato/Build Roslyn.yml
-commands:
-  - ./stevedore-build-artifacts.sh
-  - curl -sSo StevedoreUpload.exe "$STEVEDORE_UPLOAD_TOOL_URL"
-  - mono StevedoreUpload.exe --repo=public --version-len=12 --version="$GIT_REVISION" producedbuilds/*
+    agent:
+      type: Unity::VM
+      image: cds-ops/cds-ubuntu-18.04-base:stable
+      flavor: b1.small
+    dependencies:
+      - .yamato/Build Roslyn.yml
+    commands:
+      - ./stevedore-build-artifacts.sh
+      - curl -sSo StevedoreUpload.exe "$STEVEDORE_UPLOAD_TOOL_URL"
+      - mono StevedoreUpload.exe --repo=testing --version-len=12 --version="$GIT_REVISION" producedbuilds/*
 
-artifacts: 
-  builds:
-    paths:
-      - producedbuilds/*
+    artifacts: 
+      builds:
+        paths:
+          - producedbuilds/*
+
+
+public:
+    name: 'Publish to Stevedore (public)'
+
+    agent:
+      type: Unity::VM
+      image: cds-ops/cds-ubuntu-18.04-base:stable
+      flavor: b1.small
+    dependencies:
+      - .yamato/Build Roslyn.yml
+    commands:
+      - ./stevedore-build-artifacts.sh
+      - curl -sSo StevedoreUpload.exe "$STEVEDORE_UPLOAD_TOOL_URL"
+      - mono StevedoreUpload.exe --repo=public --version-len=12 --version="$GIT_REVISION" producedbuilds/*
+
+    artifacts: 
+      builds:
+        paths:
+          - producedbuilds/*
