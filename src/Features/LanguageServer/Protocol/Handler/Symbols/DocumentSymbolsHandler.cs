@@ -2,6 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+#nullable disable
+
 using System;
 using System.Collections.Generic;
 using System.Composition;
@@ -10,22 +12,32 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.CodeAnalysis.Editor;
 using Microsoft.CodeAnalysis.Editor.Extensibility.NavigationBar;
+using Microsoft.CodeAnalysis.Editor.Shared.Extensions;
+using Microsoft.CodeAnalysis.Host.Mef;
 using Microsoft.CodeAnalysis.PooledObjects;
 using Microsoft.CodeAnalysis.Text;
 using Microsoft.VisualStudio.LanguageServer.Protocol;
+using Microsoft.VisualStudio.Text.Adornments;
 using Roslyn.Utilities;
 using LSP = Microsoft.VisualStudio.LanguageServer.Protocol;
 
 namespace Microsoft.CodeAnalysis.LanguageServer.Handler
 {
     [Shared]
-    [ExportLspMethod(Methods.TextDocumentDocumentSymbolName)]
+    [ExportLspMethod(Methods.TextDocumentDocumentSymbolName, mutatesSolutionState: false)]
     internal class DocumentSymbolsHandler : IRequestHandler<DocumentSymbolParams, object[]>
     {
-        public async Task<object[]> HandleRequestAsync(Solution solution, DocumentSymbolParams request,
-            ClientCapabilities clientCapabilities, CancellationToken cancellationToken)
+        [ImportingConstructor]
+        [Obsolete(MefConstruction.ImportingConstructorMessage, error: true)]
+        public DocumentSymbolsHandler()
         {
-            var document = solution.GetDocumentFromURI(request.TextDocument.Uri);
+        }
+
+        public TextDocumentIdentifier GetTextDocumentIdentifier(DocumentSymbolParams request) => request.TextDocument;
+
+        public async Task<object[]> HandleRequestAsync(DocumentSymbolParams request, RequestContext context, CancellationToken cancellationToken)
+        {
+            var document = context.Document;
             if (document == null)
             {
                 return Array.Empty<SymbolInformation>();
@@ -33,7 +45,7 @@ namespace Microsoft.CodeAnalysis.LanguageServer.Handler
 
             var symbols = ArrayBuilder<object>.GetInstance();
 
-            var navBarService = document.Project.LanguageServices.GetService<INavigationBarItemService>();
+            var navBarService = document.Project.LanguageServices.GetRequiredService<INavigationBarItemService>();
             var navBarItems = await navBarService.GetItemsAsync(document, cancellationToken).ConfigureAwait(false);
             if (navBarItems.Count == 0)
             {
@@ -46,7 +58,7 @@ namespace Microsoft.CodeAnalysis.LanguageServer.Handler
 
             // TODO - Return more than 2 levels of symbols.
             // https://github.com/dotnet/roslyn/projects/45#card-20033869
-            if (clientCapabilities?.TextDocument?.DocumentSymbol?.HierarchicalDocumentSymbolSupport == true)
+            if (context.ClientCapabilities?.TextDocument?.DocumentSymbol?.HierarchicalDocumentSymbolSupport == true)
             {
                 foreach (var item in navBarItems)
                 {
@@ -92,9 +104,9 @@ namespace Microsoft.CodeAnalysis.LanguageServer.Handler
 
             return Create(item, location.SourceSpan, containerName, document, text);
 
-            static SymbolInformation Create(NavigationBarItem item, TextSpan span, string containerName, Document document, SourceText text)
+            static VSSymbolInformation Create(NavigationBarItem item, TextSpan span, string containerName, Document document, SourceText text)
             {
-                return new SymbolInformation
+                return new VSSymbolInformation
                 {
                     Name = item.Text,
                     Location = new LSP.Location
@@ -104,6 +116,7 @@ namespace Microsoft.CodeAnalysis.LanguageServer.Handler
                     },
                     Kind = ProtocolConversions.GlyphToSymbolKind(item.Glyph),
                     ContainerName = containerName,
+                    Icon = new ImageElement(item.Glyph.GetImageId()),
                 };
             }
         }
@@ -158,7 +171,7 @@ namespace Microsoft.CodeAnalysis.LanguageServer.Handler
 
                 while (node != null)
                 {
-                    var symbol = model.GetDeclaredSymbol(node);
+                    var symbol = model.GetDeclaredSymbol(node, cancellationToken);
                     if (symbol != null)
                     {
                         return symbol;

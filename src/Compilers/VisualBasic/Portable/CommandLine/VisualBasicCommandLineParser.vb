@@ -161,6 +161,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             Dim touchedFilesPath As String = Nothing
             Dim features = New List(Of String)()
             Dim reportAnalyzer As Boolean = False
+            Dim skipAnalyzers As Boolean = False
             Dim publicSign As Boolean = False
             Dim interactiveMode As Boolean = False
             Dim instrumentationKinds As ArrayBuilder(Of InstrumentationKind) = ArrayBuilder(Of InstrumentationKind).GetInstance()
@@ -428,6 +429,15 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
 
                 If IsScriptCommandLineParser Then
                     Select Case name
+                        Case "-"
+                            If Console.IsInputRedirected Then
+                                sourceFiles.Add(New CommandLineSourceFile("-", isScript:=True, isInputRedirected:=True))
+                                hasSourceFiles = True
+                            Else
+                                AddDiagnostic(diagnostics, ERRID.ERR_StdInOptionProvidedButConsoleInputIsNotRedirected)
+                            End If
+                            Continue For
+
                         Case "i", "i+"
                             If value IsNot Nothing Then
                                 AddDiagnostic(diagnostics, ERRID.ERR_SwitchNeedsBool, "i")
@@ -1096,6 +1106,22 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                             reportAnalyzer = True
                             Continue For
 
+                        Case "skipanalyzers", "skipanalyzers+"
+                            If value IsNot Nothing Then
+                                Exit Select
+                            End If
+
+                            skipAnalyzers = True
+                            Continue For
+
+                        Case "skipanalyzers-"
+                            If value IsNot Nothing Then
+                                Exit Select
+                            End If
+
+                            skipAnalyzers = False
+                            Continue For
+
                         Case "nostdlib"
                             If value IsNot Nothing Then
                                 Exit Select
@@ -1206,6 +1232,15 @@ lVbRuntimePlus:
                             For Each path In ParseSeparatedFileArgument(value, baseDirectory, diagnostics)
                                 embeddedFiles.Add(ToCommandLineSourceFile(path))
                             Next
+                            Continue For
+
+                        Case "-"
+                            If Console.IsInputRedirected Then
+                                sourceFiles.Add(New CommandLineSourceFile("-", isScript:=False, isInputRedirected:=True))
+                                hasSourceFiles = True
+                            Else
+                                AddDiagnostic(diagnostics, ERRID.ERR_StdInOptionProvidedButConsoleInputIsNotRedirected)
+                            End If
                             Continue For
                     End Select
                 End If
@@ -1450,6 +1485,7 @@ lVbRuntimePlus:
                 .DefaultCoreLibraryReference = defaultCoreLibraryReference,
                 .PreferredUILang = preferredUILang,
                 .ReportAnalyzer = reportAnalyzer,
+                .SkipAnalyzers = skipAnalyzers,
                 .EmbeddedFiles = embeddedFiles.AsImmutable()
             }
         End Function
@@ -1781,7 +1817,7 @@ lVbRuntimePlus:
             ' unescape quotes \" -> "
             symbolList = symbolList.Replace("\""", """")
 
-            Dim trimmedSymbolList As String = symbolList.TrimEnd(Nothing)
+            Dim trimmedSymbolList As String = symbolList.TrimEnd()
             If trimmedSymbolList.Length > 0 AndAlso IsConnectorPunctuation(trimmedSymbolList(trimmedSymbolList.Length - 1)) Then
                 ' In case the symbol list ends with '_' we add ',' to the end of the list which in some 
                 ' cases will produce an error 30999 to match Dev11 behavior

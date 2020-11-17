@@ -7,6 +7,11 @@
         <target state="translated">関係演算子: = &lt;&gt; &lt; &gt; &lt;= &gt;= Like Is</target>
         <note />
       </trans-unit>
+      <trans-unit id="Insert_apostrophe_at_the_start_of_new_lines_when_writing_apostrophe_comments">
+        <source>Insert ' at the start of new lines when writing ' comments</source>
+        <target state="new">Insert ' at the start of new lines when writing ' comments</target>
+        <note />
+      </trans-unit>
       <trans-unit id="Microsoft_Visual_Basic">
         <source>Microsoft Visual Basic</source>
         <target state="translated">Microsoft Visual Basic</target>
@@ -22,11 +27,6 @@
         <target state="translated">IntelliSense</target>
         <note />
       </trans-unit>
-      <trans-unit id="Move_local_declaration_to_the_extracted_method_if_it_is_not_used_elsewhere">
-        <source>_Move local declaration to the extracted method if it is not used elsewhere</source>
-        <target state="translated">他の場所で使用されていないローカル宣言を、抽出されたメソッドに移動する(_M)</target>
-        <note />
-      </trans-unit>
       <trans-unit id="Automatic_insertion_of_Interface_and_MustOverride_members">
         <source>Automatic _insertion of Interface and MustOverride members</source>
         <target state="translated">インターフェイスと MustOverride メンバーの自動挿入(_I)</target>
@@ -37,14 +37,24 @@
         <target state="translated">行わない</target>
         <note />
       </trans-unit>
+      <trans-unit id="Prefer_IsNot_expression">
+        <source>Prefer 'IsNot' expression</source>
+        <target state="translated">'IsNot' 式を優先する</target>
+        <note />
+      </trans-unit>
       <trans-unit id="Prefer_Is_Nothing_for_reference_equality_checks">
         <source>Prefer 'Is Nothing' for reference equality checks</source>
         <target state="translated">参照の等値性のチェックには 'Is Nothing' を優先する</target>
         <note />
       </trans-unit>
+      <trans-unit id="Show_hints_for_New_expressions">
+        <source>Show hints for 'New' expressions</source>
+        <target state="new">Show hints for 'New' expressions</target>
+        <note />
+      </trans-unit>
       <trans-unit id="Show_items_from_unimported_namespaces">
-        <source>Show items from unimported namespaces (experimental)</source>
-        <target state="translated">インポートされていない名前空間の項目を表示する (試験段階)</target>
+        <source>Show items from unimported namespaces</source>
+        <target state="needs-review-translation">インポートされていない名前空間の項目を表示する (試験段階)</target>
         <note />
       </trans-unit>
       <trans-unit id="Show_procedure_line_separators">
@@ -94,8 +104,8 @@
       </trans-unit>
       <trans-unit id="Generate_XML_documentation_comments_for">
         <source>_Generate XML documentation comments for '''</source>
-        <target state="translated">'' が入力されたときに XML ドキュメント コメントを生成する(_G)</target>
-        <note />
+        <target state="translated">''' が入力されたときに XML ドキュメント コメントを生成する(_G)</target>
+        <note>{Locked="'''"} "'''" is a VB keyword and should not be localized.</note>
       </trans-unit>
       <trans-unit id="Highlighting">
         <source>Highlighting</source>
@@ -115,6 +125,11 @@
       <trans-unit id="Regular">
         <source>Regular</source>
         <target state="translated">標準</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Show_remarks_in_Quick_Info">
+        <source>Show remarks in Quick Info</source>
+        <target state="translated">クイック ヒントに注釈を表示する</target>
         <note />
       </trans-unit>
       <trans-unit id="Small">

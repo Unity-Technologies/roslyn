@@ -2,13 +2,14 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+#nullable disable
+
+using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.SignatureHelp;
 using Microsoft.CodeAnalysis.Editor.UnitTests.SignatureHelp;
-using Microsoft.CodeAnalysis.Editor.UnitTests.Workspaces;
-using Microsoft.CodeAnalysis.SignatureHelp;
 using Microsoft.CodeAnalysis.Test.Utilities;
 using Roslyn.Test.Utilities;
 using Xunit;
@@ -17,14 +18,8 @@ namespace Microsoft.CodeAnalysis.Editor.CSharp.UnitTests.SignatureHelp
 {
     public class AttributeSignatureHelpProviderTests : AbstractCSharpSignatureHelpProviderTests
     {
-        public AttributeSignatureHelpProviderTests(CSharpTestWorkspaceFixture workspaceFixture) : base(workspaceFixture)
-        {
-        }
-
-        internal override ISignatureHelpProvider CreateSignatureHelpProvider()
-        {
-            return new AttributeSignatureHelpProvider();
-        }
+        internal override Type GetSignatureHelpProviderType()
+            => typeof(AttributeSignatureHelpProvider);
 
         #region "Regular tests"
 
@@ -502,6 +497,36 @@ class D
             expectedOrderedItems.Add(new SignatureHelpTestItem("SomethingAttribute()", string.Empty, null, currentParameterIndex: 0));
 
             await TestAsync(markup, expectedOrderedItems);
+        }
+
+        [WorkItem(12544, "https://github.com/dotnet/roslyn/issues/12544")]
+        [WorkItem(23664, "https://github.com/dotnet/roslyn/issues/23664")]
+        [Fact, Trait(Traits.Feature, Traits.Features.SignatureHelp)]
+        public async Task TestAttributeWithOverriddenProperty()
+        {
+            var markup = @"
+cusing System;
+
+class BaseAttribute : Attribute
+{
+    public virtual string Name { get; set; }
+}
+
+class DerivedAttribute : BaseAttribute
+{
+    public override string Name { get; set; }
+}
+
+[[|Derived($$|])]
+class C
+{
+
+}";
+
+            var expectedOrderedItems = new List<SignatureHelpTestItem>();
+            expectedOrderedItems.Add(new SignatureHelpTestItem($"DerivedAttribute({CSharpFeaturesResources.Properties}: [Name = string])", string.Empty, string.Empty, currentParameterIndex: 0));
+
+            await TestAsync(markup, expectedOrderedItems, usePreviousCharAsTrigger: false);
         }
 
         #endregion

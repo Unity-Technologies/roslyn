@@ -2,6 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+#nullable disable
+
 using System;
 using System.Collections.Concurrent;
 using System.Diagnostics;
@@ -25,9 +27,7 @@ namespace Microsoft.VisualStudio.LanguageServices.Telemetry
         }
 
         public bool IsEnabled(FunctionId functionId)
-        {
-            return true;
-        }
+            => true;
 
         public void Log(FunctionId functionId, LogMessage logMessage)
         {
@@ -90,8 +90,7 @@ namespace Microsoft.VisualStudio.LanguageServices.Telemetry
                         EndScope<UserTaskEvent>(functionId, blockId, kvLogMessage, cancellationToken);
                         return;
                     default:
-                        FatalError.Report(new Exception($"unknown type: {kind}"));
-                        break;
+                        throw ExceptionUtilities.UnexpectedValue(kind);
                 }
             }
             catch
@@ -124,11 +123,11 @@ namespace Microsoft.VisualStudio.LanguageServices.Telemetry
             {
                 LogType.Trace => _session.StartOperation(eventName),
                 LogType.UserAction => _session.StartUserTask(eventName),
-                _ => (object)FatalError.Report(new Exception($"unknown type: {kind}")),
+                _ => throw ExceptionUtilities.UnexpectedValue(kind),
             };
         }
 
-        private TelemetryEvent CreateTelemetryEvent(FunctionId functionId, KeyValueLogMessage logMessage)
+        private static TelemetryEvent CreateTelemetryEvent(FunctionId functionId, KeyValueLogMessage logMessage)
         {
             var eventName = functionId.GetEventName();
             return AppendProperties(new TelemetryEvent(eventName), functionId, logMessage);

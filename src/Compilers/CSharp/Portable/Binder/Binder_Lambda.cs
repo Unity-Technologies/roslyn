@@ -34,7 +34,7 @@ namespace Microsoft.CodeAnalysis.CSharp
         // then the modifiers array is non-null and not empty.
 
         private UnboundLambda AnalyzeAnonymousFunction(
-            CSharpSyntaxNode syntax, DiagnosticBag diagnostics)
+            AnonymousFunctionExpressionSyntax syntax, DiagnosticBag diagnostics)
         {
             Debug.Assert(syntax != null);
             Debug.Assert(syntax.IsAnonymousFunction());
@@ -42,7 +42,6 @@ namespace Microsoft.CodeAnalysis.CSharp
             var names = default(ImmutableArray<string>);
             var refKinds = default(ImmutableArray<RefKind>);
             var types = default(ImmutableArray<TypeWithAnnotations>);
-            bool isAsync = false;
 
             var namesBuilder = ArrayBuilder<string>.GetInstance();
             ImmutableArray<bool> discardsOpt = default;
@@ -57,7 +56,6 @@ namespace Microsoft.CodeAnalysis.CSharp
                     hasSignature = true;
                     var simple = (SimpleLambdaExpressionSyntax)syntax;
                     namesBuilder.Add(simple.Parameter.Identifier.ValueText);
-                    isAsync = (simple.AsyncKeyword.Kind() == SyntaxKind.AsyncKeyword);
                     break;
                 case SyntaxKind.ParenthesizedLambdaExpression:
                     // (T x, U y) => ...
@@ -66,7 +64,6 @@ namespace Microsoft.CodeAnalysis.CSharp
                     var paren = (ParenthesizedLambdaExpressionSyntax)syntax;
                     parameterSyntaxList = paren.ParameterList.Parameters;
                     CheckParenthesizedLambdaParameters(parameterSyntaxList.Value, diagnostics);
-                    isAsync = (paren.AsyncKeyword.Kind() == SyntaxKind.AsyncKeyword);
                     break;
                 case SyntaxKind.AnonymousMethodExpression:
                     // delegate (int x) { }
@@ -75,11 +72,13 @@ namespace Microsoft.CodeAnalysis.CSharp
                     hasSignature = anon.ParameterList != null;
                     if (hasSignature)
                     {
-                        parameterSyntaxList = anon.ParameterList.Parameters;
+                        parameterSyntaxList = anon.ParameterList!.Parameters;
                     }
-                    isAsync = (anon.AsyncKeyword.Kind() == SyntaxKind.AsyncKeyword);
                     break;
             }
+
+            var isAsync = syntax.Modifiers.Any(SyntaxKind.AsyncKeyword);
+            var isStatic = syntax.Modifiers.Any(SyntaxKind.StaticKeyword);
 
             if (parameterSyntaxList != null)
             {
@@ -193,7 +192,7 @@ namespace Microsoft.CodeAnalysis.CSharp
 
             namesBuilder.Free();
 
-            return new UnboundLambda(syntax, this, refKinds, types, names, discardsOpt, isAsync);
+            return new UnboundLambda(syntax, this, refKinds, types, names, discardsOpt, isAsync, isStatic);
 
             static ImmutableArray<bool> computeDiscards(SeparatedSyntaxList<ParameterSyntax> parameters, int underscoresCount)
             {
@@ -239,7 +238,7 @@ namespace Microsoft.CodeAnalysis.CSharp
             }
         }
 
-        private UnboundLambda BindAnonymousFunction(CSharpSyntaxNode syntax, DiagnosticBag diagnostics)
+        private UnboundLambda BindAnonymousFunction(AnonymousFunctionExpressionSyntax syntax, DiagnosticBag diagnostics)
         {
             Debug.Assert(syntax != null);
             Debug.Assert(syntax.IsAnonymousFunction());
@@ -254,10 +253,15 @@ namespace Microsoft.CodeAnalysis.CSharp
                     var type = lambda.Data.ParameterTypeWithAnnotations(i);
                     if (type.HasType && type.IsStatic)
                     {
-                        Error(diagnostics, ErrorCode.ERR_ParameterIsStaticClass, syntax, type.Type);
+                        Error(diagnostics, ErrorFacts.GetStaticClassParameterCode(useWarning: false), syntax, type.Type);
                     }
                 }
             }
+
+            // Parser will only have accepted static/async as allowed modifiers on this construct.
+            // However, it may have accepted duplicates of those modifiers.  Ensure that any dupes
+            // are reported now.
+            ModifierUtils.ToDeclarationModifiers(syntax.Modifiers, diagnostics);
 
             if (data.HasNames)
             {

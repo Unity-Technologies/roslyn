@@ -2,6 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+#nullable disable
+
 using System.Threading;
 using Microsoft.CodeAnalysis.LanguageServices;
 using Microsoft.CodeAnalysis.Shared.Extensions;
@@ -42,9 +44,7 @@ namespace Microsoft.CodeAnalysis.Editor.Implementation.AutomaticCompletion.Sessi
         }
 
         protected bool IsValidToken(SyntaxToken token)
-        {
-            return token.Parent != null && !_syntaxFactsService.IsSkippedTokensTrivia(token.Parent);
-        }
+            => token.Parent != null && !_syntaxFactsService.IsSkippedTokensTrivia(token.Parent);
 
         public virtual void AfterStart(IBraceCompletionSession session, CancellationToken cancellationToken)
         {
@@ -55,9 +55,7 @@ namespace Microsoft.CodeAnalysis.Editor.Implementation.AutomaticCompletion.Sessi
         }
 
         public virtual bool AllowOverType(IBraceCompletionSession session, CancellationToken cancellationToken)
-        {
-            return CheckCurrentPosition(session, cancellationToken) && CheckClosingTokenKind(session, cancellationToken);
-        }
+            => CheckCurrentPosition(session, cancellationToken) && CheckClosingTokenKind(session, cancellationToken);
 
         protected bool CheckClosingTokenKind(IBraceCompletionSession session, CancellationToken cancellationToken)
         {

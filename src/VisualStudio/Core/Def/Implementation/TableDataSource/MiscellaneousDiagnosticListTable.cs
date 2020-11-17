@@ -2,11 +2,15 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+#nullable disable
+
+using System;
 using System.Composition;
 using System.Linq;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Diagnostics;
 using Microsoft.CodeAnalysis.Host;
+using Microsoft.CodeAnalysis.Host.Mef;
 using Microsoft.VisualStudio.Shell.TableManager;
 
 namespace Microsoft.VisualStudio.LanguageServices.Implementation.TableDataSource
@@ -19,15 +23,12 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.TableDataSource
         private readonly ITableManagerProvider _tableManagerProvider;
 
         [ImportingConstructor]
+        [Obsolete(MefConstruction.ImportingConstructorMessage, error: true)]
         public MiscellaneousDiagnosticListTableWorkspaceEventListener(ITableManagerProvider tableManagerProvider)
-        {
-            _tableManagerProvider = tableManagerProvider;
-        }
+            => _tableManagerProvider = tableManagerProvider;
 
         public void StartListening(Workspace workspace, IDiagnosticService diagnosticService)
-        {
-            new MiscellaneousDiagnosticListTable(workspace, diagnosticService, _tableManagerProvider);
-        }
+            => new MiscellaneousDiagnosticListTable(workspace, diagnosticService, _tableManagerProvider);
 
         private sealed class MiscellaneousDiagnosticListTable : VisualStudioBaseDiagnosticListTable
         {
@@ -63,9 +64,7 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.TableDataSource
             }
 
             protected override void ShutdownSource()
-            {
-                _source.Shutdown();
-            }
+                => _source.Shutdown();
         }
     }
 }

@@ -2,9 +2,12 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+#nullable disable
+
 using System.Collections.Immutable;
 using System.Diagnostics;
 using Microsoft.CodeAnalysis.CSharp.Extensions;
+using Microsoft.CodeAnalysis.CSharp.LanguageServices;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Editing;
 using Microsoft.CodeAnalysis.Formatting;
@@ -61,7 +64,7 @@ namespace Microsoft.CodeAnalysis.CSharp.InitializeParameter
         public static void InsertStatement(
             SyntaxEditor editor,
             SyntaxNode functionDeclaration,
-            IMethodSymbol method,
+            bool returnsVoid,
             SyntaxNode statementToAddAfterOpt,
             StatementSyntax statement)
         {
@@ -71,7 +74,7 @@ namespace Microsoft.CodeAnalysis.CSharp.InitializeParameter
             {
                 var semicolonToken = TryGetSemicolonToken(functionDeclaration) ?? SyntaxFactory.Token(SyntaxKind.SemicolonToken);
 
-                if (!TryConvertExpressionBodyToStatement(body, semicolonToken, !method.ReturnsVoid, out var convertedStatement))
+                if (!TryConvertExpressionBodyToStatement(body, semicolonToken, !returnsVoid, out var convertedStatement))
                 {
                     return;
                 }
@@ -113,7 +116,7 @@ namespace Microsoft.CodeAnalysis.CSharp.InitializeParameter
                 //          a => {
                 //              if (...) {
                 //              } };
-                if (CSharpSyntaxFactsService.Instance.IsOnSingleLine(block, fullSpan: false))
+                if (CSharpSyntaxFacts.Instance.IsOnSingleLine(block, fullSpan: false))
                 {
                     editor.ReplaceNode(
                         block,

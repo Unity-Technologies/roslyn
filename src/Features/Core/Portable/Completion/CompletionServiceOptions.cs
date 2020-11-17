@@ -11,7 +11,20 @@ namespace Microsoft.CodeAnalysis.Completion
         /// <summary>
         /// Indicates if the completion is trigger by toggle the expander.
         /// </summary>
-        public static readonly Option<bool> IsExpandedCompletion
-            = new Option<bool>(nameof(CompletionServiceOptions), nameof(IsExpandedCompletion), defaultValue: false);
+        public static readonly Option2<bool> IsExpandedCompletion
+            = new(nameof(CompletionServiceOptions), nameof(IsExpandedCompletion), defaultValue: false);
+
+        /// <summary>
+        /// Indicates if the completion should be disallowed to add imports.
+        /// </summary>
+        public static readonly Option2<bool> DisallowAddingImports
+            = new(nameof(CompletionServiceOptions), nameof(DisallowAddingImports), defaultValue: false);
+
+        /// <summary>
+        /// Timeout value used for time-boxing completion of unimported extension methods.
+        /// Value less than 0 means no timebox; value == 0 means immediate timeout (for testing purpose)
+        /// </summary>
+        public static readonly Option2<int> TimeoutInMillisecondsForExtensionMethodImportCompletion
+            = new(nameof(CompletionServiceOptions), nameof(TimeoutInMillisecondsForExtensionMethodImportCompletion), defaultValue: 500);
     }
 }

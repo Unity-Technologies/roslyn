@@ -2,6 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+#nullable disable
+
 using System.Threading.Tasks;
 using Microsoft.CodeAnalysis.LanguageServices;
 using Microsoft.CodeAnalysis.Options;
@@ -85,14 +87,10 @@ namespace Microsoft.CodeAnalysis.ExtractMethod
         }
 
         public SyntaxToken GetFirstTokenInSelection()
-        {
-            return SemanticDocument.GetTokenWithAnnotation(FirstTokenAnnotation);
-        }
+            => SemanticDocument.GetTokenWithAnnotation(FirstTokenAnnotation);
 
         public SyntaxToken GetLastTokenInSelection()
-        {
-            return SemanticDocument.GetTokenWithAnnotation(LastTokenAnnotation);
-        }
+            => SemanticDocument.GetTokenWithAnnotation(LastTokenAnnotation);
 
         public TNode GetContainingScopeOf<TNode>() where TNode : SyntaxNode
         {
@@ -194,14 +192,6 @@ namespace Microsoft.CodeAnalysis.ExtractMethod
             var argument = arguments[0];
             var expression = syntaxFacts.GetExpressionOfArgument(argument);
             return syntaxFacts.IsFalseLiteralExpression(expression);
-        }
-
-        public bool AllowMovingDeclaration
-        {
-            get
-            {
-                return Options.GetOption(ExtractMethodOptions.AllowMovingDeclaration, SemanticDocument.Project.Language);
-            }
         }
 
         public bool DontPutOutOrRefOnStruct

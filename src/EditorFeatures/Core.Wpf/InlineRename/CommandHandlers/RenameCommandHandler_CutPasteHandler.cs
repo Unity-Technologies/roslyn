@@ -2,6 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+#nullable disable
+
 using System;
 using Microsoft.VisualStudio.Commanding;
 using Microsoft.VisualStudio.Text.Editor.Commanding.Commands;
@@ -12,9 +14,7 @@ namespace Microsoft.CodeAnalysis.Editor.Implementation.InlineRename
         IChainedCommandHandler<CutCommandArgs>, IChainedCommandHandler<PasteCommandArgs>
     {
         public CommandState GetCommandState(CutCommandArgs args, Func<CommandState> nextHandler)
-        {
-            return nextHandler();
-        }
+            => nextHandler();
 
         public void ExecuteCommand(CutCommandArgs args, Action nextHandler, CommandExecutionContext context)
         {
@@ -25,9 +25,7 @@ namespace Microsoft.CodeAnalysis.Editor.Implementation.InlineRename
         }
 
         public CommandState GetCommandState(PasteCommandArgs args, Func<CommandState> nextHandler)
-        {
-            return nextHandler();
-        }
+            => nextHandler();
 
         public void ExecuteCommand(PasteCommandArgs args, Action nextHandler, CommandExecutionContext context)
         {

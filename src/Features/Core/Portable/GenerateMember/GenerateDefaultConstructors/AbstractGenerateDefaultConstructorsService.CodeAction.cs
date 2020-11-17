@@ -2,6 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+#nullable disable
+
 using System.Linq;
 
 namespace Microsoft.CodeAnalysis.GenerateMember.GenerateDefaultConstructors
@@ -11,11 +13,10 @@ namespace Microsoft.CodeAnalysis.GenerateMember.GenerateDefaultConstructors
         private class GenerateDefaultConstructorCodeAction : AbstractCodeAction
         {
             public GenerateDefaultConstructorCodeAction(
-                TService service,
                 Document document,
                 State state,
                 IMethodSymbol constructor)
-                : base(service, document, state, new[] { constructor }, GetDisplayText(state, constructor))
+                : base(document, state, new[] { constructor }, GetDisplayText(state, constructor))
             {
             }
 

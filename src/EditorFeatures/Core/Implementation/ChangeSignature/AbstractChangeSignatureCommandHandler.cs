@@ -2,6 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+#nullable disable
+
 using Microsoft.CodeAnalysis.ChangeSignature;
 using Microsoft.CodeAnalysis.Editor.Host;
 using Microsoft.CodeAnalysis.Editor.Shared.Extensions;
@@ -22,9 +24,7 @@ namespace Microsoft.CodeAnalysis.Editor.Implementation.ChangeSignature
         private readonly IThreadingContext _threadingContext;
 
         protected AbstractChangeSignatureCommandHandler(IThreadingContext threadingContext)
-        {
-            _threadingContext = threadingContext;
-        }
+            => _threadingContext = threadingContext;
 
         public string DisplayName => EditorFeaturesResources.Change_Signature;
 

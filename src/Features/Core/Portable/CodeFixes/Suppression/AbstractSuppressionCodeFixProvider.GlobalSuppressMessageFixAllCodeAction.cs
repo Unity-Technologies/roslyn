@@ -2,6 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+#nullable disable
+
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
@@ -99,7 +101,7 @@ namespace Microsoft.CodeAnalysis.CodeFixes.Suppression
 
                     if (suppressMessageAttribute != null)
                     {
-                        var diagnosticsBySymbol = await CreateDiagnosticsBySymbolAsync(fixer, oldProject, kvp.Value, cancellationToken).ConfigureAwait(false);
+                        var diagnosticsBySymbol = await CreateDiagnosticsBySymbolAsync(oldProject, kvp.Value, cancellationToken).ConfigureAwait(false);
                         if (diagnosticsBySymbol.Any())
                         {
                             var projectCodeAction = new GlobalSuppressMessageFixAllCodeAction(
@@ -166,7 +168,7 @@ namespace Microsoft.CodeAnalysis.CodeFixes.Suppression
                 return CreateDiagnosticsBySymbol(diagnosticsMapBuilder);
             }
 
-            private static async Task<IEnumerable<KeyValuePair<ISymbol, ImmutableArray<Diagnostic>>>> CreateDiagnosticsBySymbolAsync(AbstractSuppressionCodeFixProvider fixer, Project project, ImmutableArray<Diagnostic> diagnostics, CancellationToken cancellationToken)
+            private static async Task<IEnumerable<KeyValuePair<ISymbol, ImmutableArray<Diagnostic>>>> CreateDiagnosticsBySymbolAsync(Project project, ImmutableArray<Diagnostic> diagnostics, CancellationToken cancellationToken)
             {
                 var diagnosticsMapBuilder = ImmutableDictionary.CreateBuilder<ISymbol, List<Diagnostic>>();
                 var compilation = await project.GetCompilationAsync(cancellationToken).ConfigureAwait(false);

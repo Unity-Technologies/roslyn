@@ -16,7 +16,7 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.ProjectSystem
     [Export(typeof(FileChangeWatcherProvider))]
     internal sealed class FileChangeWatcherProvider
     {
-        private readonly TaskCompletionSource<IVsAsyncFileChangeEx> _fileChangeService = new TaskCompletionSource<IVsAsyncFileChangeEx>(TaskCreationOptions.RunContinuationsAsynchronously);
+        private readonly TaskCompletionSource<IVsAsyncFileChangeEx> _fileChangeService = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
         [ImportingConstructor]
         [Obsolete(MefConstruction.ImportingConstructorMessage, error: true)]
@@ -30,7 +30,8 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.ProjectSystem
                 {
                     await threadingContext.JoinableTaskFactory.SwitchToMainThreadAsync();
 
-                    var fileChangeService = (IVsAsyncFileChangeEx)await serviceProvider.GetServiceAsync(typeof(SVsFileChangeEx)).ConfigureAwait(true);
+                    var fileChangeService = (IVsAsyncFileChangeEx?)await serviceProvider.GetServiceAsync(typeof(SVsFileChangeEx)).ConfigureAwait(true);
+                    Assumes.Present(fileChangeService);
                     _fileChangeService.SetResult(fileChangeService);
                 });
         }
@@ -46,8 +47,6 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.ProjectSystem
         // mocking or extracting of interfaces which is also just churn that will be immediately undone
         // once we clean up the constructor either.
         internal void TrySetFileChangeService_TestOnly(IVsAsyncFileChangeEx fileChange)
-        {
-            _fileChangeService.TrySetResult(fileChange);
-        }
+            => _fileChangeService.TrySetResult(fileChange);
     }
 }

@@ -8,6 +8,6 @@ namespace Microsoft.CodeAnalysis.CSharp
     {
         BoundNode Condition { get; }
         BoundNode Consequence { get; }
-        BoundNode AlternativeOpt { get; }
+        BoundNode? AlternativeOpt { get; }
     }
 }

@@ -2,6 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+#nullable disable
+
 using System.Collections.Immutable;
 using System.Threading;
 using Microsoft.CodeAnalysis.CodeStyle;
@@ -22,7 +24,7 @@ namespace Microsoft.CodeAnalysis.CSharp.UseExpressionBodyForLambda
         protected override DiagnosticAnalyzerCategory GetAnalyzerCategory()
             => DiagnosticAnalyzerCategory.SemanticSpanAnalysis;
 
-        private void AnalyzeSyntax(SyntaxNodeAnalysisContext context, CodeStyleOption<ExpressionBodyPreference> option)
+        private void AnalyzeSyntax(SyntaxNodeAnalysisContext context, CodeStyleOption2<ExpressionBodyPreference> option)
         {
             var declaration = (LambdaExpressionSyntax)context.Node;
             var diagnostic = AnalyzeSyntax(context.SemanticModel, option, declaration, context.CancellationToken);
@@ -33,7 +35,7 @@ namespace Microsoft.CodeAnalysis.CSharp.UseExpressionBodyForLambda
         }
 
         private Diagnostic AnalyzeSyntax(
-            SemanticModel semanticModel, CodeStyleOption<ExpressionBodyPreference> option,
+            SemanticModel semanticModel, CodeStyleOption2<ExpressionBodyPreference> option,
             LambdaExpressionSyntax declaration, CancellationToken cancellationToken)
         {
             if (CanOfferUseExpressionBody(option.Value, declaration))

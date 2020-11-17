@@ -2,6 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+#nullable disable
+
 using System;
 using System.Collections.Immutable;
 using System.Diagnostics;
@@ -37,7 +39,7 @@ namespace Microsoft.VisualStudio.LanguageServices.FindUsages
             {
             }
 
-            protected override async Task OnDefinitionFoundWorkerAsync(DefinitionItem definition)
+            protected override async ValueTask OnDefinitionFoundWorkerAsync(DefinitionItem definition)
             {
                 // If this is a definition we always want to show, then create entries
                 // for all the declaration locations immediately.  Otherwise, we'll 
@@ -65,7 +67,7 @@ namespace Microsoft.VisualStudio.LanguageServices.FindUsages
                 // lock, and I'd like to avoid that.  That does mean that we might do extra
                 // work if multiple threads end up down this path.  But only one of them will
                 // win when we access the lock below.
-                var declarations = ArrayBuilder<Entry>.GetInstance();
+                using var _ = ArrayBuilder<Entry>.GetInstance(out var declarations);
                 foreach (var declarationLocation in definition.SourceSpans)
                 {
                     var definitionEntry = await TryCreateDocumentSpanEntryAsync(
@@ -92,8 +94,6 @@ namespace Microsoft.VisualStudio.LanguageServices.FindUsages
                     // Let all our subscriptions know that we've updated.
                     NotifyChange();
                 }
-
-                declarations.Free();
             }
 
             private bool HasDeclarationEntries(DefinitionItem definition)
@@ -105,9 +105,10 @@ namespace Microsoft.VisualStudio.LanguageServices.FindUsages
                 }
             }
 
-            protected override Task OnReferenceFoundWorkerAsync(SourceReferenceItem reference)
+            protected override ValueTask OnReferenceFoundWorkerAsync(SourceReferenceItem reference)
             {
-                // Normal references go into both sets of entries.
+                // Normal references go into both sets of entries.  We ensure an entry for the definition, and an entry
+                // for the reference itself.
                 return OnEntryFoundAsync(
                     reference.Definition,
                     bucket => TryCreateDocumentSpanEntryAsync(
@@ -119,7 +120,7 @@ namespace Microsoft.VisualStudio.LanguageServices.FindUsages
                     addToEntriesWhenNotGroupingByDefinition: true);
             }
 
-            protected async Task OnEntryFoundAsync(
+            protected async ValueTask OnEntryFoundAsync(
                 DefinitionItem definition,
                 Func<RoslynDefinitionBucket, Task<Entry>> createEntryAsync,
                 bool addToEntriesWhenGroupingByDefinition,

@@ -13,12 +13,10 @@ namespace Microsoft.CodeAnalysis.Editor.Shared.Tagging
         private class OptionChangedEventSource : AbstractWorkspaceTrackingTaggerEventSource
         {
             private readonly IOption _option;
-            private IOptionService _optionService;
+            private IOptionService? _optionService;
 
             public OptionChangedEventSource(ITextBuffer subjectBuffer, IOption option, TaggerDelay delay) : base(subjectBuffer, delay)
-            {
-                _option = option;
-            }
+                => _option = option;
 
             protected override void ConnectToWorkspace(Workspace workspace)
             {
@@ -38,7 +36,7 @@ namespace Microsoft.CodeAnalysis.Editor.Shared.Tagging
                 }
             }
 
-            private void OnOptionChanged(object sender, OptionChangedEventArgs e)
+            private void OnOptionChanged(object? sender, OptionChangedEventArgs e)
             {
                 if (e.Option == _option)
                 {

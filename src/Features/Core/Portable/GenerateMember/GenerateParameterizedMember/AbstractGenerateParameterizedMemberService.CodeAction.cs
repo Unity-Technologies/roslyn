@@ -2,6 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+#nullable disable
+
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.CodeAnalysis.CodeActions;
@@ -68,7 +70,7 @@ namespace Microsoft.CodeAnalysis.GenerateMember.GenerateParameterizedMember
 
                 if (_generateProperty)
                 {
-                    var property = _state.SignatureInfo.GenerateProperty(syntaxFactory, _isAbstract, _state.IsWrittenTo, cancellationToken);
+                    var property = await _state.SignatureInfo.GeneratePropertyAsync(syntaxFactory, _isAbstract, _state.IsWrittenTo, cancellationToken).ConfigureAwait(false);
 
                     var result = await CodeGenerator.AddPropertyDeclarationAsync(
                         _document.Project.Solution,
@@ -84,7 +86,7 @@ namespace Microsoft.CodeAnalysis.GenerateMember.GenerateParameterizedMember
                 }
                 else
                 {
-                    var method = _state.SignatureInfo.GenerateMethod(syntaxFactory, _isAbstract, cancellationToken);
+                    var method = await _state.SignatureInfo.GenerateMethodAsync(syntaxFactory, _isAbstract, cancellationToken).ConfigureAwait(false);
 
                     var result = await CodeGenerator.AddMethodDeclarationAsync(
                         _document.Project.Solution,

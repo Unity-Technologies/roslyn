@@ -2,6 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+#nullable disable
+
 using Microsoft.CodeAnalysis.Editor.Interactive;
 using Microsoft.CodeAnalysis.Editor.Shared.Options;
 using Microsoft.CodeAnalysis.Host;
@@ -95,18 +97,12 @@ namespace Microsoft.CodeAnalysis.Editor.Implementation.Interactive
         }
 
         public new void ClearSolution()
-        {
-            base.ClearSolution();
-        }
+            => base.ClearSolution();
 
         internal new void ClearOpenDocument(DocumentId documentId)
-        {
-            base.ClearOpenDocument(documentId);
-        }
+            => base.ClearOpenDocument(documentId);
 
         internal new void UnregisterText(SourceTextContainer textContainer)
-        {
-            base.UnregisterText(textContainer);
-        }
+            => base.UnregisterText(textContainer);
     }
 }

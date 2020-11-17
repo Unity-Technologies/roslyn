@@ -2,6 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+#nullable disable
+
 using System.Runtime.InteropServices;
 using System.Threading;
 using Microsoft.CodeAnalysis.Editor.Host;
@@ -22,14 +24,10 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.Utilities
             private readonly VisualStudioWaitContext _waitContext;
 
             public Callback(VisualStudioWaitContext waitContext)
-            {
-                _waitContext = waitContext;
-            }
+                => _waitContext = waitContext;
 
             public void OnCanceled()
-            {
-                _waitContext.OnCanceled();
-            }
+                => _waitContext.OnCanceled();
         }
     }
 }

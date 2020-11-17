@@ -3,7 +3,6 @@
 ' See the LICENSE file in the project root for more information.
 
 Imports System.Threading
-Imports Microsoft.CodeAnalysis.Options
 Imports Microsoft.CodeAnalysis.PooledObjects
 Imports Microsoft.CodeAnalysis.Structure
 Imports Microsoft.CodeAnalysis.Text
@@ -15,9 +14,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Structure
 
         Protected Overrides Sub CollectBlockSpans(compilationUnit As CompilationUnitSyntax,
                                                   spans As ArrayBuilder(Of BlockSpan),
-                                                  options As OptionSet,
+                                                  optionProvider As BlockStructureOptionProvider,
                                                   cancellationToken As CancellationToken)
-            CollectCommentsRegions(compilationUnit, spans)
+            CollectCommentsRegions(compilationUnit, spans, optionProvider)
 
             If Not compilationUnit.Imports.IsEmpty Then
                 Dim startPos = compilationUnit.Imports.First().SpanStart
@@ -32,9 +31,5 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Structure
 
             CollectCommentsRegions(compilationUnit.EndOfFileToken.LeadingTrivia, spans)
         End Sub
-
-        Protected Overrides Function SupportedInWorkspaceKind(kind As String) As Boolean
-            Return True
-        End Function
     End Class
 End Namespace

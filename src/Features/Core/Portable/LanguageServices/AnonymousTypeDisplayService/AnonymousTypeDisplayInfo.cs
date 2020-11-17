@@ -2,6 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+#nullable disable
+
 using System.Collections.Generic;
 
 namespace Microsoft.CodeAnalysis.LanguageServices
@@ -21,9 +23,7 @@ namespace Microsoft.CodeAnalysis.LanguageServices
         }
 
         public IList<SymbolDisplayPart> ReplaceAnonymousTypes(IList<SymbolDisplayPart> parts)
-        {
-            return ReplaceAnonymousTypes(parts, AnonymousTypeToName);
-        }
+            => ReplaceAnonymousTypes(parts, AnonymousTypeToName);
 
         public static IList<SymbolDisplayPart> ReplaceAnonymousTypes(
             IList<SymbolDisplayPart> parts,

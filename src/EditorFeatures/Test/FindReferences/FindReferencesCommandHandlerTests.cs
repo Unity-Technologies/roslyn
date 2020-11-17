@@ -2,6 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+#nullable disable
+
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -28,14 +30,14 @@ namespace Microsoft.CodeAnalysis.Editor.UnitTests.FindReferences
         {
             public readonly List<DefinitionItem> Result = new List<DefinitionItem>();
 
-            public override Task OnDefinitionFoundAsync(DefinitionItem definition)
+            public override ValueTask OnDefinitionFoundAsync(DefinitionItem definition)
             {
                 lock (Result)
                 {
                     Result.Add(definition);
                 }
 
-                return Task.CompletedTask;
+                return default;
             }
         }
 
@@ -44,9 +46,7 @@ namespace Microsoft.CodeAnalysis.Editor.UnitTests.FindReferences
             private readonly FindUsagesContext _context;
 
             public MockStreamingFindUsagesPresenter(FindUsagesContext context)
-            {
-                _context = context;
-            }
+                => _context = context;
 
             public FindUsagesContext StartSearch(string title, bool supportsReferences)
                 => _context;
@@ -79,11 +79,11 @@ namespace Microsoft.CodeAnalysis.Editor.UnitTests.FindReferences
                 textView.TextBuffer), TestCommandExecutionContext.Create());
 
             var waiter = listenerProvider.GetWaiter(FeatureAttribute.FindReferences);
-            await waiter.CreateExpeditedWaitTask();
+            await waiter.ExpeditedWaitAsync();
             AssertResult(context.Result, "C.C()", "class C");
         }
 
-        private void AssertResult(
+        private static void AssertResult(
             List<DefinitionItem> result,
             params string[] definitions)
         {

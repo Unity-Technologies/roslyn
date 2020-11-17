@@ -2,8 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
-#nullable enable
-
 using System;
 using System.Collections.Immutable;
 using System.Linq;
@@ -21,14 +19,21 @@ namespace Microsoft.CodeAnalysis.CodeRefactorings
         /// Use this helper to register multiple refactorings (<paramref name="actions"/>).
         /// </summary>
         internal static void RegisterRefactorings<TCodeAction>(
-            this CodeRefactoringContext context, ImmutableArray<TCodeAction> actions)
+            this CodeRefactoringContext context, ImmutableArray<TCodeAction> actions, TextSpan? applicableToSpan = null)
             where TCodeAction : CodeAction
         {
             if (!actions.IsDefault)
             {
                 foreach (var action in actions)
                 {
-                    context.RegisterRefactoring(action);
+                    if (applicableToSpan != null)
+                    {
+                        context.RegisterRefactoring(action, applicableToSpan.Value);
+                    }
+                    else
+                    {
+                        context.RegisterRefactoring(action);
+                    }
                 }
             }
         }
@@ -51,14 +56,13 @@ namespace Microsoft.CodeAnalysis.CodeRefactorings
             return potentialNodes.FirstOrDefault();
         }
 
-        internal static async Task<ImmutableArray<TSyntaxNode>> GetRelevantNodesAsync<TSyntaxNode>(
+        internal static Task<ImmutableArray<TSyntaxNode>> GetRelevantNodesAsync<TSyntaxNode>(
             this Document document,
             TextSpan span,
             CancellationToken cancellationToken) where TSyntaxNode : SyntaxNode
         {
-            var helpers = document.Project.LanguageServices.GetRequiredService<IRefactoringHelpersService>();
-            var potentialNodes = await helpers.GetRelevantNodesAsync<TSyntaxNode>(document, span, cancellationToken).ConfigureAwait(false);
-            return potentialNodes;
+            var helpers = document.GetRequiredLanguageService<IRefactoringHelpersService>();
+            return helpers.GetRelevantNodesAsync<TSyntaxNode>(document, span, cancellationToken);
         }
     }
 }

@@ -2,6 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+#nullable disable
+
 namespace Microsoft.VisualStudio.LanguageServices.CSharp.Options
 {
     internal static class IntelliSenseOptionPageStrings
@@ -67,5 +69,8 @@ namespace Microsoft.VisualStudio.LanguageServices.CSharp.Options
 
         public static string Option_Show_items_from_unimported_namespaces =>
             CSharpVSResources.Show_items_from_unimported_namespaces;
+
+        public static string Automatically_show_completion_list_in_argument_lists =>
+            CSharpVSResources.Automatically_show_completion_list_in_argument_lists;
     }
 }

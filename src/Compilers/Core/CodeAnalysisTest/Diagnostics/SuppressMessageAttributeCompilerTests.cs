@@ -2,8 +2,11 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+#nullable disable
+
 using System;
 using System.Collections.Generic;
+using System.Runtime.ExceptionServices;
 using System.Threading.Tasks;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.Diagnostics;
@@ -41,7 +44,7 @@ namespace Microsoft.CodeAnalysis.UnitTests.Diagnostics
                 return CSharpCompilation.Create(
                     projectName,
                     syntaxTrees: new[] { syntaxTree },
-                    references: new[] { TestBase.MscorlibRef });
+                    references: new[] { TestBase.MscorlibRef, TestBase.ValueTupleRef });
             }
             else
             {
@@ -58,12 +61,45 @@ namespace Microsoft.CodeAnalysis.UnitTests.Diagnostics
         [Fact]
         public async Task AnalyzerExceptionDiagnosticsWithDifferentContext()
         {
-            var diagnostic = Diagnostic("AD0001", null)
+            var exception = new Exception();
+
+            var baseDiagnostic = Diagnostic("AD0001", null).WithLocation(1, 1);
+            var diagnosticC = baseDiagnostic
                 .WithArguments(
                     "Microsoft.CodeAnalysis.UnitTests.Diagnostics.SuppressMessageAttributeTests+ThrowExceptionForEachNamedTypeAnalyzer",
                     "System.Exception",
-                    "ThrowExceptionAnalyzer exception")
-                .WithLocation(1, 1);
+                    exception.Message,
+                    (IFormattable)$@"{string.Format(CodeAnalysisResources.ExceptionContext, $@"Compilation: TestProject
+ISymbol: C (NamedType)")}
+
+{new LazyToString(() => exception.ToString())}
+-----
+
+{string.Format(CodeAnalysisResources.DisableAnalyzerDiagnosticsMessage, "ThrowException")}");
+            var diagnosticC1 = baseDiagnostic
+                .WithArguments(
+                    "Microsoft.CodeAnalysis.UnitTests.Diagnostics.SuppressMessageAttributeTests+ThrowExceptionForEachNamedTypeAnalyzer",
+                    "System.Exception",
+                    exception.Message,
+                    (IFormattable)$@"{string.Format(CodeAnalysisResources.ExceptionContext, $@"Compilation: TestProject
+ISymbol: C1 (NamedType)")}
+
+{new LazyToString(() => exception.ToString())}
+-----
+
+{string.Format(CodeAnalysisResources.DisableAnalyzerDiagnosticsMessage, "ThrowException")}");
+            var diagnosticC2 = baseDiagnostic
+                .WithArguments(
+                    "Microsoft.CodeAnalysis.UnitTests.Diagnostics.SuppressMessageAttributeTests+ThrowExceptionForEachNamedTypeAnalyzer",
+                    "System.Exception",
+                    exception.Message,
+                    (IFormattable)$@"{string.Format(CodeAnalysisResources.ExceptionContext, $@"Compilation: TestProject
+ISymbol: C2 (NamedType)")}
+
+{new LazyToString(() => exception.ToString())}
+-----
+
+{string.Format(CodeAnalysisResources.DisableAnalyzerDiagnosticsMessage, "ThrowException")}");
 
             // expect 3 different diagnostics with 3 different contexts.
             await VerifyCSharpAsync(@"
@@ -77,22 +113,25 @@ public class C2
 {
 }
 ",
-                new[] { new ThrowExceptionForEachNamedTypeAnalyzer() },
-                diagnostics: new[] { diagnostic, diagnostic, diagnostic });
+                new[] { new ThrowExceptionForEachNamedTypeAnalyzer(ExceptionDispatchInfo.Capture(exception)) },
+                diagnostics: new[] { diagnosticC, diagnosticC1, diagnosticC2 });
         }
 
         [Fact]
         public async Task AnalyzerExceptionFromSupportedDiagnosticsCall()
         {
+            var exception = new Exception();
+
             var diagnostic = Diagnostic("AD0001", null)
                 .WithArguments(
                     "Microsoft.CodeAnalysis.UnitTests.Diagnostics.SuppressMessageAttributeTests+ThrowExceptionFromSupportedDiagnostics",
                     "System.Exception",
-                    "SupportedDiagnostics exception")
+                    exception.Message,
+                    (IFormattable)$@"{new LazyToString(() => exception.ToString().Substring(0, exception.ToString().IndexOf("---")))}-----")
                 .WithLocation(1, 1);
 
             await VerifyCSharpAsync("public class C { }",
-                new[] { new ThrowExceptionFromSupportedDiagnostics() },
+                new[] { new ThrowExceptionFromSupportedDiagnostics(exception) },
                 diagnostics: new[] { diagnostic });
         }
     }

@@ -2,6 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+#nullable disable
+
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -14,6 +16,7 @@ using Microsoft.CodeAnalysis.Shared.TestHooks;
 using Microsoft.CodeAnalysis.Shared.Utilities;
 using Microsoft.CodeAnalysis.SignatureHelp;
 using Microsoft.VisualStudio.Language.Intellisense;
+using Microsoft.VisualStudio.Language.Intellisense.AsyncCompletion;
 using Microsoft.VisualStudio.Text.Editor.Commanding;
 using Microsoft.VisualStudio.Text.Editor.Commanding.Commands;
 
@@ -24,18 +27,21 @@ namespace Microsoft.CodeAnalysis.Editor.CommandHandlers
     {
         private readonly IIntelliSensePresenter<ISignatureHelpPresenterSession, ISignatureHelpSession> _signatureHelpPresenter;
         private readonly IAsynchronousOperationListener _listener;
+        private readonly IAsyncCompletionBroker _completionBroker;
         private readonly IList<Lazy<ISignatureHelpProvider, OrderableLanguageMetadata>> _signatureHelpProviders;
 
         public AbstractSignatureHelpCommandHandler(
             IThreadingContext threadingContext,
             IEnumerable<Lazy<ISignatureHelpProvider, OrderableLanguageMetadata>> signatureHelpProviders,
             IEnumerable<Lazy<IIntelliSensePresenter<ISignatureHelpPresenterSession, ISignatureHelpSession>, OrderableMetadata>> signatureHelpPresenters,
+            IAsyncCompletionBroker completionBroker,
             IAsynchronousOperationListenerProvider listenerProvider)
             : base(threadingContext)
         {
             _signatureHelpProviders = ExtensionOrderer.Order(signatureHelpProviders);
             _listener = listenerProvider.GetListener(FeatureAttribute.SignatureHelp);
             _signatureHelpPresenter = ExtensionOrderer.Order(signatureHelpPresenters).Select(lazy => lazy.Value).FirstOrDefault();
+            _completionBroker = completionBroker;
         }
 
         protected bool TryGetController(EditorCommandArgs args, out Controller controller)
@@ -61,7 +67,8 @@ namespace Microsoft.CodeAnalysis.Editor.CommandHandlers
             controller = Controller.GetInstance(
                 ThreadingContext,
                 args, _signatureHelpPresenter,
-                _listener, _signatureHelpProviders);
+                _listener, _signatureHelpProviders,
+                _completionBroker);
 
             return true;
         }

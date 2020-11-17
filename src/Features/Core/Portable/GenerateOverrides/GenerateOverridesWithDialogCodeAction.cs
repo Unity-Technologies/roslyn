@@ -42,7 +42,7 @@ namespace Microsoft.CodeAnalysis.GenerateOverrides
 
             public override object GetOptions(CancellationToken cancellationToken)
             {
-                var service = _service._pickMembersService_forTestingPurposes ?? _document.Project.Solution.Workspace.Services.GetService<IPickMembersService>();
+                var service = _service._pickMembersService_forTestingPurposes ?? _document.Project.Solution.Workspace.Services.GetRequiredService<IPickMembersService>();
                 return service.PickMembers(FeaturesResources.Pick_members_to_override, _viableMembers);
             }
 
@@ -51,10 +51,11 @@ namespace Microsoft.CodeAnalysis.GenerateOverrides
                 var result = (PickMembersResult)options;
                 if (result.IsCanceled || result.Members.Length == 0)
                 {
-                    return ImmutableArray<CodeActionOperation>.Empty;
+                    return SpecializedCollections.EmptyEnumerable<CodeActionOperation>();
                 }
 
                 var syntaxTree = await _document.GetSyntaxTreeAsync(cancellationToken).ConfigureAwait(false);
+                RoslynDebug.AssertNotNull(syntaxTree);
 
                 // If the user has selected just one member then we will insert it at the current
                 // location.  Otherwise, if it's many members, then we'll auto insert them as appropriate.
@@ -74,7 +75,8 @@ namespace Microsoft.CodeAnalysis.GenerateOverrides
                     members,
                     new CodeGenerationOptions(
                         afterThisLocation: afterThisLocation,
-                        contextLocation: syntaxTree.GetLocation(_textSpan)),
+                        contextLocation: syntaxTree.GetLocation(_textSpan),
+                        options: await _document.GetOptionsAsync(cancellationToken).ConfigureAwait(false)),
                     cancellationToken).ConfigureAwait(false);
 
                 return SpecializedCollections.SingletonEnumerable(

@@ -2,17 +2,14 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
-#nullable enable
-
 using System;
 using System.Collections.Generic;
-using System.Collections.Immutable;
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using Microsoft.CodeAnalysis.Diagnostics;
 using Microsoft.CodeAnalysis.ErrorReporting;
 using Microsoft.CodeAnalysis.Host;
 using Microsoft.CodeAnalysis.Internal.Log;
@@ -27,11 +24,10 @@ namespace Microsoft.CodeAnalysis
         private static readonly Func<string?, PreservationMode, string> s_fullParseLog = (path, mode) => $"{path} : {mode}";
 
         private static readonly ConditionalWeakTable<SyntaxTree, DocumentId> s_syntaxTreeToIdMap =
-            new ConditionalWeakTable<SyntaxTree, DocumentId>();
+            new();
 
         private readonly HostLanguageServices _languageServices;
         private readonly ParseOptions? _options;
-        private readonly ValueSource<AnalyzerConfigSet> _analyzerConfigSetSource;
 
         // null if the document doesn't support syntax trees:
         private readonly ValueSource<TreeAndVersion>? _treeSource;
@@ -42,7 +38,6 @@ namespace Microsoft.CodeAnalysis
             IDocumentServiceProvider? documentServiceProvider,
             DocumentInfo.DocumentAttributes attributes,
             ParseOptions? options,
-            ValueSource<AnalyzerConfigSet> analyzerConfigSetSource,
             SourceText? sourceText,
             ValueSource<TextAndVersion> textSource,
             ValueSource<TreeAndVersion>? treeSource)
@@ -50,21 +45,18 @@ namespace Microsoft.CodeAnalysis
         {
             _languageServices = languageServices;
             _options = options;
-            _analyzerConfigSetSource = analyzerConfigSetSource;
             _treeSource = treeSource;
         }
 
         public DocumentState(
             DocumentInfo info,
             ParseOptions? options,
-            ValueSource<AnalyzerConfigSet> analyzerConfigSetSource,
             HostLanguageServices languageServices,
             SolutionServices services)
             : base(info, services)
         {
             _languageServices = languageServices;
             _options = options;
-            _analyzerConfigSetSource = analyzerConfigSetSource;
 
             // If this is document that doesn't support syntax, then don't even bother holding
             // onto any tree source.  It will never be used to get a tree, and can only hurt us
@@ -81,7 +73,6 @@ namespace Microsoft.CodeAnalysis
                     info.Id.ProjectId,
                     GetSyntaxTreeFilePath(info.Attributes),
                     options,
-                    analyzerConfigSetSource,
                     languageServices);
             }
         }
@@ -120,13 +111,12 @@ namespace Microsoft.CodeAnalysis
             ProjectId cacheKey,
             string? filePath,
             ParseOptions options,
-            ValueSource<AnalyzerConfigSet> analyzerConfigSetValueSource,
             HostLanguageServices languageServices,
             PreservationMode mode = PreservationMode.PreserveValue)
         {
             return new AsyncLazy<TreeAndVersion>(
-                c => FullyParseTreeAsync(newTextSource, cacheKey, filePath, options, analyzerConfigSetValueSource, languageServices, mode, c),
-                c => FullyParseTree(newTextSource, cacheKey, filePath, options, analyzerConfigSetValueSource, languageServices, mode, c),
+                c => FullyParseTreeAsync(newTextSource, cacheKey, filePath, options, languageServices, mode, c),
+                c => FullyParseTree(newTextSource, cacheKey, filePath, options, languageServices, mode, c),
                 cacheResult: true);
         }
 
@@ -135,7 +125,6 @@ namespace Microsoft.CodeAnalysis
             ProjectId cacheKey,
             string? filePath,
             ParseOptions options,
-            ValueSource<AnalyzerConfigSet> analyzerConfigSetValueSource,
             HostLanguageServices languageServices,
             PreservationMode mode,
             CancellationToken cancellationToken)
@@ -143,8 +132,7 @@ namespace Microsoft.CodeAnalysis
             using (Logger.LogBlock(FunctionId.Workspace_Document_State_FullyParseSyntaxTree, s_fullParseLog, filePath, mode, cancellationToken))
             {
                 var textAndVersion = await newTextSource.GetValueAsync(cancellationToken).ConfigureAwait(false);
-                var analyzerConfigSet = await analyzerConfigSetValueSource.GetValueAsync(cancellationToken).ConfigureAwait(false);
-                return CreateTreeAndVersion(newTextSource, cacheKey, filePath, options, analyzerConfigSet, languageServices, mode, textAndVersion, cancellationToken);
+                return CreateTreeAndVersion(newTextSource, cacheKey, filePath, options, languageServices, mode, textAndVersion, cancellationToken);
             }
         }
 
@@ -153,7 +141,6 @@ namespace Microsoft.CodeAnalysis
             ProjectId cacheKey,
             string? filePath,
             ParseOptions options,
-            ValueSource<AnalyzerConfigSet> analyzerConfigSetValueSource,
             HostLanguageServices languageServices,
             PreservationMode mode,
             CancellationToken cancellationToken)
@@ -161,8 +148,7 @@ namespace Microsoft.CodeAnalysis
             using (Logger.LogBlock(FunctionId.Workspace_Document_State_FullyParseSyntaxTree, s_fullParseLog, filePath, mode, cancellationToken))
             {
                 var textAndVersion = newTextSource.GetValue(cancellationToken);
-                var analyzerConfigSet = analyzerConfigSetValueSource.GetValue(cancellationToken);
-                return CreateTreeAndVersion(newTextSource, cacheKey, filePath, options, analyzerConfigSet, languageServices, mode, textAndVersion, cancellationToken);
+                return CreateTreeAndVersion(newTextSource, cacheKey, filePath, options, languageServices, mode, textAndVersion, cancellationToken);
             }
         }
 
@@ -171,7 +157,6 @@ namespace Microsoft.CodeAnalysis
             ProjectId cacheKey,
             string? filePath,
             ParseOptions options,
-            AnalyzerConfigSet analyzerConfigSet,
             HostLanguageServices languageServices,
             PreservationMode mode,
             TextAndVersion textAndVersion,
@@ -181,14 +166,12 @@ namespace Microsoft.CodeAnalysis
 
             var treeFactory = languageServices.GetRequiredService<ISyntaxTreeFactoryService>();
 
-            var analyzerConfigOptionsResult = filePath != null ? analyzerConfigSet.GetOptionsForSourcePath(filePath) : (AnalyzerConfigOptionsResult?)null;
-
-            var tree = treeFactory.ParseSyntaxTree(filePath, options, text, analyzerConfigOptionsResult, cancellationToken);
+            var tree = treeFactory.ParseSyntaxTree(filePath, options, text, cancellationToken);
 
             var root = tree.GetRoot(cancellationToken);
             if (mode == PreservationMode.PreserveValue && treeFactory.CanCreateRecoverableTree(root))
             {
-                tree = treeFactory.CreateRecoverableTree(cacheKey, tree.FilePath, tree.Options, newTextSource, text.Encoding, root, tree.DiagnosticOptions);
+                tree = treeFactory.CreateRecoverableTree(cacheKey, tree.FilePath, tree.Options, newTextSource, text.Encoding, root);
             }
 
             Contract.ThrowIfNull(tree);
@@ -223,7 +206,7 @@ namespace Microsoft.CodeAnalysis
                     return IncrementallyParse(newTextAndVersion, oldTreeAndVersion, cancellationToken);
                 }
             }
-            catch (Exception e) when (FatalError.ReportUnlessCanceled(e))
+            catch (Exception e) when (FatalError.ReportAndPropagateUnlessCanceled(e))
             {
                 throw ExceptionUtilities.Unreachable;
             }
@@ -244,7 +227,7 @@ namespace Microsoft.CodeAnalysis
                     return IncrementallyParse(newTextAndVersion, oldTreeAndVersion, cancellationToken);
                 }
             }
-            catch (Exception e) when (FatalError.ReportUnlessCanceled(e))
+            catch (Exception e) when (FatalError.ReportAndPropagateUnlessCanceled(e))
             {
                 throw ExceptionUtilities.Unreachable;
             }
@@ -317,9 +300,7 @@ namespace Microsoft.CodeAnalysis
 
         [Obsolete("Use TextDocumentState.HasTextChanged")]
         public bool HasTextChanged(DocumentState oldState)
-        {
-            return HasTextChanged(oldState, ignoreUnchangeableDocument: false);
-        }
+            => HasTextChanged(oldState, ignoreUnchangeableDocument: false);
 
         public DocumentState UpdateParseOptions(ParseOptions options)
         {
@@ -351,7 +332,6 @@ namespace Microsoft.CodeAnalysis
                 Id.ProjectId,
                 GetSyntaxTreeFilePath(Attributes),
                 options,
-                _analyzerConfigSetSource,
                 _languageServices);
 
             return new DocumentState(
@@ -360,7 +340,6 @@ namespace Microsoft.CodeAnalysis
                 Services,
                 Attributes.With(sourceCodeKind: options.Kind),
                 options,
-                _analyzerConfigSetSource,
                 sourceText,
                 TextAndVersionSource,
                 newTreeSource);
@@ -376,38 +355,33 @@ namespace Microsoft.CodeAnalysis
             return this.SetParseOptions(this.ParseOptions.WithKind(kind));
         }
 
+        // TODO: https://github.com/dotnet/roslyn/issues/37125
+        // if FilePath is null, then this will change the name of the underlying tree, but we aren't producing a new tree in that case.
         public DocumentState UpdateName(string name)
+            => UpdateAttributes(Attributes.With(name: name));
+
+        public DocumentState UpdateFolders(IReadOnlyList<string> folders)
+            => UpdateAttributes(Attributes.With(folders: folders));
+
+        private DocumentState UpdateAttributes(DocumentInfo.DocumentAttributes attributes)
         {
-            // TODO: if FilePath is null, then this will change the name of the underlying tree, but we aren't producing a new tree in that case.
+            Debug.Assert(attributes != Attributes);
+
             return new DocumentState(
                 _languageServices,
                 solutionServices,
                 Services,
-                Attributes.With(name: name),
+                attributes,
                 _options,
-                _analyzerConfigSetSource,
                 sourceText,
                 TextAndVersionSource,
                 _treeSource);
         }
 
-        public DocumentState UpdateFolders(IList<string> folders)
+        public DocumentState UpdateFilePath(string? filePath)
         {
-            return new DocumentState(
-                _languageServices,
-                solutionServices,
-                Services,
-                Attributes.With(folders: folders),
-                _options,
-                _analyzerConfigSetSource,
-                sourceText,
-                TextAndVersionSource,
-                _treeSource);
-        }
-
-        public DocumentState UpdateFilePath(string filePath)
-        {
-            var newAttributes = this.Attributes.With(filePath: filePath);
+            var newAttributes = Attributes.With(filePath: filePath);
+            Debug.Assert(newAttributes != Attributes);
 
             // TODO: it's overkill to fully reparse the tree if we had the tree already; all we have to do is update the
             // file path and diagnostic options for that tree.
@@ -417,7 +391,6 @@ namespace Microsoft.CodeAnalysis
                     Id.ProjectId,
                     GetSyntaxTreeFilePath(newAttributes),
                     _options!,
-                    _analyzerConfigSetSource,
                     _languageServices) : null;
 
             return new DocumentState(
@@ -426,46 +399,16 @@ namespace Microsoft.CodeAnalysis
                 Services,
                 newAttributes,
                 _options,
-                _analyzerConfigSetSource,
-                sourceText,
-                TextAndVersionSource,
-                newTreeSource);
-        }
-
-        public DocumentState UpdateAnalyzerConfigSet(ValueSource<AnalyzerConfigSet> newAnalyzerConfigSet)
-        {
-            // TODO: it's overkill to fully reparse the tree if we had the tree already; all we have to do is update the
-            // file path and diagnostic options for that tree.
-            var newTreeSource = SupportsSyntaxTree ?
-                CreateLazyFullyParsedTree(
-                    TextAndVersionSource,
-                    Id.ProjectId,
-                    GetSyntaxTreeFilePath(Attributes),
-                    _options!,
-                    newAnalyzerConfigSet,
-                    _languageServices) : null;
-
-            return new DocumentState(
-                _languageServices,
-                solutionServices,
-                Services,
-                Attributes,
-                _options,
-                newAnalyzerConfigSet,
                 sourceText,
                 TextAndVersionSource,
                 newTreeSource);
         }
 
         public new DocumentState UpdateText(SourceText newText, PreservationMode mode)
-        {
-            return (DocumentState)base.UpdateText(newText, mode);
-        }
+            => (DocumentState)base.UpdateText(newText, mode);
 
         public new DocumentState UpdateText(TextAndVersion newTextAndVersion, PreservationMode mode)
-        {
-            return (DocumentState)base.UpdateText(newTextAndVersion, mode);
-        }
+            => (DocumentState)base.UpdateText(newTextAndVersion, mode);
 
         protected override TextDocumentState UpdateText(ValueSource<TextAndVersion> newTextSource, PreservationMode mode, bool incremental)
         {
@@ -486,7 +429,6 @@ namespace Microsoft.CodeAnalysis
                     Id.ProjectId,
                     GetSyntaxTreeFilePath(Attributes),
                     _options!,
-                    _analyzerConfigSetSource,
                     _languageServices,
                     mode); // TODO: understand why the mode is given here. If we're preserving text by identity, why also preserve the tree?
             }
@@ -497,20 +439,14 @@ namespace Microsoft.CodeAnalysis
                 Services,
                 Attributes,
                 _options,
-                _analyzerConfigSetSource,
                 sourceText: null,
                 textSource: newTextSource,
                 treeSource: newTreeSource);
         }
 
-        public new DocumentState UpdateText(TextLoader loader, PreservationMode mode)
-        {
-            return UpdateText(loader, text: null, mode: mode);
-        }
-
         internal DocumentState UpdateText(TextLoader loader, SourceText? text, PreservationMode mode)
         {
-            var documentState = (DocumentState)base.UpdateText(loader, mode);
+            var documentState = (DocumentState)UpdateText(loader, mode);
 
             // If we are given a SourceText directly, fork it since we didn't pass that into the base.
             // TODO: understand why this is being called this way at all. It seems we only have a text in a specific case
@@ -527,7 +463,6 @@ namespace Microsoft.CodeAnalysis
                 Services,
                 Attributes,
                 _options,
-                _analyzerConfigSetSource,
                 sourceText: text,
                 textSource: documentState.TextAndVersionSource,
                 treeSource: documentState._treeSource);
@@ -535,11 +470,6 @@ namespace Microsoft.CodeAnalysis
 
         internal DocumentState UpdateTree(SyntaxNode newRoot, PreservationMode mode)
         {
-            if (newRoot == null)
-            {
-                throw new ArgumentNullException(nameof(newRoot));
-            }
-
             if (!SupportsSyntaxTree)
             {
                 throw new InvalidOperationException();
@@ -570,14 +500,8 @@ namespace Microsoft.CodeAnalysis
 
             var filePath = GetSyntaxTreeFilePath(Attributes);
 
-            // Ideally we'd pass a cancellation token here but we don't have one to pass as the operation previously didn't take a cancellation token.
-            // In practice, I don't suspect it will matter: GetValue will only do work if we haven't already computed the AnalyzerConfigSet for this project,
-            // which would only happen if no tree was observed for any file in this project. Arbitrarily replacing trees without ever looking at the
-            // original one is possible but unlikely.
-            var analyzerConfigOptionsResult = _analyzerConfigSetSource.GetValue(CancellationToken.None).GetOptionsForSourcePath(filePath);
-
             Contract.ThrowIfNull(_options);
-            var (text, tree) = CreateRecoverableTextAndTree(newRoot, filePath, newTextVersion, newTreeVersion, encoding, Attributes, _options, analyzerConfigOptionsResult, syntaxTreeFactory, mode);
+            var (text, tree) = CreateRecoverableTextAndTree(newRoot, filePath, newTextVersion, newTreeVersion, encoding, Attributes, _options, syntaxTreeFactory, mode);
 
             return new DocumentState(
                 LanguageServices,
@@ -585,7 +509,6 @@ namespace Microsoft.CodeAnalysis
                 Services,
                 Attributes,
                 _options,
-                _analyzerConfigSetSource,
                 sourceText: null,
                 textSource: text,
                 treeSource: new ConstantValueSource<TreeAndVersion>(tree));
@@ -617,7 +540,6 @@ namespace Microsoft.CodeAnalysis
             Encoding? encoding,
             DocumentInfo.DocumentAttributes attributes,
             ParseOptions options,
-            AnalyzerConfigOptionsResult analyzerConfigOptionsResult,
             ISyntaxTreeFactoryService factory,
             PreservationMode mode)
         {
@@ -626,7 +548,7 @@ namespace Microsoft.CodeAnalysis
 
             if (mode == PreservationMode.PreserveIdentity || !factory.CanCreateRecoverableTree(newRoot))
             {
-                tree = factory.CreateSyntaxTree(filePath, options, encoding, newRoot, analyzerConfigOptionsResult);
+                tree = factory.CreateSyntaxTree(filePath, options, encoding, newRoot);
 
                 // its okay to use a strong cached AsyncLazy here because the compiler layer SyntaxTree will also keep the text alive once its built.
                 lazyTextAndVersion = new TreeTextSource(
@@ -656,7 +578,7 @@ namespace Microsoft.CodeAnalysis
                     textVersion,
                     filePath);
 
-                tree = factory.CreateRecoverableTree(attributes.Id.ProjectId, filePath, options, lazyTextAndVersion, encoding, newRoot, analyzerConfigOptionsResult.TreeOptions);
+                tree = factory.CreateRecoverableTree(attributes.Id.ProjectId, filePath, options, lazyTextAndVersion, encoding, newRoot);
             }
 
             return (lazyTextAndVersion, TreeAndVersion.Create(tree, treeVersion));
@@ -755,40 +677,6 @@ namespace Microsoft.CodeAnalysis
             return treeAndVersion.Version;
         }
 
-        public async Task<ImmutableDictionary<string, string>> GetAnalyzerOptionsAsync(string? projectFilePath, CancellationToken cancellationToken)
-        {
-            // We need to work out path to this document. Documents may not have a "real" file path if they're something created
-            // as a part of a code action, but haven't been written to disk yet.
-            string? effectiveFilePath = null;
-
-            if (FilePath != null)
-            {
-                effectiveFilePath = FilePath;
-            }
-            else if (Name != null && projectFilePath != null)
-            {
-                var projectPath = PathUtilities.GetDirectoryName(projectFilePath);
-
-                if (!RoslynString.IsNullOrEmpty(projectPath))
-                {
-                    effectiveFilePath = PathUtilities.CombinePathsUnchecked(PathUtilities.GetDirectoryName(projectFilePath), Name);
-                }
-            }
-
-            if (effectiveFilePath != null)
-            {
-                var analyzerConfigSet = await _analyzerConfigSetSource.GetValueAsync(cancellationToken).ConfigureAwait(false);
-
-                return analyzerConfigSet.GetOptionsForSourcePath(effectiveFilePath).AnalyzerOptions;
-            }
-            else
-            {
-                // Really no idea where this is going, so bail
-                // TODO: use AnalyzerConfigOptions.EmptyDictionary, since we don't have a public dictionary
-                return ImmutableDictionary.Create<string, string>(AnalyzerConfigOptions.KeyComparer);
-            }
-        }
-
         private static void BindSyntaxTreeToId(SyntaxTree tree, DocumentId id)
         {
             if (!s_syntaxTreeToIdMap.TryGetValue(tree, out var existingId))
@@ -827,7 +715,7 @@ namespace Microsoft.CodeAnalysis
 
             // we time to time see (incremental) parsing bug where text <-> tree round tripping is broken.
             // send NFW for those cases
-            FatalError.ReportWithoutCrash(new Exception($"tree and text has different length {newTree.Length} vs {newText.Length}"));
+            FatalError.ReportAndCatch(new Exception($"tree and text has different length {newTree.Length} vs {newText.Length}"));
 
             // this will make sure that these variables are not thrown away in the dump
             GC.KeepAlive(newTreeContent);

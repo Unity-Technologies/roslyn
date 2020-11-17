@@ -2,6 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+#nullable disable
+
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
@@ -19,7 +21,7 @@ namespace Microsoft.CodeAnalysis.Editor.Implementation.CallHierarchy.Finders
     internal abstract class AbstractCallFinder
     {
         private readonly IAsynchronousOperationListener _asyncListener;
-        private readonly CancellationTokenSource _cancellationSource = new CancellationTokenSource();
+        private readonly CancellationTokenSource _cancellationSource = new();
         private readonly ProjectId _projectId;
         private readonly SymbolKey _symbolKey;
 
@@ -39,18 +41,14 @@ namespace Microsoft.CodeAnalysis.Editor.Implementation.CallHierarchy.Finders
         }
 
         internal void SetDocuments(IImmutableSet<Document> documents)
-        {
-            this.Documents = documents;
-        }
+            => this.Documents = documents;
 
         public abstract string DisplayName { get; }
 
         public virtual string SearchCategory => DisplayName;
 
         public void CancelSearch()
-        {
-            _cancellationSource.Cancel();
-        }
+            => _cancellationSource.Cancel();
 
         public void StartSearch(Workspace workspace, CallHierarchySearchScope searchScope, ICallHierarchySearchCallback callback)
         {
@@ -70,7 +68,7 @@ namespace Microsoft.CodeAnalysis.Editor.Implementation.CallHierarchy.Finders
                 {
                     completionErrorMessage = EditorFeaturesResources.Canceled;
                 }
-                catch (Exception e) when (FatalError.ReportWithoutCrash(e))
+                catch (Exception e) when (FatalError.ReportAndCatch(e))
                 {
                     completionErrorMessage = e.Message;
                 }
@@ -165,7 +163,7 @@ namespace Microsoft.CodeAnalysis.Editor.Implementation.CallHierarchy.Finders
                     }
                     else
                     {
-                        var callingProject = project.Solution.GetProject(caller.CallingSymbol.ContainingAssembly);
+                        var callingProject = project.Solution.GetProject(caller.CallingSymbol.ContainingAssembly, cancellationToken);
                         var item = await Provider.CreateItemAsync(caller.CallingSymbol, callingProject, caller.Locations, cancellationToken).ConfigureAwait(false);
                         callback.AddResult(item);
                         cancellationToken.ThrowIfCancellationRequested();

@@ -2,6 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+#nullable disable
+
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -1116,8 +1118,8 @@ class C
             var method_v1 = type1_v1.GetMembers("M").Single();
             var method_v2 = type1_v2.GetMembers("M").Single();
 
-            var trueComp = new SymbolEquivalenceComparer(assemblyComparerOpt: null, distinguishRefFromOut: true);
-            var falseComp = new SymbolEquivalenceComparer(assemblyComparerOpt: null, distinguishRefFromOut: false);
+            var trueComp = new SymbolEquivalenceComparer(assemblyComparerOpt: null, distinguishRefFromOut: true, tupleNamesMustMatch: false);
+            var falseComp = new SymbolEquivalenceComparer(assemblyComparerOpt: null, distinguishRefFromOut: false, tupleNamesMustMatch: false);
 
             Assert.False(trueComp.Equals(method_v1, method_v2));
             Assert.False(trueComp.Equals(method_v2, method_v1));
@@ -1295,7 +1297,7 @@ End Class
         [Fact]
         public void AssemblyComparer1()
         {
-            var references = new[] { TestReferences.NetFx.v4_0_30319.mscorlib };
+            var references = new[] { TestMetadata.Net451.mscorlib };
 
             var source = "public class T {}";
             var sourceV1 = "[assembly: System.Reflection.AssemblyVersion(\"1.0.0.0\")] public class T {}";
@@ -1314,7 +1316,7 @@ End Class
             var tb2 = (ITypeSymbol)b2.GlobalNamespace.GetMembers("T").Single();
             var tb3 = (ITypeSymbol)b3.GlobalNamespace.GetMembers("T").Single();
 
-            var identityComparer = new SymbolEquivalenceComparer(AssemblySymbolIdentityComparer.Instance, distinguishRefFromOut: false);
+            var identityComparer = new SymbolEquivalenceComparer(AssemblySymbolIdentityComparer.Instance, distinguishRefFromOut: false, tupleNamesMustMatch: false);
 
             // same name:
             Assert.True(SymbolEquivalenceComparer.IgnoreAssembliesInstance.Equals(ta1, ta2));
@@ -1342,14 +1344,10 @@ End Class
             public static readonly IEqualityComparer<IAssemblySymbol> Instance = new AssemblySymbolIdentityComparer();
 
             public bool Equals(IAssemblySymbol x, IAssemblySymbol y)
-            {
-                return x.Identity.Equals(y.Identity);
-            }
+                => x.Identity.Equals(y.Identity);
 
             public int GetHashCode(IAssemblySymbol obj)
-            {
-                return obj.Identity.GetHashCode();
-            }
+                => obj.Identity.GetHashCode();
         }
 
         [Fact]
@@ -1399,12 +1397,12 @@ End Class
                 r2 = MetadataReference.CreateFromImage(bytes);
             }
 
-            var c1 = (Compilation)CS.CSharpCompilation.Create("comp1", Array.Empty<SyntaxTree>(), new[] { TestReferences.NetFx.v4_0_30319.mscorlib, r1 });
-            var c2 = (Compilation)CS.CSharpCompilation.Create("comp2", Array.Empty<SyntaxTree>(), new[] { TestReferences.NetFx.v4_0_30319.mscorlib, r2 });
+            var c1 = (Compilation)CS.CSharpCompilation.Create("comp1", Array.Empty<SyntaxTree>(), new[] { TestMetadata.Net451.mscorlib, r1 });
+            var c2 = (Compilation)CS.CSharpCompilation.Create("comp2", Array.Empty<SyntaxTree>(), new[] { TestMetadata.Net451.mscorlib, r2 });
             var type1 = (ITypeSymbol)c1.GlobalNamespace.GetMembers("C").Single();
             var type2 = (ITypeSymbol)c2.GlobalNamespace.GetMembers("C").Single();
 
-            var identityComparer = new SymbolEquivalenceComparer(AssemblySymbolIdentityComparer.Instance, distinguishRefFromOut: false);
+            var identityComparer = new SymbolEquivalenceComparer(AssemblySymbolIdentityComparer.Instance, distinguishRefFromOut: false, tupleNamesMustMatch: false);
 
             var f1 = type1.GetMembers("F");
             var f2 = type2.GetMembers("F");
@@ -1430,7 +1428,7 @@ End Class
             Assert.True(identityComparer.Equals(f1[3], f2[3]));
         }
 
-        private void TestReducedExtension<TInvocation>(Compilation comp1, Compilation comp2, string typeName, string methodName)
+        private static void TestReducedExtension<TInvocation>(Compilation comp1, Compilation comp2, string typeName, string methodName)
             where TInvocation : SyntaxNode
         {
             var method1 = GetInvokedSymbol<TInvocation>(comp1, typeName, methodName);
@@ -1450,7 +1448,7 @@ End Class
             Assert.True(SymbolEquivalenceComparer.Instance.Equals(cfmethod1, cfmethod2));
         }
 
-        private IMethodSymbol GetInvokedSymbol<TInvocation>(Compilation compilation, string typeName, string methodName)
+        private static IMethodSymbol GetInvokedSymbol<TInvocation>(Compilation compilation, string typeName, string methodName)
             where TInvocation : SyntaxNode
         {
             var type1 = compilation.GlobalNamespace.GetTypeMembers(typeName).Single();

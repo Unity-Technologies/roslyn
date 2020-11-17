@@ -2,8 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
-#nullable enable
-
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.CodeAnalysis.CodeRefactorings;
@@ -97,7 +95,6 @@ namespace Microsoft.CodeAnalysis
             return beginningNode.Span.End <= selection.Start || endNode.Span.Start >= selection.End;
         }
 
-
         /// <summary>
         /// Trims leading and trailing whitespace from <paramref name="span"/>.
         /// </summary>
@@ -105,7 +102,7 @@ namespace Microsoft.CodeAnalysis
         /// Returns unchanged <paramref name="span"/> in case <see cref="TextSpan.IsEmpty"/>.
         /// Returns empty Span with original <see cref="TextSpan.Start"/> in case it contains only whitespace.
         /// </remarks>
-        public static async Task<TextSpan> GetTrimmedTextSpan(Document document, TextSpan span, CancellationToken cancellationToken)
+        public static async Task<TextSpan> GetTrimmedTextSpanAsync(Document document, TextSpan span, CancellationToken cancellationToken)
         {
             if (span.IsEmpty)
             {

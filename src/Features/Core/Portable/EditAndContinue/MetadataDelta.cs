@@ -2,6 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+#nullable disable
+
 using System.Collections.Immutable;
 
 namespace Microsoft.CodeAnalysis.EditAndContinue
@@ -11,8 +13,6 @@ namespace Microsoft.CodeAnalysis.EditAndContinue
         public readonly ImmutableArray<byte> Bytes;
 
         public MetadataDelta(ImmutableArray<byte> bytes)
-        {
-            Bytes = bytes;
-        }
+            => Bytes = bytes;
     }
 }

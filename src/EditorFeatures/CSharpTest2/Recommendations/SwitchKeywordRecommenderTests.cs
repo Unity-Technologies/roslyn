@@ -2,8 +2,11 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+#nullable disable
+
 using System.Threading.Tasks;
 using Microsoft.CodeAnalysis.Test.Utilities;
+using Roslyn.Test.Utilities;
 using Xunit;
 
 namespace Microsoft.CodeAnalysis.Editor.CSharp.UnitTests.Recommendations
@@ -98,9 +101,7 @@ $$"));
 
         [Fact, Trait(Traits.Feature, Traits.Features.KeywordRecommending)]
         public async Task TestAfterExpression()
-        {
-            await VerifyKeywordAsync(AddInsideMethod(@"_ = expr $$"));
-        }
+            => await VerifyKeywordAsync(AddInsideMethod(@"_ = expr $$"));
 
         [Fact, Trait(Traits.Feature, Traits.Features.KeywordRecommending)]
         public async Task TestAfterExpression_InMethodWithArrowBody()
@@ -114,15 +115,11 @@ class C
 
         [Fact, Trait(Traits.Feature, Traits.Features.KeywordRecommending)]
         public async Task TestAfterForeachVar()
-        {
-            await VerifyAbsenceAsync(AddInsideMethod(@"foreach (var $$)"));
-        }
+            => await VerifyAbsenceAsync(AddInsideMethod(@"foreach (var $$)"));
 
         [Fact, Trait(Traits.Feature, Traits.Features.KeywordRecommending)]
         public async Task TestAfterTuple()
-        {
-            await VerifyKeywordAsync(AddInsideMethod(@"_ = (expr, expr) $$"));
-        }
+            => await VerifyKeywordAsync(AddInsideMethod(@"_ = (expr, expr) $$"));
 
         [Fact, Trait(Traits.Feature, Traits.Features.KeywordRecommending)]
         public async Task TestNotAfterSwitch2()
@@ -148,6 +145,103 @@ class C
    default:
 }
 $$"));
+        }
+
+        [WorkItem(8319, "https://github.com/dotnet/roslyn/issues/8319")]
+        [Fact, Trait(Traits.Feature, Traits.Features.KeywordRecommending)]
+        public async Task TestNotAfterMethodReference()
+        {
+            await VerifyAbsenceAsync(
+@"
+using System;
+
+class C {
+    void M() {
+        var v = Console.WriteLine $$");
+        }
+
+        [WorkItem(8319, "https://github.com/dotnet/roslyn/issues/8319")]
+        [Fact, Trait(Traits.Feature, Traits.Features.KeywordRecommending)]
+        public async Task TestNotAfterAnonymousMethod()
+        {
+            await VerifyAbsenceAsync(
+@"
+using System;
+
+class C {
+    void M() {
+        Action a = delegate { } $$");
+        }
+
+        [WorkItem(8319, "https://github.com/dotnet/roslyn/issues/8319")]
+        [Fact, Trait(Traits.Feature, Traits.Features.KeywordRecommending)]
+        public async Task TestNotAfterLambda1()
+        {
+            await VerifyAbsenceAsync(
+@"
+using System;
+
+class C {
+    void M() {
+        Action b = (() => 0) $$");
+        }
+
+        [WorkItem(8319, "https://github.com/dotnet/roslyn/issues/8319")]
+        [Fact, Trait(Traits.Feature, Traits.Features.KeywordRecommending)]
+        public async Task TestNotAfterLambda2()
+        {
+            await VerifyAbsenceAsync(
+@"
+using System;
+
+class C {
+    void M() {
+        Action b = () => {} $$");
+        }
+
+        [WorkItem(48573, "https://github.com/dotnet/roslyn/issues/48573")]
+        [Fact, Trait(Traits.Feature, Traits.Features.KeywordRecommending)]
+        public async Task TestMissingAfterNumericLiteral()
+        {
+            await VerifyAbsenceAsync(
+@"
+class C
+{
+    void M()
+    {
+        var x = 1$$
+    }
+}");
+        }
+
+        [WorkItem(48573, "https://github.com/dotnet/roslyn/issues/48573")]
+        [Fact, Trait(Traits.Feature, Traits.Features.KeywordRecommending)]
+        public async Task TestMissingAfterNumericLiteralAndDot()
+        {
+            await VerifyAbsenceAsync(
+@"
+class C
+{
+    void M()
+    {
+        var x = 1.$$
+    }
+}");
+        }
+
+        [WorkItem(48573, "https://github.com/dotnet/roslyn/issues/48573")]
+        [Fact, Trait(Traits.Feature, Traits.Features.KeywordRecommending)]
+        public async Task TestMissingAfterNumericLiteralDotAndSpace()
+        {
+            await VerifyAbsenceAsync(
+@"
+class C
+{
+    void M()
+    {
+        var x = 1. $$
+    }
+}");
         }
     }
 }

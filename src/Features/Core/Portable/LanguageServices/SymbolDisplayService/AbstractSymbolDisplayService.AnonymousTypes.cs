@@ -2,6 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+#nullable disable
+
 using System.Linq;
 using Microsoft.CodeAnalysis.Shared.Extensions;
 
@@ -28,7 +30,7 @@ restart:
                 foreach (var kvp in _groupMap)
                 {
                     var parts = kvp.Value;
-                    var updatedParts = _anonymousTypeDisplayService.InlineDelegateAnonymousTypes(parts, _semanticModel, _position, _displayService);
+                    var updatedParts = _anonymousTypeDisplayService.InlineDelegateAnonymousTypes(parts, _semanticModel, _position);
                     if (parts != updatedParts)
                     {
                         _groupMap[kvp.Key] = updatedParts;
@@ -46,7 +48,7 @@ restart:
                     select (INamedTypeSymbol)part.Symbol;
 
                 var info = _anonymousTypeDisplayService.GetNormalAnonymousTypeDisplayInfo(
-                    firstSymbol, directNormalAnonymousTypeReferences, _semanticModel, _position, _displayService);
+                    firstSymbol, directNormalAnonymousTypeReferences, _semanticModel, _position);
 
                 if (info.AnonymousTypesParts.Count > 0)
                 {

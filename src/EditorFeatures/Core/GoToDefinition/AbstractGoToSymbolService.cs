@@ -2,6 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+#nullable disable
+
 using System.Threading.Tasks;
 using Microsoft.CodeAnalysis.Editor.Shared.Utilities;
 using Microsoft.CodeAnalysis.Shared.Extensions;
@@ -38,10 +40,10 @@ namespace Microsoft.CodeAnalysis.Editor.GoToDefinition
             // This means we have to query for "third party navigation", from
             // XAML, etc. That call has to be done on the UI thread.
             await ThreadingContext.JoinableTaskFactory.SwitchToMainThreadAsync(alwaysYield: true, cancellationToken);
-            cancellationToken.ThrowIfCancellationRequested();
 
-            var definitions = GoToDefinitionHelpers.GetDefinitions(symbol, document.Project, thirdPartyNavigationAllowed: true, cancellationToken)
-                .WhereAsArray(d => d.CanNavigateTo(document.Project.Solution.Workspace));
+            var solution = document.Project.Solution;
+            var definitions = GoToDefinitionHelpers.GetDefinitions(symbol, solution, thirdPartyNavigationAllowed: true, cancellationToken)
+                .WhereAsArray(d => d.CanNavigateTo(solution.Workspace));
 
             await TaskScheduler.Default;
 

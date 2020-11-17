@@ -2,6 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+#nullable disable
+
 using System;
 using Microsoft.VisualStudio.OLE.Interop;
 using Microsoft.VisualStudio.Text;
@@ -80,9 +82,7 @@ namespace Microsoft.VisualStudio.LanguageServices.Packaging
             public abstract void GetDescription(out string pBstr);
 
             public void GetUnitType(out Guid pClsid, out int plID)
-            {
-                throw new NotImplementedException();
-            }
+                => throw new NotImplementedException();
 
             public void OnNextAdd()
             {
@@ -115,9 +115,7 @@ namespace Microsoft.VisualStudio.LanguageServices.Packaging
             }
 
             public override void GetDescription(out string pBstr)
-            {
-                pBstr = string.Format(ServicesVSResources.Uninstall_0, packageName);
-            }
+                => pBstr = string.Format(ServicesVSResources.Uninstall_0, packageName);
         }
 
         private class InstallPackageUndoUnit : BaseUndoUnit
@@ -138,9 +136,7 @@ namespace Microsoft.VisualStudio.LanguageServices.Packaging
             }
 
             public override void GetDescription(out string pBstr)
-            {
-                pBstr = string.Format(ServicesVSResources.Install_0, packageName);
-            }
+                => pBstr = string.Format(ServicesVSResources.Install_0, packageName);
 
             public override void Do(IOleUndoManager pUndoManager)
             {

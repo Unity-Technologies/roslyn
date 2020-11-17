@@ -2,6 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+#nullable disable
+
 using System;
 using System.Diagnostics;
 using System.Text;
@@ -353,7 +355,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Syntax.InternalSyntax
         private DirectiveTriviaSyntax ParseLineDirective(SyntaxToken hash, SyntaxToken id, bool isActive)
         {
             SyntaxToken line;
-            SyntaxToken file = default(SyntaxToken);
+            SyntaxToken file = null;
             bool sawLineButNotFile = false;
             switch (this.CurrentToken.Kind)
             {

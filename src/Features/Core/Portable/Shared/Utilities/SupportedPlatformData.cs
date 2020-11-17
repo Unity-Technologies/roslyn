@@ -2,6 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+#nullable disable
+
 using System.Collections.Generic;
 using System.Linq;
 using Microsoft.CodeAnalysis.Shared.Extensions;
@@ -50,13 +52,9 @@ namespace Microsoft.CodeAnalysis.Shared.Utilities
         }
 
         private static string Supported(bool supported)
-        {
-            return supported ? FeaturesResources.Available : FeaturesResources.Not_Available;
-        }
+            => supported ? FeaturesResources.Available : FeaturesResources.Not_Available;
 
         public bool HasValidAndInvalidProjects()
-        {
-            return InvalidProjects.Any() && InvalidProjects.Count != CandidateProjects.Count();
-        }
+            => InvalidProjects.Any() && InvalidProjects.Count != CandidateProjects.Count();
     }
 }

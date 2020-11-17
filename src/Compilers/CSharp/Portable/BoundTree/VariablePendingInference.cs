@@ -22,14 +22,14 @@ namespace Microsoft.CodeAnalysis.CSharp
 
     internal partial class VariablePendingInference : BoundExpression
     {
-        internal BoundExpression SetInferredTypeWithAnnotations(TypeWithAnnotations type, DiagnosticBag diagnosticsOpt)
+        internal BoundExpression SetInferredTypeWithAnnotations(TypeWithAnnotations type, DiagnosticBag? diagnosticsOpt)
         {
             Debug.Assert(type.HasType);
 
             return SetInferredTypeWithAnnotations(type, null, diagnosticsOpt);
         }
 
-        internal BoundExpression SetInferredTypeWithAnnotations(TypeWithAnnotations type, Binder binderOpt, DiagnosticBag diagnosticsOpt)
+        internal BoundExpression SetInferredTypeWithAnnotations(TypeWithAnnotations type, Binder? binderOpt, DiagnosticBag? diagnosticsOpt)
         {
             Debug.Assert(binderOpt != null || type.HasType);
             Debug.Assert(this.Syntax.Kind() == SyntaxKind.SingleVariableDesignation ||
@@ -40,7 +40,7 @@ namespace Microsoft.CodeAnalysis.CSharp
 
             if (inferenceFailed)
             {
-                type = TypeWithAnnotations.Create(binderOpt.CreateErrorType("var"));
+                type = TypeWithAnnotations.Create(binderOpt!.CreateErrorType("var"));
             }
 
             switch (this.VariableSymbol.Kind)
@@ -60,7 +60,7 @@ namespace Microsoft.CodeAnalysis.CSharp
                                 ((DeclarationExpressionSyntax)this.Syntax).Type :
                                 this.Syntax;
 
-                            Binder.CheckRestrictedTypeInAsync(localSymbol.ContainingSymbol, type.Type, diagnosticsOpt, typeOrDesignationSyntax);
+                            Binder.CheckRestrictedTypeInAsyncMethod(localSymbol.ContainingSymbol, type.Type, diagnosticsOpt, typeOrDesignationSyntax);
                         }
                     }
 
@@ -93,7 +93,7 @@ namespace Microsoft.CodeAnalysis.CSharp
             }
         }
 
-        internal BoundExpression FailInference(Binder binder, DiagnosticBag diagnosticsOpt)
+        internal BoundExpression FailInference(Binder binder, DiagnosticBag? diagnosticsOpt)
         {
             return this.SetInferredTypeWithAnnotations(default, binder, diagnosticsOpt);
         }

@@ -36,21 +36,22 @@ param (
   [switch][Alias('bl')]$binaryLog,
   [switch]$buildServerLog,
   [switch]$ci,
-  [switch]$procdump,
-  [switch]$skipAnalyzers,
+  [switch]$collectDumps,
+  [switch][Alias('a')]$runAnalyzers,
   [switch][Alias('d')]$deployExtensions,
   [switch]$prepareMachine,
   [switch]$useGlobalNuGetCache = $true,
   [switch]$warnAsError = $false,
   [switch]$sourceBuild = $false,
+  [switch]$oop64bit = $true,
 
   # official build settings
   [string]$officialBuildId = "",
   [string]$officialSkipApplyOptimizationData = "",
   [string]$officialSkipTests = "",
   [string]$officialSourceBranchName = "",
-  [string]$officialIbcSourceBranchName = "",
-  [string]$officialIbcDropId = "",
+  [string]$officialIbcDrop = "",
+  [string]$officialVisualStudioDropAccessToken = "",
 
   # Test actions
   [switch]$test32,
@@ -59,6 +60,7 @@ param (
   [switch][Alias('test')]$testDesktop,
   [switch]$testCoreClr,
   [switch]$testIOperation,
+  [switch]$sequential,
 
   [parameter(ValueFromRemainingArguments=$true)][string[]]$properties)
 
@@ -96,22 +98,21 @@ function Print-Usage() {
   Write-Host "  -bootstrap                Build using a bootstrap compilers"
   Write-Host "  -bootstrapConfiguration   Build configuration for bootstrap compiler: 'Debug' or 'Release'"
   Write-Host "  -msbuildEngine <value>    Msbuild engine to use to run build ('dotnet', 'vs', or unspecified)."
-  Write-Host "  -procdump                 Monitor test runs with procdump"
-  Write-Host "  -skipAnalyzers            Do not run analyzers during build operations"
+  Write-Host "  -collectDumps             Collect dumps from test runs"
+  Write-Host "  -runAnalyzers             Run analyzers during build operations (short: -a)"
   Write-Host "  -prepareMachine           Prepare machine for CI run, clean up processes after build"
   Write-Host "  -useGlobalNuGetCache      Use global NuGet cache."
   Write-Host "  -warnAsError              Treat all warnings as errors"
   Write-Host "  -sourceBuild              Simulate building source-build"
   Write-Host ""
   Write-Host "Official build settings:"
-  Write-Host "  -officialBuildId                            An official build id, e.g. 20190102.3"
-  Write-Host "  -officialSkipTests <bool>                   Pass 'true' to not run tests"
-  Write-Host "  -officialSkipApplyOptimizationData <bool>   Pass 'true' to not apply optimization data"
-  Write-Host "  -officialSourceBranchName <string>          The source branch name"
-  Write-Host "  -officialIbcDropId <string>                 IBC data drop to use (e.g. '20190210.1/935479/1')."
-  Write-Host "                                              'default' for the most recent available for the branch."
-  Write-Host "  -officialIbcSourceBranchName <string>       IBC source branch (e.g. 'master-vs-deps')"
-  Write-Host "                                              'default' to select branch based on eng/config/PublishData.json."
+  Write-Host "  -officialBuildId                                  An official build id, e.g. 20190102.3"
+  Write-Host "  -officialSkipTests <bool>                         Pass 'true' to not run tests"
+  Write-Host "  -officialSkipApplyOptimizationData <bool>         Pass 'true' to not apply optimization data"
+  Write-Host "  -officialSourceBranchName <string>                The source branch name"
+  Write-Host "  -officialIbcDrop <string>                         IBC data drop to use (e.g. 'ProfilingOutputs/DevDiv/VS/..')."
+  Write-Host "                                                    'default' for the most recent available for the branch."
+  Write-Host "  -officialVisualStudioDropAccessToken <string>     The access token to access OptProf data drop"
   Write-Host ""
   Write-Host "Command line arguments starting with '/p:' are passed through to MSBuild."
 }
@@ -120,7 +121,7 @@ function Print-Usage() {
 # specified.
 #
 # In this function it's okay to use two arguments to extend the effect of another. For
-# example it's okay to look at $testVsi and infer $skipAnalyzers. It's not okay though to infer
+# example it's okay to look at $testVsi and infer $runAnalyzers. It's not okay though to infer
 # $build based on say $testDesktop. It's possible the developer wanted only for testing
 # to execute, not any build.
 function Process-Arguments() {
@@ -146,12 +147,11 @@ function Process-Arguments() {
   OfficialBuildOnly "officialSkipTests"
   OfficialBuildOnly "officialSkipApplyOptimizationData"
   OfficialBuildOnly "officialSourceBranchName"
-  OfficialBuildOnly "officialIbcDropId"
-  OfficialBuildOnly "officialIbcSourceBranchName"
+  OfficialBuildOnly "officialVisualStudioDropAccessToken"
 
   if ($officialBuildId) {
     $script:useGlobalNuGetCache = $false
-    $script:procdump = $true
+    $script:collectDumps = $true
     $script:testDesktop = ![System.Boolean]::Parse($officialSkipTests)
     $script:applyOptimizationData = ![System.Boolean]::Parse($officialSkipApplyOptimizationData)
   } else {
@@ -178,7 +178,7 @@ function Process-Arguments() {
 
   if ($testVsi) {
     # Avoid spending time in analyzers when requested, and also in the slowest integration test builds
-    $script:skipAnalyzers = $true
+    $script:runAnalyzers = $false
     $script:bootstrap = $false
   }
 
@@ -203,8 +203,7 @@ function Process-Arguments() {
 }
 
 function BuildSolution() {
-  # Roslyn.sln can't be built with dotnet due to WPF and VSIX build task dependencies
-  $solution = if ($msbuildEngine -eq 'dotnet') { "Compilers.sln" } else { "Roslyn.sln" }
+  $solution = "Roslyn.sln"
 
   Write-Host "$($solution):"
 
@@ -215,21 +214,17 @@ function BuildSolution() {
   }
 
   $projects = Join-Path $RepoRoot $solution
-  $enableAnalyzers = !$skipAnalyzers
   $toolsetBuildProj = InitializeToolset
 
-  $testTargetFrameworks = if ($testCoreClr) { "netcoreapp3.1" } else { "" }
+  $testTargetFrameworks = if ($testCoreClr) { 'net5.0%3Bnetcoreapp3.1' } else { "" }
   
-  $ibcSourceBranchName = GetIbcSourceBranchName
-  $ibcDropId = if ($officialIbcDropId -ne "default") { $officialIbcDropId } else { "" }
+  $ibcDropName = GetIbcDropName
 
   # Do not set this property to true explicitly, since that would override values set in projects.
   $suppressExtensionDeployment = if (!$deployExtensions) { "/p:DeployExtension=false" } else { "" } 
 
   # The warnAsError flag for MSBuild will promote all warnings to errors. This is true for warnings
   # that MSBuild output as well as ones that custom tasks output.
-  #
-  # In all cases we pass /p:TreatWarningsAsErrors=true to promote compiler warnings to errors
   $msbuildWarnAsError = if ($warnAsError) { "/warnAsError" } else { "" }
 
   # Workaround for some machines in the AzDO pool not allowing long paths (%5c is msbuild escaped backslash)
@@ -253,14 +248,15 @@ function BuildSolution() {
       /p:Publish=$publish `
       /p:ContinuousIntegrationBuild=$ci `
       /p:OfficialBuildId=$officialBuildId `
-      /p:UseRoslynAnalyzers=$enableAnalyzers `
+      /p:RunAnalyzersDuringBuild=$runAnalyzers `
       /p:BootstrapBuildPath=$bootstrapDir `
       /p:TestTargetFrameworks=$testTargetFrameworks `
-      /p:TreatWarningsAsErrors=true `
-      /p:VisualStudioIbcSourceBranchName=$ibcSourceBranchName `
-      /p:VisualStudioIbcDropId=$ibcDropId `
+      /p:TreatWarningsAsErrors=$warnAsError `
       /p:EnableNgenOptimization=$applyOptimizationData `
       /p:IbcOptimizationDataDir=$ibcDir `
+      /p:RestoreUseStaticGraphEvaluation=true `
+      /p:VisualStudioIbcDrop=$ibcDropName `
+      /p:VisualStudioDropAccessToken=$officialVisualStudioDropAccessToken `
       $suppressExtensionDeployment `
       $msbuildWarnAsError `
       $buildFromSource `
@@ -280,56 +276,43 @@ function GetIbcSourceBranchName() {
   }
 
   function calculate {
-    $fallback = "master-vs-deps"
-
-    if (!$officialIbcSourceBranchName) {
-      return $fallback
-    }  
-
-    if ($officialIbcSourceBranchName -ne "default") {
-      return $officialIbcSourceBranchName
-    }
+    $fallback = "main"
 
     $branchData = GetBranchPublishData $officialSourceBranchName
     if ($branchData -eq $null) {
-      Write-Host "Warning: Branch $officialSourceBranchName is not listed in PublishData.json. Using IBC data from '$fallback'." -ForegroundColor Yellow
-      Write-Host "Override by setting IbcSourceBranchName build variable." -ForegroundColor Yellow
+      Write-LogIssue -Type "warning" -Message "Branch $officialSourceBranchName is not listed in PublishData.json. Using IBC data from '$fallback'."
+      Write-Host "Override by setting IbcDrop build variable." -ForegroundColor Yellow
       return $fallback
     }
 
-    if (Get-Member -InputObject $branchData -Name "ibcSourceBranch") {
-      return $branchData.ibcSourceBranch 
-    }
-
-    return $officialSourceBranchName
+    return $branchData.vsBranch
   }
 
   return $global:_IbcSourceBranchName = calculate
 }
 
-# Set VSO variables used by MicroBuildBuildVSBootstrapper pipeline task
-function SetVisualStudioBootstrapperBuildArgs() {
-  $fallbackBranch = "master-vs-deps"
+function GetIbcDropName() {
 
-  $branchName = if ($officialSourceBranchName) { $officialSourceBranchName } else { $fallbackBranch }
-  $branchData = GetBranchPublishData $branchName
+    if ($officialIbcDrop -and $officialIbcDrop -ne "default"){
+        return $officialIbcDrop
+    }
 
-  if ($branchData -eq $null) {
-    Write-Host "Warning: Branch $officialSourceBranchName is not listed in PublishData.json. Using VS bootstrapper for branch '$fallbackBranch'. " -ForegroundColor Yellow
-    $branchData = GetBranchPublishData $fallbackBranch
-  }
+    # Don't try and get the ibc drop if we're not in an official build as it won't be used anyway
+    if (!$applyOptimizationData -or !$officialBuildId) {
+        return ""
+    }
 
-  # VS branch name is e.g. "lab/d16.0stg", "rel/d15.9", "lab/ml", etc.
-  $vsBranchSimpleName = $branchData.vsBranch.Split('/')[-1]
-  $vsMajorVersion = $branchData.vsMajorVersion
-  $vsChannel = "int.$vsBranchSimpleName"
+    # Bring in the ibc tools
+    $packagePath = Join-Path (Get-PackageDir "Microsoft.DevDiv.Optimization.Data.PowerShell") "lib\net461"
+    Import-Module (Join-Path $packagePath "Optimization.Data.PowerShell.dll")
+    
+    # Find the matching drop
+    $branch = GetIbcSourceBranchName
+    Write-Host "Optimization data branch name is '$branch'."
 
-  Write-Host "##vso[task.setvariable variable=VisualStudio.MajorVersion;]$vsMajorVersion"        
-  Write-Host "##vso[task.setvariable variable=VisualStudio.ChannelName;]$vsChannel"
-
-  $insertionDir = Join-Path $VSSetupDir "Insertion"
-  $manifestList = [string]::Join(',', (Get-ChildItem "$insertionDir\*.vsman"))
-  Write-Host "##vso[task.setvariable variable=VisualStudio.SetupManifestList;]$manifestList"
+    $pat = ConvertTo-SecureString $officialVisualStudioDropAccessToken -AsPlainText -Force
+    $drop = Find-OptimizationInputsStoreForBranch -ProjectName "DevDiv" -RepositoryName "VS" -BranchName $branch -PAT $pat
+    return $drop.Name
 }
 
 # Core function for running our unit / integration tests tests
@@ -352,8 +335,6 @@ function TestUsingOptimizedRunner() {
     $env:ROSLYN_TEST_IOPERATION = "true"
   }
 
-  $secondaryLogDir = Join-Path (Join-Path $ArtifactsDir "log2") $configuration
-  Create-Directory $secondaryLogDir
   $testResultsDir = Join-Path $ArtifactsDir "TestResults\$configuration"
   $binDir = Join-Path $ArtifactsDir "bin" 
   $runTests = GetProjectOutputBinary "RunTests.exe"
@@ -363,13 +344,11 @@ function TestUsingOptimizedRunner() {
     ExitWithExitCode 1
   }
 
-  $xunitDir = Join-Path (Get-PackageDir "xunit.runner.console") "tools\net472"
-  $args = "`"$xunitDir`""
-  $args += " `"-out:$testResultsDir`""
-  $args += " `"-logs:$LogDir`""
-  $args += " `"-secondaryLogs:$secondaryLogDir`""
-  $args += " -nocache"
-  $args += " -tfm:net472"
+  $dotnetExe = Join-Path $dotnet "dotnet.exe"
+  $args += " --dotnet `"$dotnetExe`""
+  $args += " --out `"$testResultsDir`""
+  $args += " --logs `"$LogDir`""
+  $args += " --tfm net472"
 
   if ($testDesktop -or $testIOperation) {
     if ($test32) {
@@ -382,39 +361,58 @@ function TestUsingOptimizedRunner() {
     # integration tests in CI.
     if ($ci) {
       $dlls += @(Get-Item (GetProjectOutputBinary "Microsoft.CodeAnalysis.Workspaces.MSBuild.UnitTests.dll"))
+      $args += " --retry"
     }
 
     $dlls += @(Get-ChildItem -Recurse -Include "*.IntegrationTests.dll" $binDir)
-    $args += " -testVsi"
+    $args += " --testvsi"
   } else {
     $dlls = Get-ChildItem -Recurse -Include "*.IntegrationTests.dll" $binDir
-    $args += " -trait:Feature=NetCore"
+    $args += " --trait:Feature=NetCore"
   }
 
   # Exclude out the multi-targetted netcore app projects
   $dlls = $dlls | ?{ -not ($_.FullName -match ".*netcoreapp.*") }
+  $dlls = $dlls | ?{ -not ($_.FullName -match ".*net5.0.*") }
 
   # Exclude out the ref assemblies
   $dlls = $dlls | ?{ -not ($_.FullName -match ".*\\ref\\.*") }
   $dlls = $dlls | ?{ -not ($_.FullName -match ".*/ref/.*") }
 
-  if ($ci) {
-    $args += " -xml"
-    if ($testVsi) {
-      $args += " -timeout:110"
-    } else {
-      $args += " -timeout:65"
-    }
+  if ($configuration -eq 'Debug') {
+    $excludedConfiguration = 'Release'
+  } else {
+    $excludedConfiguration = 'Debug'
   }
 
-  $procdumpPath = Ensure-ProcDump
-  $args += " -procdumppath:$procDumpPath"
-  if ($procdump) {
-    $args += " -useprocdump";
+  $dlls = $dlls | ?{ -not (($_.FullName -match ".*\\$excludedConfiguration\\.*") -or ($_.FullName -match ".*/$excludedConfiguration/.*")) }
+
+  if ($ci) {
+    if ($testVsi) {
+      $args += " --timeout 110"
+    } else {
+      $args += " --timeout 90"
+    }
+  }
+  else {
+    $args += " --html"
+  }
+
+  if ($collectDumps) {
+    $procdumpFilePath = Ensure-ProcDump
+    $args += " --procdumppath $procDumpFilePath"
+    $args += " --collectdumps";
   }
 
   if ($test64) {
-    $args += " -test64"
+    $args += " --platform x64"
+  }
+  else {
+    $args += " --platform x86"
+  }
+
+  if ($sequential) {
+    $args += " --sequential"
   }
 
   foreach ($dll in $dlls) {
@@ -466,9 +464,10 @@ function Deploy-VsixViaTool() {
   $vsDir = $vsInfo.installationPath.TrimEnd("\")
   $vsId = $vsInfo.instanceId
   $vsMajorVersion = $vsInfo.installationVersion.Split('.')[0]
+  $displayVersion = $vsInfo.catalog.productDisplayVersion
 
   $hive = "RoslynDev"
-  Write-Host "Using VS Instance $vsId at `"$vsDir`""
+  Write-Host "Using VS Instance $vsId ($displayVersion) at `"$vsDir`""
   $baseArgs = "/rootSuffix:$hive /vsInstallDir:`"$vsDir`""
 
   Write-Host "Uninstalling old Roslyn VSIX"
@@ -491,7 +490,6 @@ function Deploy-VsixViaTool() {
     "Roslyn.Compilers.Extension.vsix",
     "Roslyn.VisualStudio.Setup.vsix",
     "Roslyn.VisualStudio.Setup.Dependencies.vsix",
-    "Roslyn.VisualStudio.InteractiveComponents.vsix",
     "ExpressionEvaluatorPackage.vsix",
     "Roslyn.VisualStudio.DiagnosticsWindow.vsix",
     "Microsoft.VisualStudio.IntegrationTest.Setup.vsix")
@@ -524,7 +522,7 @@ function Ensure-ProcDump() {
     Unzip $zipFilePath $outDir
   }
 
-  return $outDir
+  return $filePath
 }
 
 # Setup the CI machine for running our integration tests.
@@ -568,6 +566,8 @@ function Setup-IntegrationTestRun() {
     # Make sure we can capture a screenshot. An exception at this point will fail-fast the build.
     Capture-Screenshot $screenshotPath
   }
+
+  $env:ROSLYN_OOP64BIT = "$oop64bit"
 }
 
 function Prepare-TempDir() {
@@ -575,6 +575,7 @@ function Prepare-TempDir() {
   $env:TMP=$TempDir
 
   Copy-Item (Join-Path $RepoRoot "src\Workspaces\MSBuildTest\Resources\.editorconfig") $TempDir
+  Copy-Item (Join-Path $RepoRoot "src\Workspaces\MSBuildTest\Resources\global.json") $TempDir
   Copy-Item (Join-Path $RepoRoot "src\Workspaces\MSBuildTest\Resources\Directory.Build.props") $TempDir
   Copy-Item (Join-Path $RepoRoot "src\Workspaces\MSBuildTest\Resources\Directory.Build.targets") $TempDir
   Copy-Item (Join-Path $RepoRoot "src\Workspaces\MSBuildTest\Resources\Directory.Build.rsp") $TempDir
@@ -604,6 +605,10 @@ try {
 
   . (Join-Path $PSScriptRoot "build-utils.ps1")
 
+  if ($testVsi) {
+    . (Join-Path $PSScriptRoot "build-utils-win.ps1")
+  }
+
   Push-Location $RepoRoot
 
   if ($ci) {
@@ -616,6 +621,10 @@ try {
 
     $global:_DotNetInstallDir = Join-Path $RepoRoot ".dotnet"
     InstallDotNetSdk $global:_DotNetInstallDir $GlobalJson.tools.dotnet
+  }
+
+  if ($restore) {
+    &(Ensure-DotNetSdk) tool restore
   }
 
   try
@@ -634,10 +643,6 @@ try {
 
   if ($restore -or $build -or $rebuild -or $pack -or $sign -or $publish -or $testCoreClr) {
     BuildSolution
-  }
-
-  if ($ci -and $build -and $msbuildEngine -eq "vs") {
-    SetVisualStudioBootstrapperBuildArgs
   }
 
   try

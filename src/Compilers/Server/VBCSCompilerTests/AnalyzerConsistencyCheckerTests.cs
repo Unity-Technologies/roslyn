@@ -2,6 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+#nullable disable
+
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
@@ -84,7 +86,7 @@ namespace Microsoft.CodeAnalysis.CompilerServer.UnitTests
             var analyzerReferences = ImmutableArray.Create(
                 new CommandLineAnalyzerReference("Delta.dll"));
 
-            var result = AnalyzerConsistencyChecker.Check(directory.Path, analyzerReferences, new FaultyAssemblyLoader());
+            var result = AnalyzerConsistencyChecker.Check(directory.Path, analyzerReferences, TestAnalyzerAssemblyLoader.LoadNotImplemented);
 
             Assert.False(result);
         }
@@ -97,8 +99,8 @@ namespace Microsoft.CodeAnalysis.CompilerServer.UnitTests
             var comp = CSharpCompilation.Create(
                 name,
                 new[] { SyntaxFactory.ParseSyntaxTree(@"class C {}") },
-                references: new MetadataReference[] { MetadataReference.CreateFromImage(TestResources.NetFX.netstandard20.netstandard) },
-                options: new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
+                references: new MetadataReference[] { MetadataReference.CreateFromImage(TestMetadata.ResourcesNetStandard20.netstandard) },
+                options: new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary, warningLevel: Diagnostic.MaxWarningLevel));
             var compFile = directory.CreateFile(name);
             comp.Emit(compFile.Path);
 
@@ -129,18 +131,6 @@ namespace Microsoft.CodeAnalysis.CompilerServer.UnitTests
                 }
 
                 return assembly;
-            }
-        }
-
-        private class FaultyAssemblyLoader : IAnalyzerAssemblyLoader
-        {
-            public void AddDependencyLocation(string fullPath)
-            {
-            }
-
-            public Assembly LoadFromPath(string fullPath)
-            {
-                throw new InvalidOperationException();
             }
         }
     }

@@ -14,7 +14,7 @@
       </trans-unit>
       <trans-unit id="Could_not_find_by_name_0">
         <source>Could not find by name: '{0}'</source>
-        <target state="translated">이름으로 찾을 수 없습니다. '{0}'</target>
+        <target state="translated">'{0}' 이름으로 찾을 수 없습니다.</target>
         <note />
       </trans-unit>
       <trans-unit id="Decompilation_log">
@@ -45,6 +45,11 @@
       <trans-unit id="Found_single_assembly_0">
         <source>Found single assembly: '{0}'</source>
         <target state="translated">단일 어셈블리를 찾았습니다. '{0}'</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Generate_Event_Subscription">
+        <source>Generate Event Subscription</source>
+        <target state="translated">이벤트 구독 생성</target>
         <note />
       </trans-unit>
       <trans-unit id="Load_from_0">

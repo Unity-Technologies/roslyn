@@ -2,6 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+#nullable disable
+
 using System.Linq;
 using Microsoft.VisualStudio.Commanding;
 using Microsoft.VisualStudio.Text.Editor.Commanding.Commands;
@@ -16,24 +18,16 @@ namespace Microsoft.CodeAnalysis.Editor.Implementation.InlineRename
         ICommandHandler<WordDeleteToEndCommandArgs>
     {
         public CommandState GetCommandState(WordDeleteToStartCommandArgs args)
-        {
-            return GetCommandState();
-        }
+            => GetCommandState();
 
         public CommandState GetCommandState(WordDeleteToEndCommandArgs args)
-        {
-            return GetCommandState();
-        }
+            => GetCommandState();
 
         public bool ExecuteCommand(WordDeleteToStartCommandArgs args, CommandExecutionContext context)
-        {
-            return HandleWordDeleteCommand(args.SubjectBuffer, args.TextView, deleteToStart: true);
-        }
+            => HandleWordDeleteCommand(args.SubjectBuffer, args.TextView, deleteToStart: true);
 
         public bool ExecuteCommand(WordDeleteToEndCommandArgs args, CommandExecutionContext context)
-        {
-            return HandleWordDeleteCommand(args.SubjectBuffer, args.TextView, deleteToStart: false);
-        }
+            => HandleWordDeleteCommand(args.SubjectBuffer, args.TextView, deleteToStart: false);
 
         private bool HandleWordDeleteCommand(ITextBuffer subjectBuffer, ITextView view, bool deleteToStart)
         {

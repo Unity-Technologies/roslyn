@@ -2,14 +2,17 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+using System;
 using System.Composition;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.CodeAnalysis.Completion;
+using Microsoft.CodeAnalysis.Host.Mef;
 using Microsoft.CodeAnalysis.LanguageServer.CustomProtocol;
 using Microsoft.VisualStudio.Text.Adornments;
 using Newtonsoft.Json.Linq;
+using Roslyn.Utilities;
 using LSP = Microsoft.VisualStudio.LanguageServer.Protocol;
 
 namespace Microsoft.CodeAnalysis.LanguageServer.Handler
@@ -18,34 +21,38 @@ namespace Microsoft.CodeAnalysis.LanguageServer.Handler
     /// Handle a completion resolve request to add description.
     /// </summary>
     [Shared]
-    [ExportLspMethod(LSP.Methods.TextDocumentCompletionResolveName)]
+    [ExportLspMethod(LSP.Methods.TextDocumentCompletionResolveName, mutatesSolutionState: false)]
     internal class CompletionResolveHandler : IRequestHandler<LSP.CompletionItem, LSP.CompletionItem>
     {
-        public async Task<LSP.CompletionItem> HandleRequestAsync(Solution solution, LSP.CompletionItem completionItem,
-            LSP.ClientCapabilities clientCapabilities, CancellationToken cancellationToken)
+        [ImportingConstructor]
+        [Obsolete(MefConstruction.ImportingConstructorMessage, error: true)]
+        public CompletionResolveHandler()
         {
-            CompletionResolveData data;
-            if (completionItem.Data is CompletionResolveData)
-            {
-                data = (CompletionResolveData)completionItem.Data;
-            }
-            else
-            {
-                data = ((JToken)completionItem.Data).ToObject<CompletionResolveData>();
-            }
+        }
 
-            var request = data.CompletionParams;
+        private static CompletionResolveData GetCompletionResolveData(LSP.CompletionItem request)
+        {
+            Contract.ThrowIfNull(request.Data);
 
-            var document = solution.GetDocumentFromURI(request.TextDocument.Uri);
+            return ((JToken)request.Data).ToObject<CompletionResolveData>();
+        }
+
+        public LSP.TextDocumentIdentifier? GetTextDocumentIdentifier(LSP.CompletionItem request)
+            => GetCompletionResolveData(request).TextDocument;
+
+        public async Task<LSP.CompletionItem> HandleRequestAsync(LSP.CompletionItem completionItem, RequestContext context, CancellationToken cancellationToken)
+        {
+            var document = context.Document;
             if (document == null)
             {
                 return completionItem;
             }
 
-            var position = await document.GetPositionFromLinePositionAsync(ProtocolConversions.PositionToLinePosition(request.Position), cancellationToken).ConfigureAwait(false);
+            var data = GetCompletionResolveData(completionItem);
+            var position = await document.GetPositionFromLinePositionAsync(ProtocolConversions.PositionToLinePosition(data.Position), cancellationToken).ConfigureAwait(false);
 
-            var completionService = document.Project.LanguageServices.GetService<CompletionService>();
-            var list = await completionService.GetCompletionsAsync(document, position, cancellationToken: cancellationToken).ConfigureAwait(false);
+            var completionService = document.Project.LanguageServices.GetRequiredService<CompletionService>();
+            var list = await completionService.GetCompletionsAsync(document, position, data.CompletionTrigger, cancellationToken: cancellationToken).ConfigureAwait(false);
             if (list == null)
             {
                 return completionItem;
@@ -59,7 +66,7 @@ namespace Microsoft.CodeAnalysis.LanguageServer.Handler
 
             var description = await completionService.GetDescriptionAsync(document, selectedItem, cancellationToken).ConfigureAwait(false);
 
-            var lspVSClientCapability = clientCapabilities?.HasVisualStudioLspCapability() == true;
+            var lspVSClientCapability = context.ClientCapabilities?.HasVisualStudioLspCapability() == true;
             LSP.CompletionItem resolvedCompletionItem;
             if (lspVSClientCapability)
             {
@@ -78,7 +85,7 @@ namespace Microsoft.CodeAnalysis.LanguageServer.Handler
             return resolvedCompletionItem;
         }
 
-        private LSP.VSCompletionItem CloneVSCompletionItem(LSP.CompletionItem completionItem)
+        private static LSP.VSCompletionItem CloneVSCompletionItem(LSP.CompletionItem completionItem)
         {
             return new LSP.VSCompletionItem
             {
@@ -94,7 +101,8 @@ namespace Microsoft.CodeAnalysis.LanguageServer.Handler
                 Kind = completionItem.Kind,
                 Label = completionItem.Label,
                 SortText = completionItem.SortText,
-                TextEdit = completionItem.TextEdit
+                TextEdit = completionItem.TextEdit,
+                Preselect = completionItem.Preselect
             };
         }
     }

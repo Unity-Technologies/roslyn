@@ -96,10 +96,12 @@ namespace Microsoft.CodeAnalysis.CSharp
                     stringBuilder.Append('{').Append(nextFormatPosition++);
                     if (fillin.Alignment != null && !fillin.Alignment.HasErrors)
                     {
+                        Debug.Assert(fillin.Alignment.ConstantValue is { });
                         stringBuilder.Append(',').Append(fillin.Alignment.ConstantValue.Int64Value);
                     }
                     if (fillin.Format != null && !fillin.Format.HasErrors)
                     {
+                        Debug.Assert(fillin.Format.ConstantValue is { });
                         stringBuilder.Append(':').Append(fillin.Format.ConstantValue.StringValue);
                     }
                     stringBuilder.Append('}');
@@ -118,9 +120,9 @@ namespace Microsoft.CodeAnalysis.CSharp
 
         public override BoundNode VisitInterpolatedString(BoundInterpolatedString node)
         {
-            Debug.Assert(node.Type.SpecialType == SpecialType.System_String); // if target-converted, we should not get here.
+            Debug.Assert(node.Type is { SpecialType: SpecialType.System_String }); // if target-converted, we should not get here.
 
-            BoundExpression result;
+            BoundExpression? result;
 
             if (CanLowerToStringConcatenation(node))
             {
@@ -148,7 +150,7 @@ namespace Microsoft.CodeAnalysis.CSharp
                     else
                     {
                         // this is one of the literal parts
-                        Debug.Assert(part is BoundLiteral && part.ConstantValue != null);
+                        Debug.Assert(part is BoundLiteral && part.ConstantValue is { StringValue: { } });
                         part = _factory.StringLiteral(Unescape(part.ConstantValue.StringValue));
                     }
 
@@ -159,7 +161,7 @@ namespace Microsoft.CodeAnalysis.CSharp
 
                 if (length == 1)
                 {
-                    result = _factory.Coalesce(result, _factory.StringLiteral(""));
+                    result = _factory.Coalesce(result!, _factory.StringLiteral(""));
                 }
             }
             else
@@ -187,6 +189,7 @@ namespace Microsoft.CodeAnalysis.CSharp
                     );
             }
 
+            Debug.Assert(result is { });
             if (!result.HasAnyErrors)
             {
                 result = VisitExpression(result); // lower the arguments AND handle expanded form, argument conversions, etc.

@@ -8,23 +8,25 @@ using System.Collections.Immutable;
 using System.Diagnostics;
 using System.IO;
 using System.Text.RegularExpressions;
-using Microsoft.CodeAnalysis.PooledObjects;
 using Microsoft.CodeAnalysis.Text;
 using Roslyn.Utilities;
-using AnalyzerOptions = System.Collections.Immutable.ImmutableDictionary<string, string>;
-using TreeOptions = System.Collections.Immutable.ImmutableDictionary<string, Microsoft.CodeAnalysis.ReportDiagnostic>;
 
 namespace Microsoft.CodeAnalysis
 {
     /// <summary>
-    /// Represents a single EditorConfig file, see http://editorconfig.org for details about the format.
+    /// Represents a single EditorConfig file, see https://editorconfig.org for details about the format.
     /// </summary>
     public sealed partial class AnalyzerConfig
     {
-        // Matches EditorConfig section header such as "[*.{js,py}]", see http://editorconfig.org for details
+        // Matches EditorConfig section header such as "[*.{js,py}]", see https://editorconfig.org for details
         private static readonly Regex s_sectionMatcher = new Regex(@"^\s*\[(([^#;]|\\#|\\;)+)\]\s*([#;].*)?$", RegexOptions.Compiled);
-        // Matches EditorConfig property such as "indent_style = space", see http://editorconfig.org for details
+        // Matches EditorConfig property such as "indent_style = space", see https://editorconfig.org for details
         private static readonly Regex s_propertyMatcher = new Regex(@"^\s*([\w\.\-_]+)\s*[=:]\s*(.*?)\s*([#;].*)?$", RegexOptions.Compiled);
+
+        /// <summary>
+        /// Key that indicates if this config is a global config
+        /// </summary>
+        internal const string GlobalKey = "is_global";
 
         /// <summary>
         /// A set of keys that are reserved for special interpretation for the editorconfig specification.
@@ -79,7 +81,12 @@ namespace Microsoft.CodeAnalysis
         /// <summary>
         /// Gets whether this editorconfig is a topmost editorconfig.
         /// </summary>
-        internal bool IsRoot => GlobalSection.Properties.TryGetValue("root", out string val) && val == "true";
+        internal bool IsRoot => GlobalSection.Properties.TryGetValue("root", out string? val) && val == "true";
+
+        /// <summary>
+        /// Gets whether this editorconfig is a global editorconfig.
+        /// </summary>
+        internal bool IsGlobal => GlobalSection.Properties.ContainsKey(GlobalKey);
 
         private AnalyzerConfig(
             Section globalSection,
@@ -99,7 +106,7 @@ namespace Microsoft.CodeAnalysis
         /// Parses an editor config file text located at the given path. No parsing
         /// errors are reported. If any line contains a parse error, it is dropped.
         /// </summary>
-        public static AnalyzerConfig Parse(string text, string pathToFile)
+        public static AnalyzerConfig Parse(string text, string? pathToFile)
         {
             return Parse(SourceText.From(text), pathToFile);
         }
@@ -108,14 +115,14 @@ namespace Microsoft.CodeAnalysis
         /// Parses an editor config file text located at the given path. No parsing
         /// errors are reported. If any line contains a parse error, it is dropped.
         /// </summary>
-        public static AnalyzerConfig Parse(SourceText text, string pathToFile)
+        public static AnalyzerConfig Parse(SourceText text, string? pathToFile)
         {
-            if (!Path.IsPathRooted(pathToFile) || string.IsNullOrEmpty(Path.GetFileName(pathToFile)))
+            if (pathToFile is null || !Path.IsPathRooted(pathToFile) || string.IsNullOrEmpty(Path.GetFileName(pathToFile)))
             {
                 throw new ArgumentException("Must be an absolute path to an editorconfig file", nameof(pathToFile));
             }
 
-            Section globalSection = null;
+            Section? globalSection = null;
             var namedSectionBuilder = ImmutableArray.CreateBuilder<Section>();
 
             // N.B. The editorconfig documentation is quite loose on property interpretation.
@@ -180,7 +187,7 @@ namespace Microsoft.CodeAnalysis
             // Add the last section
             addNewSection();
 
-            return new AnalyzerConfig(globalSection, namedSectionBuilder.ToImmutable(), pathToFile);
+            return new AnalyzerConfig(globalSection!, namedSectionBuilder.ToImmutable(), pathToFile);
 
             void addNewSection()
             {
@@ -222,6 +229,12 @@ namespace Microsoft.CodeAnalysis
             /// be a case-sensitive comparison.
             /// </summary>
             public static StringComparison NameComparer { get; } = StringComparison.Ordinal;
+
+            /// <summary>
+            /// Used to compare <see cref="Name"/>s of sections. Specified by editorconfig to
+            /// be a case-sensitive comparison.
+            /// </summary>
+            public static IEqualityComparer<string> NameEqualityComparer { get; } = StringComparer.Ordinal;
 
             /// <summary>
             /// Used to compare keys in <see cref="Properties"/>. The editorconfig spec defines property

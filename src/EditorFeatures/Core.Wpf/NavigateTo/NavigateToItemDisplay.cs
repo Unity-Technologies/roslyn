@@ -2,6 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+#nullable disable
+
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Drawing;
@@ -23,9 +25,7 @@ namespace Microsoft.CodeAnalysis.Editor.Implementation.NavigateTo
         private ReadOnlyCollection<DescriptionItem> _descriptionItems;
 
         public NavigateToItemDisplay(INavigateToSearchResult searchResult)
-        {
-            _searchResult = searchResult;
-        }
+            => _searchResult = searchResult;
 
         public string AdditionalInformation => _searchResult.AdditionalInformation;
 

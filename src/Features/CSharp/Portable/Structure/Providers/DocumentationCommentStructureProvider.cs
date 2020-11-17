@@ -2,9 +2,11 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+#nullable disable
+
 using System.Threading;
+using Microsoft.CodeAnalysis.CSharp.LanguageServices;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
-using Microsoft.CodeAnalysis.Options;
 using Microsoft.CodeAnalysis.PooledObjects;
 using Microsoft.CodeAnalysis.Structure;
 using Microsoft.CodeAnalysis.Text;
@@ -16,7 +18,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Structure
         protected override void CollectBlockSpans(
             DocumentationCommentTriviaSyntax documentationComment,
             ArrayBuilder<BlockSpan> spans,
-            OptionSet options,
+            BlockStructureOptionProvider optionProvider,
             CancellationToken cancellationToken)
         {
             var startPos = documentationComment.FullSpan.Start;
@@ -26,8 +28,8 @@ namespace Microsoft.CodeAnalysis.CSharp.Structure
 
             var span = TextSpan.FromBounds(startPos, endPos);
 
-            var bannerLength = options.GetOption(BlockStructureOptions.MaximumBannerLength, LanguageNames.CSharp);
-            var bannerText = CSharpSyntaxFactsService.Instance.GetBannerText(
+            var bannerLength = optionProvider.GetOption(BlockStructureOptions.MaximumBannerLength, LanguageNames.CSharp);
+            var bannerText = CSharpSyntaxFacts.Instance.GetBannerText(
                 documentationComment, bannerLength, cancellationToken);
 
             spans.Add(new BlockSpan(

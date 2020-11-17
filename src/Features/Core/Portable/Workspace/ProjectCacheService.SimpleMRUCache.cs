@@ -2,6 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+#nullable disable
+
 using System;
 using System.Diagnostics;
 using System.Threading;
@@ -71,9 +73,7 @@ namespace Microsoft.CodeAnalysis.Host
             }
 
             public void Clear()
-            {
-                Array.Clear(_nodes, 0, _nodes.Length);
-            }
+                => Array.Clear(_nodes, 0, _nodes.Length);
 
             private struct Node
             {

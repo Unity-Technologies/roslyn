@@ -31,7 +31,7 @@ namespace Microsoft.CodeAnalysis.CSharp
         /// <summary>
         /// The Deconstruct method (if any) for this non-terminal position in the deconstruction tree.
         /// </summary>
-        public IMethodSymbol Method
+        public IMethodSymbol? Method
         {
             get
             {

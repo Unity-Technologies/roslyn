@@ -10,6 +10,6 @@ namespace Microsoft.CodeAnalysis.CSharp
 
         BoundNode IBoundConditional.Consequence => this.Consequence;
 
-        BoundNode IBoundConditional.AlternativeOpt => this.AlternativeOpt;
+        BoundNode? IBoundConditional.AlternativeOpt => this.AlternativeOpt;
     }
 }

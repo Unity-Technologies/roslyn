@@ -32,7 +32,7 @@ namespace Microsoft.CodeAnalysis.CSharp
             if (rewrittenOperand.Kind == BoundKind.MethodGroup)
             {
                 var methodGroup = (BoundMethodGroup)rewrittenOperand;
-                BoundExpression receiver = methodGroup.ReceiverOpt;
+                BoundExpression? receiver = methodGroup.ReceiverOpt;
                 if (receiver != null && receiver.Kind != BoundKind.ThisReference)
                 {
                     // possible side-effect
@@ -47,8 +47,8 @@ namespace Microsoft.CodeAnalysis.CSharp
             var operandType = rewrittenOperand.Type;
             var targetType = rewrittenTargetType.Type;
 
-            Debug.Assert((object)operandType != null || rewrittenOperand.ConstantValue.IsNull);
-            Debug.Assert((object)targetType != null);
+            Debug.Assert(operandType is { } || rewrittenOperand.ConstantValue!.IsNull);
+            Debug.Assert(targetType is { });
 
             // TODO: Handle dynamic operand type and target type
 

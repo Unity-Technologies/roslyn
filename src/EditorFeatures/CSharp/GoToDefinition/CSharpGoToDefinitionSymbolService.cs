@@ -2,6 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+#nullable disable
+
 using System;
 using System.Collections.Generic;
 using System.Composition;
@@ -15,13 +17,12 @@ namespace Microsoft.CodeAnalysis.Editor.CSharp.GoToDefinition
     internal class CSharpGoToDefinitionSymbolService : AbstractGoToDefinitionSymbolService
     {
         [ImportingConstructor]
+        [Obsolete(MefConstruction.ImportingConstructorMessage, error: true)]
         public CSharpGoToDefinitionSymbolService()
         {
         }
 
         protected override ISymbol FindRelatedExplicitlyDeclaredSymbol(ISymbol symbol, Compilation compilation)
-        {
-            return symbol;
-        }
+            => symbol;
     }
 }

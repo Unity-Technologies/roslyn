@@ -2,10 +2,13 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+#nullable disable
+
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Composition;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -29,6 +32,7 @@ namespace Microsoft.CodeAnalysis.CSharp.CodeRefactorings.ConvertLocalFunctionToM
         private static readonly SyntaxGenerator s_generator = CSharpSyntaxGenerator.Instance;
 
         [ImportingConstructor]
+        [SuppressMessage("RoslynDiagnosticsReliability", "RS0033:Importing constructor should be [Obsolete]", Justification = "Used in test code: https://github.com/dotnet/roslyn/issues/42814")]
         public CSharpConvertLocalFunctionToMethodCodeRefactoringProvider()
         {
         }
@@ -255,7 +259,7 @@ namespace Microsoft.CodeAnalysis.CSharp.CodeRefactorings.ConvertLocalFunctionToM
         private static ParameterSyntax GenerateParameter(IParameterSymbol p, string name)
         {
             return SyntaxFactory.Parameter(name.ToIdentifierToken())
-                .WithModifiers(CSharpSyntaxGenerator.GetParameterModifiers(p.RefKind))
+                .WithModifiers(CSharpSyntaxGeneratorInternal.GetParameterModifiers(p.RefKind))
                 .WithType(p.Type.GenerateTypeSyntax());
         }
 

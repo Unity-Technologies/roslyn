@@ -2,6 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+#nullable disable
+
 using System;
 using System.Collections.Immutable;
 using System.Composition;
@@ -19,14 +21,10 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation
         [ImportingConstructor]
         [Obsolete(MefConstruction.ImportingConstructorMessage, error: true)]
         public VisualStudioDocumentTrackingServiceFactory(VisualStudioActiveDocumentTracker activeDocumentTracker)
-        {
-            _activeDocumentTracker = activeDocumentTracker;
-        }
+            => _activeDocumentTracker = activeDocumentTracker;
 
         public IWorkspaceService CreateService(HostWorkspaceServices workspaceServices)
-        {
-            return new VisualStudioDocumentTrackingService(_activeDocumentTracker, workspaceServices.Workspace);
-        }
+            => new VisualStudioDocumentTrackingService(_activeDocumentTracker, workspaceServices.Workspace);
 
         private class VisualStudioDocumentTrackingService : IDocumentTrackingService
         {
@@ -39,7 +37,7 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation
                 _workspace = workspace;
             }
 
-            private readonly object _gate = new object();
+            private readonly object _gate = new();
             private int _subscriptions = 0;
             private event EventHandler<DocumentId> _activeDocumentChangedEventHandler;
 
@@ -77,9 +75,7 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation
             }
 
             private void ActiveDocumentTracker_DocumentsChanged(object sender, EventArgs e)
-            {
-                _activeDocumentChangedEventHandler?.Invoke(this, TryGetActiveDocument());
-            }
+                => _activeDocumentChangedEventHandler?.Invoke(this, TryGetActiveDocument());
 
             public event EventHandler<EventArgs> NonRoslynBufferTextChanged
             {
@@ -95,14 +91,10 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation
             }
 
             public DocumentId TryGetActiveDocument()
-            {
-                return _activeDocumentTracker.TryGetActiveDocument(_workspace);
-            }
+                => _activeDocumentTracker.TryGetActiveDocument(_workspace);
 
             public ImmutableArray<DocumentId> GetVisibleDocuments()
-            {
-                return _activeDocumentTracker.GetVisibleDocuments(_workspace);
-            }
+                => _activeDocumentTracker.GetVisibleDocuments(_workspace);
         }
     }
 }

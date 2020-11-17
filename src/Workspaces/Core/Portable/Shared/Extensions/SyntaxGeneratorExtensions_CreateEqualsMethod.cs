@@ -2,10 +2,11 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+#nullable disable
+
 using System;
 using System.Collections.Immutable;
 using System.Linq;
-using System.Threading;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CodeGeneration;
 using Microsoft.CodeAnalysis.Editing;
@@ -17,11 +18,6 @@ namespace Microsoft.CodeAnalysis.Shared.Extensions
 {
     internal static partial class SyntaxGeneratorExtensions
     {
-        private const string EqualsName = "Equals";
-        private const string DefaultName = "Default";
-        private const string ObjName = "obj";
-        public const string OtherName = "other";
-
         public static IMethodSymbol CreateEqualsMethod(
             this SyntaxGenerator factory,
             Compilation compilation,
@@ -105,7 +101,16 @@ namespace Microsoft.CodeAnalysis.Shared.Extensions
             ImmutableArray<ISymbol> members,
             string localNameOpt)
         {
-            var statements = ArrayBuilder<SyntaxNode>.GetInstance();
+            using var _1 = ArrayBuilder<SyntaxNode>.GetInstance(out var statements);
+
+            // A ref like type can not be boxed. Because of this an overloaded Equals taking object in the general case
+            // can never be true, because an equivalent object can never be boxed into the object itself. Therefore only
+            // need to return false.
+            if (containingType.IsRefLikeType)
+            {
+                statements.Add(factory.ReturnStatement(factory.FalseLiteralExpression()));
+                return statements.ToImmutable();
+            }
 
             // Come up with a good name for the local variable we're going to compare against.
             // For example, if the class name is "CustomerOrder" then we'll generate:
@@ -119,14 +124,14 @@ namespace Microsoft.CodeAnalysis.Shared.Extensions
 
             // These will be all the expressions that we'll '&&' together inside the final
             // return statement of 'Equals'.
-            var expressions = ArrayBuilder<SyntaxNode>.GetInstance();
+            using var _2 = ArrayBuilder<SyntaxNode>.GetInstance(out var expressions);
 
-            if (factory.SupportsPatterns(parseOptions))
+            if (factory.SyntaxGeneratorInternal.SupportsPatterns(parseOptions))
             {
                 // If we support patterns then we can do "return obj is MyType myType && ..."
                 expressions.Add(
-                    factory.IsPatternExpression(objNameExpression,
-                        factory.DeclarationPattern(containingType, localName)));
+                    factory.SyntaxGeneratorInternal.IsPatternExpression(objNameExpression,
+                        factory.SyntaxGeneratorInternal.DeclarationPattern(containingType, localName)));
             }
             else if (containingType.IsValueType)
             {
@@ -148,7 +153,7 @@ namespace Microsoft.CodeAnalysis.Shared.Extensions
                 //
                 //      var myType = (MyType)obj;
 
-                var localDeclaration = factory.SimpleLocalDeclarationStatement(
+                var localDeclaration = factory.SimpleLocalDeclarationStatement(factory.SyntaxGeneratorInternal,
                     containingType, localName, factory.CastExpression(containingType, objNameExpression));
 
                 statements.Add(ifStatement);
@@ -160,7 +165,7 @@ namespace Microsoft.CodeAnalysis.Shared.Extensions
                 //
                 //      var myType = obj as MyType;
 
-                var localDeclaration = factory.SimpleLocalDeclarationStatement(
+                var localDeclaration = factory.SimpleLocalDeclarationStatement(factory.SyntaxGeneratorInternal,
                     containingType, localName, factory.TryCastExpression(objNameExpression, containingType));
 
                 statements.Add(localDeclaration);
@@ -195,8 +200,7 @@ namespace Microsoft.CodeAnalysis.Shared.Extensions
             statements.Add(factory.ReturnStatement(
                 expressions.Aggregate(factory.LogicalAndExpression)));
 
-            expressions.Free();
-            return statements.ToImmutableAndFree();
+            return statements.ToImmutable();
         }
 
         private static void AddMemberChecks(
@@ -264,7 +268,7 @@ namespace Microsoft.CodeAnalysis.Shared.Extensions
 
             // These will be all the expressions that we'll '&&' together inside the final
             // return statement of 'Equals'.
-            var expressions = ArrayBuilder<SyntaxNode>.GetInstance();
+            using var _ = ArrayBuilder<SyntaxNode>.GetInstance(out var expressions);
 
             if (!containingType.IsValueType)
             {
@@ -296,7 +300,6 @@ namespace Microsoft.CodeAnalysis.Shared.Extensions
             statements.Add(factory.ReturnStatement(
                 expressions.Aggregate(factory.LogicalAndExpression)));
 
-            expressions.Free();
             return statements.ToImmutableAndFree();
         }
 
@@ -370,26 +373,6 @@ namespace Microsoft.CodeAnalysis.Shared.Extensions
             return false;
         }
 
-        public static SyntaxNode GetDefaultEqualityComparer(
-            this SyntaxGenerator factory,
-            Compilation compilation,
-            ITypeSymbol type)
-        {
-            var equalityComparerType = compilation.EqualityComparerOfTType();
-            var constructedType = equalityComparerType.Construct(type);
-            return factory.MemberAccessExpression(
-                factory.TypeExpression(constructedType),
-                factory.IdentifierName(DefaultName));
-        }
-
-        private static ITypeSymbol GetType(Compilation compilation, ISymbol symbol)
-            => symbol switch
-            {
-                IFieldSymbol field => field.Type,
-                IPropertySymbol property => property.Type,
-                _ => compilation.GetSpecialType(SpecialType.System_Object),
-            };
-
         private static bool HasExistingBaseEqualsMethod(INamedTypeSymbol containingType)
         {
             // Check if any of our base types override Equals.  If so, first check with them.
@@ -401,7 +384,8 @@ namespace Microsoft.CodeAnalysis.Shared.Extensions
                       !method.IsStatic &&
                       method.Parameters.Length == 1 &&
                       method.ReturnType.SpecialType == SpecialType.System_Boolean &&
-                      method.Parameters[0].Type.SpecialType == SpecialType.System_Object
+                      method.Parameters[0].Type.SpecialType == SpecialType.System_Object &&
+                      !method.IsAbstract
                 select method;
 
             return existingMethods.Any();

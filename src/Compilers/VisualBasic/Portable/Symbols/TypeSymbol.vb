@@ -559,6 +559,12 @@ Done:
             End Get
         End Property
 
+        Private ReadOnly Property ITypeSymbol_IsNativeIntegerType As Boolean Implements ITypeSymbol.IsNativeIntegerType
+            Get
+                Return False
+            End Get
+        End Property
+
         Private ReadOnly Property ITypeSymbol_TypeKind As TypeKind Implements ITypeSymbol.TypeKind, ITypeSymbolInternal.TypeKind
             Get
                 Return Me.TypeKind
@@ -582,6 +588,13 @@ Done:
         Private ReadOnly Property ITypeSymbol_IsReadOnly As Boolean Implements ITypeSymbol.IsReadOnly
             Get
                 ' VB does not have readonly structures
+                Return False
+            End Get
+        End Property
+
+        Private ReadOnly Property ITypeSymbol_IsRecord As Boolean Implements ITypeSymbol.IsRecord
+            Get
+                ' VB does not have records
                 Return False
             End Get
         End Property

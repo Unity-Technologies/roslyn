@@ -2,6 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+#nullable disable
+
 using Microsoft.CodeAnalysis.CSharp.Test.Utilities;
 using Roslyn.Test.Utilities;
 using System.Linq;
@@ -232,7 +234,8 @@ public static class Class
             comp.VerifyDiagnostics();
         }
 
-        [Fact, WorkItem(35949, "https://github.com/dotnet/roslyn/issues/35949")]
+        [WorkItem(35949, "https://github.com/dotnet/roslyn/issues/35949")]
+        [ConditionalFact(typeof(IsRelease))]
         public void NotNull_Complexity()
         {
             var source = @"
@@ -285,7 +288,7 @@ static class Ext
 
         [ConditionalFactAttribute(typeof(IsRelease))]
         [WorkItem(40495, "https://github.com/dotnet/roslyn/issues/40495")]
-        public void NestedLambdas()
+        public void NestedLambdas_01()
         {
             var source =
 @"#nullable enable
@@ -305,6 +308,72 @@ class Program
 }";
             var comp = CreateCompilation(source);
             comp.VerifyDiagnostics();
+        }
+
+        // Test should complete in several seconds if UnboundLambda.ReallyBind
+        // uses results from _returnInferenceCache.
+        [ConditionalFactAttribute(typeof(IsRelease))]
+        [WorkItem(1083969, "https://devdiv.visualstudio.com/DevDiv/_workitems/edit/1083969")]
+        public void NestedLambdas_02()
+        {
+            var source =
+@"using System.Collections.Generic;
+using System.Linq;
+class Program
+{
+    static void F(IEnumerable<int[]> x)
+    {
+        x.GroupBy(y => y[1]).SelectMany(x =>
+        x.GroupBy(y => y[2]).SelectMany(x =>
+        x.GroupBy(y => y[3]).SelectMany(x =>
+        x.GroupBy(y => y[4]).SelectMany(x =>
+        x.GroupBy(y => y[5]).SelectMany(x =>
+        x.GroupBy(y => y[6]).SelectMany(x =>
+        x.GroupBy(y => y[7]).SelectMany(x =>
+        x.GroupBy(y => y[8]).SelectMany(x =>
+        x.GroupBy(y => y[9]).SelectMany(x =>
+        x.GroupBy(y => y[0]).SelectMany(x =>
+        x.GroupBy(y => y[1]).SelectMany(x =>
+        x.GroupBy(y => y[2]).SelectMany(x =>
+        x.GroupBy(y => y[3]).SelectMany(x =>
+        x.GroupBy(y => y[4]).SelectMany(x =>
+        x.GroupBy(y => y[5]).SelectMany(x =>
+        x.GroupBy(y => y[6]).SelectMany(x =>
+        x.GroupBy(y => y[7]).SelectMany(x =>
+        x.GroupBy(y => y[8]).SelectMany(x =>
+        x.GroupBy(y => y[9]).SelectMany(x =>
+        x.GroupBy(y => y[0]).Select(x => x.Average(z => z[0])))))))))))))))))))));
+    }
+}";
+            var comp = CreateCompilation(source);
+            comp.VerifyDiagnostics();
+        }
+
+        [Fact]
+        [WorkItem(48886, "https://github.com/dotnet/roslyn/issues/48886")]
+        public void ArrayInitializationAnonymousTypes()
+        {
+            const int nTypes = 250;
+            const int nItemsPerType = 1000;
+
+            var builder = new StringBuilder();
+            for (int i = 0; i < nTypes; i++)
+            {
+                builder.AppendLine($"class C{i}");
+                builder.AppendLine("{");
+                builder.AppendLine("    static object[] F = new[]");
+                builder.AppendLine("    {");
+                for (int j = 0; j < nItemsPerType; j++)
+                {
+                    builder.AppendLine($"        new {{ Id = {j} }},");
+                }
+                builder.AppendLine("    };");
+                builder.AppendLine("}");
+            }
+
+            var source = builder.ToString();
+            var comp = CreateCompilation(source);
+            comp.VerifyEmitDiagnostics();
         }
     }
 }

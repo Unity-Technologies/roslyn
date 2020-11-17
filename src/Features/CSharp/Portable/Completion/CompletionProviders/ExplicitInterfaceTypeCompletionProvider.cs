@@ -2,9 +2,12 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+#nullable disable
+
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Composition;
 using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
@@ -13,6 +16,7 @@ using Microsoft.CodeAnalysis.Completion.Providers;
 using Microsoft.CodeAnalysis.CSharp.Extensions.ContextQuery;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.ErrorReporting;
+using Microsoft.CodeAnalysis.Host.Mef;
 using Microsoft.CodeAnalysis.Options;
 using Microsoft.CodeAnalysis.Shared.Extensions;
 using Microsoft.CodeAnalysis.Shared.Extensions.ContextQuery;
@@ -21,18 +25,29 @@ using Roslyn.Utilities;
 
 namespace Microsoft.CodeAnalysis.CSharp.Completion.Providers
 {
+    [ExportCompletionProvider(nameof(ExplicitInterfaceTypeCompletionProvider), LanguageNames.CSharp)]
+    [ExtensionOrder(After = nameof(ExplicitInterfaceMemberCompletionProvider))]
+    [Shared]
     internal partial class ExplicitInterfaceTypeCompletionProvider : AbstractSymbolCompletionProvider
     {
+        [ImportingConstructor]
+        [Obsolete(MefConstruction.ImportingConstructorMessage, error: true)]
+        public ExplicitInterfaceTypeCompletionProvider()
+        {
+        }
+
         internal override bool IsInsertionTrigger(SourceText text, int insertedCharacterPosition, OptionSet options)
             => CompletionUtilities.IsTriggerAfterSpaceOrStartOfWordCharacter(text, insertedCharacterPosition, options);
+
+        internal override ImmutableHashSet<char> TriggerCharacters { get; } = CompletionUtilities.SpaceTriggerCharacter;
 
         protected override (string displayText, string suffix, string insertionText) GetDisplayAndSuffixAndInsertionText(ISymbol symbol, SyntaxContext context)
             => CompletionUtilities.GetDisplayAndSuffixAndInsertionText(symbol, context);
 
-        protected override async Task<SyntaxContext> CreateContext(
+        protected override async Task<SyntaxContext> CreateContextAsync(
             Document document, int position, CancellationToken cancellationToken)
         {
-            var semanticModel = await document.GetSemanticModelAsync(cancellationToken).ConfigureAwait(false);
+            var semanticModel = await document.ReuseExistingSpeculativeModelAsync(position, cancellationToken).ConfigureAwait(false);
             return CSharpSyntaxContext.CreateContext(
                 document.Project.Solution.Workspace, semanticModel, position, cancellationToken);
         }
@@ -53,13 +68,13 @@ namespace Microsoft.CodeAnalysis.CSharp.Completion.Providers
                         CSharpFeaturesResources.Autoselect_disabled_due_to_member_declaration);
                 }
             }
-            catch (Exception e) when (FatalError.ReportWithoutCrashUnlessCanceled(e))
+            catch (Exception e) when (FatalError.ReportAndCatchUnlessCanceled(e))
             {
                 // nop
             }
         }
 
-        protected override Task<ImmutableArray<ISymbol>> GetSymbolsWorker(
+        protected override Task<ImmutableArray<ISymbol>> GetSymbolsAsync(
             SyntaxContext context, int position, OptionSet options, CancellationToken cancellationToken)
         {
             var targetToken = context.TargetToken;
@@ -104,7 +119,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Completion.Providers
             }
 
             // Looks syntactically good.  See what interfaces our containing class/struct/interface has
-            Debug.Assert(IsClassOrStructOrInterface(typeDeclaration));
+            Debug.Assert(IsClassOrStructOrInterfaceOrRecord(typeDeclaration));
 
             var semanticModel = context.SemanticModel;
             var namedType = semanticModel.GetDeclaredSymbol(typeDeclaration, cancellationToken);
@@ -119,12 +134,17 @@ namespace Microsoft.CodeAnalysis.CSharp.Completion.Providers
             return Task.FromResult(interfaceSet.ToImmutableArray<ISymbol>());
         }
 
-        private bool IsPreviousTokenValid(SyntaxToken tokenBeforeType)
+        private static bool IsPreviousTokenValid(SyntaxToken tokenBeforeType)
         {
+            if (tokenBeforeType.Kind() == SyntaxKind.AsyncKeyword)
+            {
+                tokenBeforeType = tokenBeforeType.GetPreviousToken();
+            }
+
             if (tokenBeforeType.Kind() == SyntaxKind.OpenBraceToken)
             {
                 // Show us after the open brace for a class/struct/interface
-                return IsClassOrStructOrInterface(tokenBeforeType.Parent);
+                return IsClassOrStructOrInterfaceOrRecord(tokenBeforeType.Parent);
             }
 
             if (tokenBeforeType.Kind() == SyntaxKind.CloseBraceToken ||
@@ -133,13 +153,14 @@ namespace Microsoft.CodeAnalysis.CSharp.Completion.Providers
                 // Check that we're after a class/struct/interface member.
                 var memberDeclaration = tokenBeforeType.GetAncestor<MemberDeclarationSyntax>();
                 return memberDeclaration?.GetLastToken() == tokenBeforeType &&
-                       IsClassOrStructOrInterface(memberDeclaration.Parent);
+                       IsClassOrStructOrInterfaceOrRecord(memberDeclaration.Parent);
             }
 
             return false;
         }
 
-        private static bool IsClassOrStructOrInterface(SyntaxNode node)
-            => node.Kind() == SyntaxKind.ClassDeclaration || node.Kind() == SyntaxKind.StructDeclaration || node.Kind() == SyntaxKind.InterfaceDeclaration;
+        private static bool IsClassOrStructOrInterfaceOrRecord(SyntaxNode node)
+            => node.Kind() == SyntaxKind.ClassDeclaration || node.Kind() == SyntaxKind.StructDeclaration ||
+            node.Kind() == SyntaxKind.InterfaceDeclaration || node.Kind() == SyntaxKind.RecordDeclaration;
     }
 }

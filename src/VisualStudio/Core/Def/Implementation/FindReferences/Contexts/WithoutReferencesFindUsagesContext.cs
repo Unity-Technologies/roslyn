@@ -2,6 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+#nullable disable
+
 using System;
 using System.Collections.Immutable;
 using System.Threading.Tasks;
@@ -34,18 +36,18 @@ namespace Microsoft.VisualStudio.LanguageServices.FindUsages
             }
 
             // We should never be called in a context where we get references.
-            protected override Task OnReferenceFoundWorkerAsync(SourceReferenceItem reference)
+            protected override ValueTask OnReferenceFoundWorkerAsync(SourceReferenceItem reference)
                 => throw new InvalidOperationException();
 
             // Nothing to do on completion.
             protected override Task OnCompletedAsyncWorkerAsync()
                 => Task.CompletedTask;
 
-            protected override async Task OnDefinitionFoundWorkerAsync(DefinitionItem definition)
+            protected override async ValueTask OnDefinitionFoundWorkerAsync(DefinitionItem definition)
             {
                 var definitionBucket = GetOrCreateDefinitionBucket(definition);
 
-                var entries = ArrayBuilder<Entry>.GetInstance();
+                using var _ = ArrayBuilder<Entry>.GetInstance(out var entries);
 
                 if (definition.SourceSpans.Length == 1)
                 {
@@ -91,8 +93,6 @@ namespace Microsoft.VisualStudio.LanguageServices.FindUsages
 
                     NotifyChange();
                 }
-
-                entries.Free();
             }
 
             private async Task<Entry> TryCreateEntryAsync(

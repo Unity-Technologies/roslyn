@@ -2,6 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+#nullable disable
+
 using System;
 using System.Threading;
 using Microsoft.CodeAnalysis.Internal.Log;
@@ -29,9 +31,7 @@ namespace Microsoft.CodeAnalysis.Notification
         public string Operation { get; }
 
         public void Done()
-        {
-            _done = true;
-        }
+            => _done = true;
 
         public void Dispose()
         {

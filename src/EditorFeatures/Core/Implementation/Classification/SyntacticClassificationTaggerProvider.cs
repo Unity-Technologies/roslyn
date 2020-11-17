@@ -2,7 +2,10 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+#nullable disable
+
 using System.ComponentModel.Composition;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using Microsoft.CodeAnalysis.Editor.Shared.Extensions;
 using Microsoft.CodeAnalysis.Editor.Shared.Options;
@@ -26,9 +29,10 @@ namespace Microsoft.CodeAnalysis.Editor.Implementation.Classification
         private readonly IAsynchronousOperationListener _listener;
         private readonly ClassificationTypeMap _typeMap;
 
-        private readonly ConditionalWeakTable<ITextBuffer, TagComputer> _tagComputers = new ConditionalWeakTable<ITextBuffer, TagComputer>();
+        private readonly ConditionalWeakTable<ITextBuffer, TagComputer> _tagComputers = new();
 
         [ImportingConstructor]
+        [SuppressMessage("RoslynDiagnosticsReliability", "RS0033:Importing constructor should be [Obsolete]", Justification = "Used in test code: https://github.com/dotnet/roslyn/issues/42814")]
         public SyntacticClassificationTaggerProvider(
             IThreadingContext threadingContext,
             IForegroundNotificationService notificationService,
@@ -71,8 +75,6 @@ namespace Microsoft.CodeAnalysis.Editor.Implementation.Classification
         }
 
         private void DisconnectTagComputer(ITextBuffer buffer)
-        {
-            _tagComputers.Remove(buffer);
-        }
+            => _tagComputers.Remove(buffer);
     }
 }

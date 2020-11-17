@@ -2,6 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+#nullable disable
+
 using System;
 
 namespace Microsoft.VisualStudio.LanguageServices.Implementation.Utilities
@@ -11,9 +13,7 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.Utilities
         private readonly DateTime _end;
 
         public TimeSlice(TimeSpan duration)
-        {
-            _end = DateTime.UtcNow + duration;
-        }
+            => _end = DateTime.UtcNow + duration;
 
         public bool IsOver
         {

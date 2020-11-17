@@ -2,6 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+#nullable disable
+
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -361,7 +363,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
         {
             get
             {
-                var defaultValue = default(Version);
+                var defaultValue = (Version)null;
                 var fieldValue = defaultValue;
 
                 var data = GetSourceDecodedWellKnownAttributeData();
@@ -404,7 +406,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
         {
             get
             {
-                var fieldValue = default(AssemblyHashAlgorithm?);
+                var fieldValue = (AssemblyHashAlgorithm?)null;
 
                 var data = GetSourceDecodedWellKnownAttributeData();
                 if (data != null)
@@ -2663,6 +2665,11 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
             }
 
             return null;
+        }
+
+        internal override IEnumerable<NamedTypeSymbol> GetAllTopLevelForwardedTypes()
+        {
+            return PEModuleBuilder.GetForwardedTypes(this, builder: null);
         }
 
         public override AssemblyMetadata GetMetadata() => null;

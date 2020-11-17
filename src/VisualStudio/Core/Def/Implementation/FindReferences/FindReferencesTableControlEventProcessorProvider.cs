@@ -2,10 +2,14 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+#nullable disable
+
 using Microsoft.VisualStudio.Utilities;
 using System.ComponentModel.Composition;
 using Microsoft.VisualStudio.Shell.TableControl;
 using Microsoft.VisualStudio.Text.Classification;
+using System;
+using Microsoft.CodeAnalysis.Host.Mef;
 
 namespace Microsoft.VisualStudio.LanguageServices.FindUsages
 {
@@ -23,6 +27,7 @@ namespace Microsoft.VisualStudio.LanguageServices.FindUsages
     internal class FindUsagesTableControlEventProcessorProvider : ITableControlEventProcessorProvider
     {
         [ImportingConstructor]
+        [Obsolete(MefConstruction.ImportingConstructorMessage, error: true)]
         public FindUsagesTableControlEventProcessorProvider()
         {
         }

@@ -49,7 +49,7 @@ namespace Microsoft.CodeAnalysis
 
         // Struct that represents an entry in the line mapping table. Entries sort by the unmapped
         // line.
-        protected struct LineMappingEntry : IComparable<LineMappingEntry>
+        protected readonly struct LineMappingEntry : IComparable<LineMappingEntry>
         {
             // 0-based line in this tree
             public readonly int UnmappedLine;
@@ -58,7 +58,7 @@ namespace Microsoft.CodeAnalysis
             public readonly int MappedLine;
 
             // raw value from #line or #ExternalDirective, may be null
-            public readonly string MappedPathOpt;
+            public readonly string? MappedPathOpt;
 
             // the state of this line
             public readonly PositionState State;
@@ -74,7 +74,7 @@ namespace Microsoft.CodeAnalysis
             public LineMappingEntry(
                 int unmappedLine,
                 int mappedLine,
-                string mappedPathOpt,
+                string? mappedPathOpt,
                 PositionState state)
             {
                 this.UnmappedLine = unmappedLine;

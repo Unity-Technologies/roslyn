@@ -2,6 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+#nullable disable
+
 using System;
 using System.Collections.Immutable;
 using System.Linq;
@@ -19,11 +21,11 @@ namespace Microsoft.CodeAnalysis.AddObsoleteAttribute
     internal abstract class AbstractAddObsoleteAttributeCodeFixProvider
         : SyntaxEditorBasedCodeFixProvider
     {
-        private readonly ISyntaxFactsService _syntaxFacts;
+        private readonly ISyntaxFacts _syntaxFacts;
         private readonly string _title;
 
         protected AbstractAddObsoleteAttributeCodeFixProvider(
-            ISyntaxFactsService syntaxFacts,
+            ISyntaxFacts syntaxFacts,
             string title)
         {
             _syntaxFacts = syntaxFacts;

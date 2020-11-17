@@ -2,6 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+#nullable disable
+
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -24,9 +26,9 @@ class B
 {
     {|caret:|}A classA;
 }";
-            var (solution, locations) = CreateTestSolution(markup);
+            using var workspace = CreateTestWorkspace(markup, out var locations);
 
-            var results = await RunGotoTypeDefinitionAsync(solution, locations["caret"].Single());
+            var results = await RunGotoTypeDefinitionAsync(workspace.CurrentSolution, locations["caret"].Single());
             AssertLocationsEqual(locations["definition"], results);
         }
 
@@ -49,9 +51,10 @@ class B
     }
 }"
             };
-            var (solution, locations) = CreateTestSolution(markups);
 
-            var results = await RunGotoTypeDefinitionAsync(solution, locations["caret"].Single());
+            using var workspace = CreateTestWorkspace(markups, out var locations);
+
+            var results = await RunGotoTypeDefinitionAsync(workspace.CurrentSolution, locations["caret"].Single());
             AssertLocationsEqual(locations["definition"], results);
         }
 
@@ -67,13 +70,17 @@ class B
     A classA;
     {|caret:|}
 }";
-            var (solution, locations) = CreateTestSolution(markup);
+            using var workspace = CreateTestWorkspace(markup, out var locations);
 
-            var results = await RunGotoTypeDefinitionAsync(solution, locations["caret"].Single());
+            var results = await RunGotoTypeDefinitionAsync(workspace.CurrentSolution, locations["caret"].Single());
             Assert.Empty(results);
         }
 
         private static async Task<LSP.Location[]> RunGotoTypeDefinitionAsync(Solution solution, LSP.Location caret)
-            => await GetLanguageServer(solution).GoToTypeDefinitionAsync(solution, CreateTextDocumentPositionParams(caret), new LSP.ClientCapabilities(), CancellationToken.None);
+        {
+            var queue = CreateRequestQueue(solution);
+            return await GetLanguageServer(solution).ExecuteRequestAsync<LSP.TextDocumentPositionParams, LSP.Location[]>(queue, LSP.Methods.TextDocumentTypeDefinitionName,
+                           CreateTextDocumentPositionParams(caret), new LSP.ClientCapabilities(), null, CancellationToken.None);
+        }
     }
 }

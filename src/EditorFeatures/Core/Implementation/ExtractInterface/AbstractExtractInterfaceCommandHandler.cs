@@ -2,6 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+#nullable disable
+
 using System.Threading;
 using Microsoft.CodeAnalysis.Editor.Shared.Extensions;
 using Microsoft.CodeAnalysis.Editor.Shared.Utilities;
@@ -21,9 +23,7 @@ namespace Microsoft.CodeAnalysis.Editor.Implementation.ExtractInterface
         private readonly IThreadingContext _threadingContext;
 
         protected AbstractExtractInterfaceCommandHandler(IThreadingContext threadingContext)
-        {
-            this._threadingContext = threadingContext;
-        }
+            => this._threadingContext = threadingContext;
 
         public string DisplayName => EditorFeaturesResources.Extract_Interface;
 

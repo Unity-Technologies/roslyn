@@ -2,6 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+#nullable disable
+
 using System.Threading;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.Editor.Implementation.AutomaticCompletion.Sessions;
@@ -18,8 +20,6 @@ namespace Microsoft.CodeAnalysis.Editor.CSharp.AutomaticCompletion.Sessions
         }
 
         public override bool AllowOverType(IBraceCompletionSession session, CancellationToken cancellationToken)
-        {
-            return true;
-        }
+            => true;
     }
 }

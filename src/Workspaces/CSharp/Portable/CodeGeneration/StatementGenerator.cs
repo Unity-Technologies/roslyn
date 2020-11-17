@@ -2,6 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+#nullable disable
+
 using System.Collections.Generic;
 using System.Linq;
 using Microsoft.CodeAnalysis.CodeGeneration;
@@ -13,9 +15,7 @@ namespace Microsoft.CodeAnalysis.CSharp.CodeGeneration
     internal static class StatementGenerator
     {
         internal static SyntaxList<StatementSyntax> GenerateStatements(IEnumerable<SyntaxNode> statements)
-        {
-            return statements.OfType<StatementSyntax>().ToSyntaxList();
-        }
+            => statements.OfType<StatementSyntax>().ToSyntaxList();
 
         internal static BlockSyntax GenerateBlock(IMethodSymbol method)
         {

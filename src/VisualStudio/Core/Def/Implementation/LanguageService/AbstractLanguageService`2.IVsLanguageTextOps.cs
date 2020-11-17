@@ -2,6 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+#nullable disable
+
 using System.Linq;
 using System.Threading;
 using Microsoft.CodeAnalysis;
@@ -106,13 +108,9 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.LanguageService
         }
 
         public int GetPairExtent(IVsTextLayer textLayer, TextAddress ta, TextSpan[] textSpan)
-        {
-            return VSConstants.E_NOTIMPL;
-        }
+            => VSConstants.E_NOTIMPL;
 
         public int GetWordExtent(IVsTextLayer textLayer, TextAddress ta, WORDEXTFLAGS flags, TextSpan[] textSpan)
-        {
-            return VSConstants.E_NOTIMPL;
-        }
+            => VSConstants.E_NOTIMPL;
     }
 }

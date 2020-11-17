@@ -2,6 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+#nullable disable
+
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics;
@@ -277,6 +279,8 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
         // operators are never 'readonly' because there is no 'this' parameter
         internal override bool IsDeclaredReadOnly => false;
 
+        internal override bool IsInitOnly => false;
+
         public override ImmutableArray<CustomModifier> RefCustomModifiers
         {
             get
@@ -410,6 +414,8 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
             }
         }
 
+        internal sealed override UnmanagedCallersOnlyAttributeData GetUnmanagedCallersOnlyAttributeData(bool forceComplete) => null;
+
         internal override int CalculateLocalSyntaxOffset(int localPosition, SyntaxTree localTree)
         {
             throw ExceptionUtilities.Unreachable;
@@ -490,6 +496,11 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
             public override ImmutableArray<CustomModifier> RefCustomModifiers
             {
                 get { return ImmutableArray<CustomModifier>.Empty; }
+            }
+
+            internal override MarshalPseudoCustomAttributeData MarshallingInformation
+            {
+                get { return null; }
             }
         }
     }

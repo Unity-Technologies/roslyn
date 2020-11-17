@@ -2,6 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+#nullable disable
+
 using System.Collections.Generic;
 using Microsoft.CodeAnalysis.CSharp.Formatting;
 using Microsoft.CodeAnalysis.Editor.Implementation.AutomaticCompletion;
@@ -18,6 +20,88 @@ namespace Microsoft.CodeAnalysis.Editor.CSharp.UnitTests.AutomaticCompletion
 {
     public class AutomaticBraceCompletionTests : AbstractAutomaticBraceCompletionTests
     {
+        [WpfFact, Trait(Traits.Feature, Traits.Features.AutomaticCompletion)]
+        public void WithExpressionBracesSameLine()
+        {
+            var code = @"
+class C
+{
+    void M(C c)
+    {
+        c = c with $$
+    }
+}";
+
+            var expected = @"
+class C
+{
+    void M(C c)
+    {
+        c = c with { }
+    }
+}";
+            using var session = CreateSession(code);
+            Assert.NotNull(session);
+
+            CheckStart(session.Session);
+            CheckText(session.Session, expected);
+        }
+
+        [WpfFact, Trait(Traits.Feature, Traits.Features.AutomaticCompletion)]
+        [WorkItem(47381, "https://github.com/dotnet/roslyn/issues/47381")]
+        public void ImplicitObjectCreationExpressionBracesSameLine()
+        {
+            var code = @"
+class C
+{
+    void M(C c)
+    {
+        c = new() $$
+    }
+}";
+
+            var expected = @"
+class C
+{
+    void M(C c)
+    {
+        c = new() { }
+    }
+}";
+            using var session = CreateSession(code);
+            Assert.NotNull(session);
+
+            CheckStart(session.Session);
+            CheckText(session.Session, expected);
+        }
+
+        [WpfFact, Trait(Traits.Feature, Traits.Features.AutomaticCompletion)]
+        public void WithExpressionBracesSameLine_Enter()
+        {
+            var code = @"
+class C
+{
+    void M(C c)
+    {
+        c = c with $$
+    }
+}";
+            var expected = @"
+class C
+{
+    void M(C c)
+    {
+        c = c with
+        {
+
+        }
+    }
+}";
+            using var session = CreateSession(code);
+            CheckStart(session.Session);
+            CheckReturn(session.Session, 12, expected);
+        }
+
         [WpfFact, Trait(Traits.Feature, Traits.Features.AutomaticCompletion)]
         public void Creation()
         {
@@ -324,6 +408,47 @@ $$
         }
 
         [WpfFact, Trait(Traits.Feature, Traits.Features.AutomaticCompletion)]
+        [WorkItem(47438, "https://github.com/dotnet/roslyn/issues/47438")]
+        public void WithExpression()
+        {
+            var code = @"
+record C
+{
+    void M()
+    {
+        _ = this with $$
+    }
+}";
+
+            var expectedBeforeReturn = @"
+record C
+{
+    void M()
+    {
+        _ = this with { }
+    }
+}";
+
+            var expectedAfterReturn = @"
+record C
+{
+    void M()
+    {
+        _ = this with
+        {
+
+        }
+    }
+}";
+            using var session = CreateSession(code);
+            Assert.NotNull(session);
+
+            CheckStart(session.Session);
+            CheckText(session.Session, expectedBeforeReturn);
+            CheckReturn(session.Session, 12, expectedAfterReturn);
+        }
+
+        [WpfFact, Trait(Traits.Feature, Traits.Features.AutomaticCompletion)]
         public void RecursivePattern()
         {
             var code = @"
@@ -361,6 +486,100 @@ class C
             CheckStart(session.Session);
             CheckText(session.Session, expectedBeforeReturn);
             CheckReturn(session.Session, 12, expectedAfterReturn);
+        }
+
+        [WpfFact, Trait(Traits.Feature, Traits.Features.AutomaticCompletion)]
+        public void RecursivePattern_Nested()
+        {
+            var code = @"
+class C
+{
+    void M()
+    {
+        _ = this is { Name: $$ }
+    }
+}";
+
+            var expectedBeforeReturn = @"
+class C
+{
+    void M()
+    {
+        _ = this is { Name: { } }
+    }
+}";
+
+            var expectedAfterReturn = @"
+class C
+{
+    void M()
+    {
+        _ = this is { Name:
+        {
+
+        } }
+    }
+}";
+            using var session = CreateSession(code);
+            Assert.NotNull(session);
+
+            CheckStart(session.Session);
+            CheckText(session.Session, expectedBeforeReturn);
+            CheckReturn(session.Session, 12, expectedAfterReturn);
+        }
+
+        [WpfFact, Trait(Traits.Feature, Traits.Features.AutomaticCompletion)]
+        public void RecursivePattern_Parentheses1()
+        {
+            var code = @"
+class C
+{
+    void M()
+    {
+        _ = this is { Name: $$ }
+    }
+}";
+            var expected = @"
+class C
+{
+    void M()
+    {
+        _ = this is { Name: () }
+    }
+}";
+
+            using var session = CreateSession(TestWorkspace.CreateCSharp(code), '(', ')');
+            Assert.NotNull(session);
+
+            CheckStart(session.Session);
+            CheckText(session.Session, expected);
+        }
+
+        [WpfFact, Trait(Traits.Feature, Traits.Features.AutomaticCompletion)]
+        public void RecursivePattern_Parentheses2()
+        {
+            var code = @"
+class C
+{
+    void M()
+    {
+        _ = this is { Name: { Length: (> 3) and $$ } }
+    }
+}";
+            var expected = @"
+class C
+{
+    void M()
+    {
+        _ = this is { Name: { Length: (> 3) and () } }
+    }
+}";
+
+            using var session = CreateSession(TestWorkspace.CreateCSharp(code), '(', ')');
+            Assert.NotNull(session);
+
+            CheckStart(session.Session);
+            CheckText(session.Session, expected);
         }
 
         [WpfFact, Trait(Traits.Feature, Traits.Features.AutomaticCompletion)]
@@ -546,9 +765,9 @@ class C
         }
     }
 }";
-            var optionSet = new Dictionary<OptionKey, object>
+            var optionSet = new Dictionary<OptionKey2, object>
                             {
-                                { CSharpFormattingOptions.NewLinesForBracesInObjectCollectionArrayInitializers, false }
+                                { CSharpFormattingOptions2.NewLinesForBracesInObjectCollectionArrayInitializers, false }
                             };
             using var session = CreateSession(code, optionSet);
             Assert.NotNull(session);
@@ -621,9 +840,9 @@ class Goo
 {
     public int bar;
 }";
-            var optionSet = new Dictionary<OptionKey, object>
+            var optionSet = new Dictionary<OptionKey2, object>
                             {
-                                { CSharpFormattingOptions.NewLinesForBracesInObjectCollectionArrayInitializers, false }
+                                { CSharpFormattingOptions2.NewLinesForBracesInObjectCollectionArrayInitializers, false }
                             };
             using var session = CreateSession(code, optionSet);
             Assert.NotNull(session);
@@ -692,9 +911,9 @@ class Goo
         }
     }
 }";
-            var optionSet = new Dictionary<OptionKey, object>
+            var optionSet = new Dictionary<OptionKey2, object>
                             {
-                                { CSharpFormattingOptions.NewLinesForBracesInObjectCollectionArrayInitializers, false }
+                                { CSharpFormattingOptions2.NewLinesForBracesInObjectCollectionArrayInitializers, false }
                             };
             using var session = CreateSession(code, optionSet);
             Assert.NotNull(session);
@@ -753,9 +972,9 @@ class Goo
         }
     }
 }";
-            var optionSet = new Dictionary<OptionKey, object>
+            var optionSet = new Dictionary<OptionKey2, object>
                             {
-                                { CSharpFormattingOptions.NewLinesForBracesInObjectCollectionArrayInitializers, false }
+                                { CSharpFormattingOptions2.NewLinesForBracesInObjectCollectionArrayInitializers, false }
                             };
             using var session = CreateSession(code, optionSet);
             Assert.NotNull(session);
@@ -814,9 +1033,9 @@ class Goo
         }
     }
 }";
-            var optionSet = new Dictionary<OptionKey, object>
+            var optionSet = new Dictionary<OptionKey2, object>
                             {
-                                { CSharpFormattingOptions.NewLinesForBracesInObjectCollectionArrayInitializers, false }
+                                { CSharpFormattingOptions2.NewLinesForBracesInObjectCollectionArrayInitializers, false }
                             };
             using var session = CreateSession(code, optionSet);
             Assert.NotNull(session);
@@ -879,10 +1098,10 @@ class Goo
     }
 }";
 
-            var optionSet = new Dictionary<OptionKey, object>
+            var optionSet = new Dictionary<OptionKey2, object>
                             {
-                                { new OptionKey(FeatureOnOffOptions.AutoFormattingOnCloseBrace, LanguageNames.CSharp), false },
-                                { new OptionKey(FormattingOptions.SmartIndent, LanguageNames.CSharp), FormattingOptions.IndentStyle.Block }
+                                { new OptionKey2(FeatureOnOffOptions.AutoFormattingOnCloseBrace, LanguageNames.CSharp), false },
+                                { new OptionKey2(FormattingOptions2.SmartIndent, LanguageNames.CSharp), FormattingOptions.IndentStyle.Block }
                             };
             using var session = CreateSession(code, optionSet);
             Assert.NotNull(session);
@@ -909,9 +1128,9 @@ $$
 { }
 }";
 
-            var optionSet = new Dictionary<OptionKey, object>
+            var optionSet = new Dictionary<OptionKey2, object>
                             {
-                                { new OptionKey(FormattingOptions.SmartIndent, LanguageNames.CSharp), FormattingOptions.IndentStyle.None }
+                                { new OptionKey2(FormattingOptions2.SmartIndent, LanguageNames.CSharp), FormattingOptions.IndentStyle.None }
                             };
             using var session = CreateSession(code, optionSet);
             Assert.NotNull(session);
@@ -944,9 +1163,9 @@ $$
         }
 }";
 
-            var optionSet = new Dictionary<OptionKey, object>
+            var optionSet = new Dictionary<OptionKey2, object>
                             {
-                                { new OptionKey(FormattingOptions.SmartIndent, LanguageNames.CSharp), FormattingOptions.IndentStyle.Block }
+                                { new OptionKey2(FormattingOptions2.SmartIndent, LanguageNames.CSharp), FormattingOptions.IndentStyle.Block }
                             };
             using var session = CreateSession(code, optionSet);
             Assert.NotNull(session);
@@ -987,9 +1206,9 @@ $$
         }
 }";
 
-            var optionSet = new Dictionary<OptionKey, object>
+            var optionSet = new Dictionary<OptionKey2, object>
                             {
-                                { new OptionKey(FormattingOptions.SmartIndent, LanguageNames.CSharp), FormattingOptions.IndentStyle.Block }
+                                { new OptionKey2(FormattingOptions2.SmartIndent, LanguageNames.CSharp), FormattingOptions.IndentStyle.Block }
                             };
             using var session = CreateSession(code, optionSet);
             Assert.NotNull(session);
@@ -1000,7 +1219,7 @@ $$
             CheckReturn(session.Session, 8, expectedAfterReturn);
         }
 
-        internal Holder CreateSession(string code, Dictionary<OptionKey, object> optionSet = null)
+        internal static Holder CreateSession(string code, Dictionary<OptionKey2, object> optionSet = null)
         {
             return CreateSession(
                 TestWorkspace.CreateCSharp(code),

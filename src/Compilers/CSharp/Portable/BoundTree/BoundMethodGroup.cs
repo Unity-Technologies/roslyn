@@ -24,7 +24,7 @@ namespace Microsoft.CodeAnalysis.CSharp
         {
         }
 
-        public MemberAccessExpressionSyntax MemberAccessExpressionSyntax
+        public MemberAccessExpressionSyntax? MemberAccessExpressionSyntax
         {
             get
             {
@@ -48,7 +48,7 @@ namespace Microsoft.CodeAnalysis.CSharp
             }
         }
 
-        public BoundExpression InstanceOpt
+        public BoundExpression? InstanceOpt
         {
             get
             {

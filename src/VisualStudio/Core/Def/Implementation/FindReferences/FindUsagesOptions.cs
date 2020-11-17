@@ -2,8 +2,12 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+#nullable disable
+
+using System;
 using System.Collections.Immutable;
 using System.Composition;
+using Microsoft.CodeAnalysis.Host.Mef;
 using Microsoft.CodeAnalysis.Options;
 using Microsoft.CodeAnalysis.Options.Providers;
 
@@ -19,7 +23,7 @@ namespace Microsoft.VisualStudio.LanguageServices.FindUsages
         /// and we want to restore the value back to its original state when the user does the
         /// next FindReferences call.
         /// </summary>
-        public static readonly Option<int> DefinitionGroupingPriority = new Option<int>(
+        public static readonly Option<int> DefinitionGroupingPriority = new(
             nameof(FindUsagesOptions), nameof(DefinitionGroupingPriority), defaultValue: -1,
             storageLocations: new LocalUserProfileStorageLocation(LocalRegistryPath + nameof(DefinitionGroupingPriority)));
     }
@@ -28,6 +32,7 @@ namespace Microsoft.VisualStudio.LanguageServices.FindUsages
     internal class FindUsagesOptionsProvider : IOptionProvider
     {
         [ImportingConstructor]
+        [Obsolete(MefConstruction.ImportingConstructorMessage, error: true)]
         public FindUsagesOptionsProvider()
         {
         }
@@ -35,5 +40,4 @@ namespace Microsoft.VisualStudio.LanguageServices.FindUsages
         public ImmutableArray<IOption> Options { get; } = ImmutableArray.Create<IOption>(
             FindUsagesOptions.DefinitionGroupingPriority);
     }
-
 }

@@ -2,6 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+#nullable disable
+
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using Microsoft.CodeAnalysis;
@@ -47,7 +49,7 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.TableDataSource
                 DiagnosticSeverity.Error => __VSERRORCATEGORY.EC_ERROR,
                 DiagnosticSeverity.Warning => __VSERRORCATEGORY.EC_WARNING,
                 DiagnosticSeverity.Info => __VSERRORCATEGORY.EC_MESSAGE,
-                _ => Contract.FailWithReturn<__VSERRORCATEGORY>(),
+                _ => throw ExceptionUtilities.UnexpectedValue(severity)
             };
         }
 
@@ -82,9 +84,7 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.TableDataSource
             }
 
             public override int GetHashCode()
-            {
-                return Hash.Combine(Analyzer.GetHashCode(), Hash.Combine(DocumentIds.GetHashCode(), Kind));
-            }
+                => Hash.Combine(Analyzer.GetHashCode(), Hash.Combine(DocumentIds.GetHashCode(), Kind));
         }
     }
 }

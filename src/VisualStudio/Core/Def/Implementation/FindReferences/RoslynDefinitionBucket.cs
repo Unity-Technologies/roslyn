@@ -2,6 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+#nullable disable
+
 using System.Collections.Generic;
 using System.Windows;
 using System.Windows.Documents;
@@ -24,19 +26,37 @@ namespace Microsoft.VisualStudio.LanguageServices.FindUsages
             public readonly DefinitionItem DefinitionItem;
 
             public RoslynDefinitionBucket(
+                string name,
+                bool expandedByDefault,
                 StreamingFindUsagesPresenter presenter,
                 AbstractTableDataSourceFindUsagesContext context,
                 DefinitionItem definitionItem)
-                : base(name: definitionItem.DisplayParts.JoinText() + " " + definitionItem.GetHashCode(),
+                : base(name,
                        sourceTypeIdentifier: context.SourceTypeIdentifier,
-                       identifier: context.Identifier)
+                       identifier: context.Identifier,
+                       expandedByDefault: expandedByDefault)
             {
                 _presenter = presenter;
                 DefinitionItem = definitionItem;
             }
 
+            public static RoslynDefinitionBucket Create(
+                StreamingFindUsagesPresenter presenter,
+                AbstractTableDataSourceFindUsagesContext context,
+                DefinitionItem definitionItem)
+            {
+                var isPrimary = definitionItem.Properties.ContainsKey(DefinitionItem.Primary);
+
+                // Sort the primary item above everything else.
+                var name = $"{(isPrimary ? 0 : 1)} {definitionItem.DisplayParts.JoinText()} {definitionItem.GetHashCode()}";
+
+                return new RoslynDefinitionBucket(
+                    name, expandedByDefault: true, presenter, context, definitionItem);
+            }
+
             public bool TryNavigateTo(bool isPreview)
-                => DefinitionItem.TryNavigateTo(_presenter._workspace, isPreview);
+                => DefinitionItem.TryNavigateTo(
+                    _presenter._workspace, showInPreviewTab: isPreview, activateTab: !isPreview); // Only activate the tab if not opening in preview
 
             public override bool TryGetValue(string key, out object content)
             {

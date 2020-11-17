@@ -2,6 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+#nullable disable
+
 using System.Threading;
 using Microsoft.CodeAnalysis.CSharp.Extensions;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -84,7 +86,7 @@ namespace Microsoft.CodeAnalysis.CSharp.CodeRefactorings.InlineTemporary
                 // Should become:
                 //     var a = new { x = 42; };
                 nameEquals = SyntaxFactory.NameEquals(identifier);
-                expression = (ExpressionSyntax)this.Visit(expression);
+                expression = (ExpressionSyntax)Visit(expression);
                 return node.Update(nameEquals, expression).WithAdditionalAnnotations(Simplifier.Annotation, Formatter.Annotation);
             }
 

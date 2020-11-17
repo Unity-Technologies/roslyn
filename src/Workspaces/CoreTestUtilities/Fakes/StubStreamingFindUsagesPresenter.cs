@@ -2,8 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
-#nullable enable
-
 using System;
 using System.Composition;
 using System.Threading;
@@ -30,13 +28,9 @@ namespace Microsoft.CodeAnalysis.UnitTests.Fakes
         }
 
         public virtual FindUsagesContext StartSearch(string title, bool supportsReferences)
-        {
-            return new SimpleFindUsagesContext(CancellationToken.None);
-        }
+            => new SimpleFindUsagesContext(CancellationToken.None);
 
         public virtual FindUsagesContext StartSearchWithCustomColumns(string title, bool supportsReferences, bool includeContainingTypeAndMemberColumns, bool includeKindColumn)
-        {
-            return new SimpleFindUsagesContext(CancellationToken.None);
-        }
+            => new SimpleFindUsagesContext(CancellationToken.None);
     }
 }

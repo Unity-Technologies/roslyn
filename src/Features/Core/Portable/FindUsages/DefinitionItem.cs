@@ -2,6 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+#nullable disable
+
 using System;
 using System.Collections.Immutable;
 using Microsoft.CodeAnalysis.Tags;
@@ -21,6 +23,12 @@ namespace Microsoft.CodeAnalysis.FindUsages
     /// </summary>
     internal abstract partial class DefinitionItem
     {
+        /// <summary>
+        /// The definition item corresponding to the initial symbol the user was trying to find. This item should get
+        /// prominent placement in the final UI for the user.
+        /// </summary>
+        internal const string Primary = nameof(Primary);
+
         // Existing behavior is to do up to two lookups for 3rd party navigation for FAR.  One
         // for the symbol itself and one for a 'fallback' symbol.  For example, if we're FARing
         // on a constructor, then the fallback symbol will be the actual type that the constructor
@@ -148,7 +156,7 @@ namespace Microsoft.CodeAnalysis.FindUsages
         }
 
         public abstract bool CanNavigateTo(Workspace workspace);
-        public abstract bool TryNavigateTo(Workspace workspace, bool isPreview);
+        public abstract bool TryNavigateTo(Workspace workspace, bool showInPreviewTab, bool activateTab);
 
         public static DefinitionItem Create(
             ImmutableArray<string> tags,
@@ -192,7 +200,7 @@ namespace Microsoft.CodeAnalysis.FindUsages
             ImmutableArray<DocumentSpan> sourceSpans,
             ImmutableArray<TaggedText> nameDisplayParts = default,
             ImmutableDictionary<string, string> properties = null,
-            ImmutableDictionary<string, string> displayableProperties = default,
+            ImmutableDictionary<string, string> displayableProperties = null,
             bool displayIfNoReferences = true)
         {
             if (sourceSpans.Length == 0)
@@ -213,7 +221,7 @@ namespace Microsoft.CodeAnalysis.FindUsages
             ImmutableArray<string> tags,
             ImmutableArray<TaggedText> displayParts,
             ImmutableArray<TaggedText> nameDisplayParts,
-            Project project,
+            Solution solution,
             ISymbol symbol,
             ImmutableDictionary<string, string> properties = null,
             bool displayIfNoReferences = true)
@@ -222,9 +230,12 @@ namespace Microsoft.CodeAnalysis.FindUsages
 
             var symbolKey = symbol.GetSymbolKey().ToString();
 
+            var projectId = solution.GetOriginatingProjectId(symbol);
+            Contract.ThrowIfNull(projectId);
+
             properties = properties.Add(MetadataSymbolKey, symbolKey)
-                                   .Add(MetadataSymbolOriginatingProjectIdGuid, project.Id.Id.ToString())
-                                   .Add(MetadataSymbolOriginatingProjectIdDebugName, project.Id.DebugName);
+                                   .Add(MetadataSymbolOriginatingProjectIdGuid, projectId.Id.ToString())
+                                   .Add(MetadataSymbolOriginatingProjectIdDebugName, projectId.DebugName);
 
             var originationParts = GetOriginationParts(symbol);
             return new DefaultDefinitionItem(

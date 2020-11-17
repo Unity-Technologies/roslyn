@@ -2,15 +2,13 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
-#nullable enable
-
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
-using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.CodeAnalysis;
@@ -56,7 +54,7 @@ namespace Microsoft.CodeAnalysis
         /// <summary>
         /// The <see cref="AnalyzerConfigSet"/> to be used for analyzer options for specific trees.
         /// </summary>
-        private readonly ValueSource<AnalyzerConfigSet> _lazyAnalyzerConfigSet;
+        private readonly ValueSource<CachingAnalyzerConfigSet> _lazyAnalyzerConfigSet;
 
         private AnalyzerOptions? _lazyAnalyzerOptions;
 
@@ -71,7 +69,7 @@ namespace Microsoft.CodeAnalysis
             ImmutableSortedDictionary<DocumentId, AnalyzerConfigDocumentState> analyzerConfigDocumentStates,
             AsyncLazy<VersionStamp> lazyLatestDocumentVersion,
             AsyncLazy<VersionStamp> lazyLatestDocumentTopLevelChangeVersion,
-            ValueSource<AnalyzerConfigSet> lazyAnalyzerConfigSet)
+            ValueSource<CachingAnalyzerConfigSet> lazyAnalyzerConfigSet)
         {
             _solutionServices = solutionServices;
             _languageServices = languageServices;
@@ -108,6 +106,14 @@ namespace Microsoft.CodeAnalysis
                 projectInfoFixed.AnalyzerConfigDocuments.Select(d =>
                     KeyValuePairUtil.Create(d.Id, new AnalyzerConfigDocumentState(d, solutionServices))));
             _lazyAnalyzerConfigSet = ComputeAnalyzerConfigSetValueSource(_analyzerConfigDocumentStates.Values);
+
+            // Add analyzer config information to the compilation options
+            if (projectInfoFixed.CompilationOptions != null)
+            {
+                projectInfoFixed = projectInfoFixed.WithCompilationOptions(
+                    projectInfoFixed.CompilationOptions.WithSyntaxTreeOptionsProvider(
+                        new WorkspaceSyntaxTreeOptionsProvider(_lazyAnalyzerConfigSet)));
+            }
 
             _documentIds = projectInfoFixed.Documents.Select(d => d.Id).ToImmutableList();
             _additionalDocumentIds = projectInfoFixed.AdditionalDocuments.Select(d => d.Id).ToImmutableList();
@@ -240,7 +246,7 @@ namespace Microsoft.CodeAnalysis
 
         internal DocumentState CreateDocument(DocumentInfo documentInfo, ParseOptions? parseOptions)
         {
-            var doc = new DocumentState(documentInfo, parseOptions, _lazyAnalyzerConfigSet, _languageServices, _solutionServices);
+            var doc = new DocumentState(documentInfo, parseOptions, _languageServices, _solutionServices);
 
             if (doc.SourceCodeKind != documentInfo.SourceCodeKind)
             {
@@ -255,7 +261,15 @@ namespace Microsoft.CodeAnalysis
                 additionalFiles: _additionalDocumentStates.Values.Select(d => new AdditionalTextWithState(d)).ToImmutableArray<AdditionalText>(),
                 optionsProvider: new WorkspaceAnalyzerConfigOptionsProvider(this));
 
-        public ImmutableDictionary<string, ReportDiagnostic> GetAnalyzerConfigSpecialDiagnosticOptions()
+        public async Task<ImmutableDictionary<string, string>> GetAnalyzerOptionsForPathAsync(
+            string path,
+            CancellationToken cancellationToken)
+        {
+            var configSet = await _lazyAnalyzerConfigSet.GetValueAsync(cancellationToken).ConfigureAwait(false);
+            return configSet.GetOptionsForSourcePath(path).AnalyzerOptions;
+        }
+
+        public AnalyzerConfigOptionsResult? GetAnalyzerConfigOptions()
         {
             // We need to find the analyzer config options at the root of the project.
             // Currently, there is no compiler API to query analyzer config options for a directory in a language agnostic fashion.
@@ -264,7 +278,7 @@ namespace Microsoft.CodeAnalysis
             var projectDirectory = PathUtilities.GetDirectoryName(_projectInfo.FilePath);
             if (!PathUtilities.IsAbsolute(projectDirectory))
             {
-                return ImmutableDictionary<string, ReportDiagnostic>.Empty;
+                return null;
             }
 
             var fileName = Guid.NewGuid().ToString();
@@ -272,18 +286,20 @@ namespace Microsoft.CodeAnalysis
             switch (_projectInfo.Language)
             {
                 case LanguageNames.CSharp:
-                    sourceFilePath = PathUtilities.CombineAbsoluteAndRelativePaths(projectDirectory, $"{fileName}.cs");
+                    // Suppression should be removed or addressed https://github.com/dotnet/roslyn/issues/41636
+                    sourceFilePath = PathUtilities.CombineAbsoluteAndRelativePaths(projectDirectory, $"{fileName}.cs")!;
                     break;
 
                 case LanguageNames.VisualBasic:
-                    sourceFilePath = PathUtilities.CombineAbsoluteAndRelativePaths(projectDirectory, $"{fileName}.vb");
+                    // Suppression should be removed or addressed https://github.com/dotnet/roslyn/issues/41636
+                    sourceFilePath = PathUtilities.CombineAbsoluteAndRelativePaths(projectDirectory, $"{fileName}.vb")!;
                     break;
 
                 default:
-                    return ImmutableDictionary<string, ReportDiagnostic>.Empty;
+                    return null;
             }
 
-            return _lazyAnalyzerConfigSet.GetValue(CancellationToken.None).GetOptionsForSourcePath(sourceFilePath).TreeOptions;
+            return _lazyAnalyzerConfigSet.GetValue(CancellationToken.None).GetOptionsForSourcePath(sourceFilePath);
         }
 
         private sealed class WorkspaceAnalyzerConfigOptionsProvider : AnalyzerConfigOptionsProvider
@@ -291,14 +307,13 @@ namespace Microsoft.CodeAnalysis
             private readonly ProjectState _projectState;
 
             public WorkspaceAnalyzerConfigOptionsProvider(ProjectState projectState)
-            {
-                _projectState = projectState;
-            }
+                => _projectState = projectState;
+
+            public override AnalyzerConfigOptions GlobalOptions
+                => new WorkspaceAnalyzerConfigOptions(_projectState._lazyAnalyzerConfigSet.GetValue(CancellationToken.None).GetOptionsForSourcePath(string.Empty));
 
             public override AnalyzerConfigOptions GetOptions(SyntaxTree tree)
-            {
-                return new WorkspaceAnalyzerConfigOptions(_projectState._lazyAnalyzerConfigSet.GetValue(CancellationToken.None).GetOptionsForSourcePath(tree.FilePath));
-            }
+                => new WorkspaceAnalyzerConfigOptions(_projectState._lazyAnalyzerConfigSet.GetValue(CancellationToken.None).GetOptionsForSourcePath(tree.FilePath));
 
             public override AnalyzerConfigOptions GetOptions(AdditionalText textFile)
             {
@@ -306,23 +321,57 @@ namespace Microsoft.CodeAnalysis
                 return new WorkspaceAnalyzerConfigOptions(_projectState._lazyAnalyzerConfigSet.GetValue(CancellationToken.None).GetOptionsForSourcePath(textFile.Path));
             }
 
-            // PROTOTYPE: why isn't this just a provided implementation?
             private sealed class WorkspaceAnalyzerConfigOptions : AnalyzerConfigOptions
             {
-                private readonly ImmutableDictionary<string, string> _analyzerOptions;
+                private readonly ImmutableDictionary<string, string> _backing;
 
                 public WorkspaceAnalyzerConfigOptions(AnalyzerConfigOptionsResult analyzerConfigOptions)
-                {
-                    _analyzerOptions = analyzerConfigOptions.AnalyzerOptions;
-                }
+                    => _backing = analyzerConfigOptions.AnalyzerOptions;
 
-                public override bool TryGetValue(string key, [NotNullWhen(returnValue: true)] out string? value) => _analyzerOptions.TryGetValue(key, out value);
+                public override bool TryGetValue(string key, [NotNullWhen(true)] out string? value) => _backing.TryGetValue(key, out value);
             }
         }
 
-        private static ValueSource<AnalyzerConfigSet> ComputeAnalyzerConfigSetValueSource(IEnumerable<AnalyzerConfigDocumentState> analyzerConfigDocumentStates)
+        private sealed class WorkspaceSyntaxTreeOptionsProvider : SyntaxTreeOptionsProvider
         {
-            return new AsyncLazy<AnalyzerConfigSet>(
+            private readonly ValueSource<CachingAnalyzerConfigSet> _lazyAnalyzerConfigSet;
+
+            public WorkspaceSyntaxTreeOptionsProvider(ValueSource<CachingAnalyzerConfigSet> lazyAnalyzerConfigSet)
+                => _lazyAnalyzerConfigSet = lazyAnalyzerConfigSet;
+
+            public override GeneratedKind IsGenerated(SyntaxTree tree, CancellationToken cancellationToken)
+            {
+                var options = _lazyAnalyzerConfigSet
+                    .GetValue(cancellationToken).GetOptionsForSourcePath(tree.FilePath);
+                return GeneratedCodeUtilities.GetIsGeneratedCodeFromOptions(options.AnalyzerOptions);
+            }
+
+            public override bool TryGetDiagnosticValue(SyntaxTree tree, string diagnosticId, CancellationToken cancellationToken, out ReportDiagnostic severity)
+            {
+                var options = _lazyAnalyzerConfigSet
+                    .GetValue(cancellationToken).GetOptionsForSourcePath(tree.FilePath);
+                return options.TreeOptions.TryGetValue(diagnosticId, out severity);
+            }
+
+            public override bool TryGetGlobalDiagnosticValue(string diagnosticId, CancellationToken cancellationToken, out ReportDiagnostic severity)
+            {
+                var options = _lazyAnalyzerConfigSet
+                    .GetValue(cancellationToken).GlobalConfigOptions;
+                return options.TreeOptions.TryGetValue(diagnosticId, out severity);
+            }
+
+            public override bool Equals(object? obj)
+            {
+                return obj is WorkspaceSyntaxTreeOptionsProvider other
+                    && _lazyAnalyzerConfigSet == other._lazyAnalyzerConfigSet;
+            }
+
+            public override int GetHashCode() => _lazyAnalyzerConfigSet.GetHashCode();
+        }
+
+        private static ValueSource<CachingAnalyzerConfigSet> ComputeAnalyzerConfigSetValueSource(IEnumerable<AnalyzerConfigDocumentState> analyzerConfigDocumentStates)
+        {
+            return new AsyncLazy<CachingAnalyzerConfigSet>(
                 asynchronousComputeFunction: async cancellationToken =>
                 {
                     var tasks = analyzerConfigDocumentStates.Select(a => a.GetAnalyzerConfigAsync(cancellationToken));
@@ -330,25 +379,21 @@ namespace Microsoft.CodeAnalysis
 
                     cancellationToken.ThrowIfCancellationRequested();
 
-                    return AnalyzerConfigSet.Create(analyzerConfigs);
+                    return new CachingAnalyzerConfigSet(AnalyzerConfigSet.Create(analyzerConfigs));
                 },
                 synchronousComputeFunction: cancellationToken =>
                 {
                     var analyzerConfigs = analyzerConfigDocumentStates.SelectAsArray(a => a.GetAnalyzerConfig(cancellationToken));
-                    return AnalyzerConfigSet.Create(analyzerConfigs);
+                    return new CachingAnalyzerConfigSet(AnalyzerConfigSet.Create(analyzerConfigs));
                 },
                 cacheResult: true);
         }
 
         public Task<VersionStamp> GetLatestDocumentVersionAsync(CancellationToken cancellationToken)
-        {
-            return _lazyLatestDocumentVersion.GetValueAsync(cancellationToken);
-        }
+            => _lazyLatestDocumentVersion.GetValueAsync(cancellationToken);
 
         public Task<VersionStamp> GetLatestDocumentTopLevelChangeVersionAsync(CancellationToken cancellationToken)
-        {
-            return _lazyLatestDocumentTopLevelChangeVersion.GetValueAsync(cancellationToken);
-        }
+            => _lazyLatestDocumentTopLevelChangeVersion.GetValueAsync(cancellationToken);
 
         public async Task<VersionStamp> GetSemanticVersionAsync(CancellationToken cancellationToken = default)
         {
@@ -367,6 +412,9 @@ namespace Microsoft.CodeAnalysis
 
         [DebuggerBrowsable(DebuggerBrowsableState.Collapsed)]
         public string? OutputRefFilePath => this.ProjectInfo.OutputRefFilePath;
+
+        [DebuggerBrowsable(DebuggerBrowsableState.Collapsed)]
+        public CompilationOutputInfo CompilationOutputInfo => this.ProjectInfo.CompilationOutputInfo;
 
         [DebuggerBrowsable(DebuggerBrowsableState.Collapsed)]
         public string? DefaultNamespace => this.ProjectInfo.DefaultNamespace;
@@ -446,19 +494,13 @@ namespace Microsoft.CodeAnalysis
         public ImmutableSortedDictionary<DocumentId, AnalyzerConfigDocumentState> AnalyzerConfigDocumentStates => _analyzerConfigDocumentStates;
 
         public bool ContainsDocument(DocumentId documentId)
-        {
-            return _documentStates.ContainsKey(documentId);
-        }
+            => _documentStates.ContainsKey(documentId);
 
         public bool ContainsAdditionalDocument(DocumentId documentId)
-        {
-            return _additionalDocumentStates.ContainsKey(documentId);
-        }
+            => _additionalDocumentStates.ContainsKey(documentId);
 
         public bool ContainsAnalyzerConfigDocument(DocumentId documentId)
-        {
-            return _analyzerConfigDocumentStates.ContainsKey(documentId);
-        }
+            => _analyzerConfigDocumentStates.ContainsKey(documentId);
 
         public DocumentState? GetDocumentState(DocumentId documentId)
         {
@@ -487,7 +529,7 @@ namespace Microsoft.CodeAnalysis
             ImmutableSortedDictionary<DocumentId, AnalyzerConfigDocumentState>? analyzerConfigDocumentStates = null,
             AsyncLazy<VersionStamp>? latestDocumentVersion = null,
             AsyncLazy<VersionStamp>? latestDocumentTopLevelChangeVersion = null,
-            ValueSource<AnalyzerConfigSet>? analyzerConfigSet = null)
+            ValueSource<CachingAnalyzerConfigSet>? analyzerConfigSet = null)
         {
             return new ProjectState(
                 projectInfo ?? _projectInfo,
@@ -503,79 +545,55 @@ namespace Microsoft.CodeAnalysis
                 analyzerConfigSet ?? _lazyAnalyzerConfigSet);
         }
 
-        public ProjectState UpdateName(string name)
+        private ProjectInfo.ProjectAttributes Attributes
+            => ProjectInfo.Attributes;
+
+        private ProjectState WithAttributes(ProjectInfo.ProjectAttributes attributes)
+            => With(projectInfo: ProjectInfo.With(attributes: attributes));
+
+        public ProjectState WithName(string name)
+            => (name == Name) ? this : WithAttributes(Attributes.With(name: name, version: Version.GetNewerVersion()));
+
+        public ProjectState WithFilePath(string? filePath)
+            => (filePath == FilePath) ? this : WithAttributes(Attributes.With(filePath: filePath, version: Version.GetNewerVersion()));
+
+        public ProjectState WithAssemblyName(string assemblyName)
+            => (assemblyName == AssemblyName) ? this : WithAttributes(Attributes.With(assemblyName: assemblyName, version: Version.GetNewerVersion()));
+
+        public ProjectState WithOutputFilePath(string? outputFilePath)
+            => (outputFilePath == OutputFilePath) ? this : WithAttributes(Attributes.With(outputPath: outputFilePath, version: Version.GetNewerVersion()));
+
+        public ProjectState WithOutputRefFilePath(string? outputRefFilePath)
+            => (outputRefFilePath == OutputRefFilePath) ? this : WithAttributes(Attributes.With(outputRefPath: outputRefFilePath, version: Version.GetNewerVersion()));
+
+        public ProjectState WithCompilationOutputInfo(in CompilationOutputInfo info)
+            => (info == CompilationOutputInfo) ? this : WithAttributes(Attributes.With(compilationOutputInfo: info, version: Version.GetNewerVersion()));
+
+        public ProjectState WithDefaultNamespace(string? defaultNamespace)
+            => (defaultNamespace == DefaultNamespace) ? this : WithAttributes(Attributes.With(defaultNamespace: defaultNamespace, version: Version.GetNewerVersion()));
+
+        public ProjectState WithHasAllInformation(bool hasAllInformation)
+            => (hasAllInformation == HasAllInformation) ? this : WithAttributes(Attributes.With(hasAllInformation: hasAllInformation, version: Version.GetNewerVersion()));
+
+        public ProjectState WithRunAnalyzers(bool runAnalyzers)
+            => (runAnalyzers == RunAnalyzers) ? this : WithAttributes(Attributes.With(runAnalyzers: runAnalyzers, version: Version.GetNewerVersion()));
+
+        public ProjectState WithCompilationOptions(CompilationOptions options)
         {
-            if (name == this.Name)
+            if (options == CompilationOptions)
             {
                 return this;
             }
 
-            return this.With(projectInfo: this.ProjectInfo.WithName(name).WithVersion(this.Version.GetNewerVersion()));
+            var newProvider = new WorkspaceSyntaxTreeOptionsProvider(_lazyAnalyzerConfigSet);
+
+            return With(projectInfo: ProjectInfo.WithCompilationOptions(options.WithSyntaxTreeOptionsProvider(newProvider))
+                       .WithVersion(Version.GetNewerVersion()));
         }
 
-        public ProjectState UpdateFilePath(string? filePath)
+        public ProjectState WithParseOptions(ParseOptions options)
         {
-            if (filePath == this.FilePath)
-            {
-                return this;
-            }
-
-            return this.With(projectInfo: this.ProjectInfo.WithFilePath(filePath).WithVersion(this.Version.GetNewerVersion()));
-        }
-
-        public ProjectState UpdateAssemblyName(string assemblyName)
-        {
-            if (assemblyName == this.AssemblyName)
-            {
-                return this;
-            }
-
-            return this.With(projectInfo: this.ProjectInfo.WithAssemblyName(assemblyName).WithVersion(this.Version.GetNewerVersion()));
-        }
-
-        public ProjectState UpdateOutputFilePath(string? outputFilePath)
-        {
-            if (outputFilePath == this.OutputFilePath)
-            {
-                return this;
-            }
-
-            return this.With(projectInfo: this.ProjectInfo.WithOutputFilePath(outputFilePath).WithVersion(this.Version.GetNewerVersion()));
-        }
-
-        public ProjectState UpdateOutputRefFilePath(string? outputRefFilePath)
-        {
-            if (outputRefFilePath == this.OutputRefFilePath)
-            {
-                return this;
-            }
-
-            return this.With(projectInfo: this.ProjectInfo.WithOutputRefFilePath(outputRefFilePath).WithVersion(this.Version.GetNewerVersion()));
-        }
-
-        public ProjectState UpdateDefaultNamespace(string? defaultNamespace)
-        {
-            if (defaultNamespace == this.DefaultNamespace)
-            {
-                return this;
-            }
-
-            return this.With(projectInfo: this.ProjectInfo.WithDefaultNamespace(defaultNamespace).WithVersion(this.Version.GetNewerVersion()));
-        }
-
-        public ProjectState UpdateCompilationOptions(CompilationOptions options)
-        {
-            if (options == this.CompilationOptions)
-            {
-                return this;
-            }
-
-            return this.With(projectInfo: this.ProjectInfo.WithCompilationOptions(options).WithVersion(this.Version.GetNewerVersion()));
-        }
-
-        public ProjectState UpdateParseOptions(ParseOptions options)
-        {
-            if (options == this.ParseOptions)
+            if (options == ParseOptions)
             {
                 return this;
             }
@@ -589,35 +607,13 @@ namespace Microsoft.CodeAnalysis
                 docMap = docMap.SetItem(docId, newDocState);
             }
 
-            return this.With(
-                projectInfo: this.ProjectInfo.WithParseOptions(options).WithVersion(this.Version.GetNewerVersion()),
+            return With(
+                projectInfo: ProjectInfo.WithParseOptions(options).WithVersion(Version.GetNewerVersion()),
                 documentStates: docMap);
         }
 
-        public ProjectState UpdateHasAllInformation(bool hasAllInformation)
-        {
-            if (hasAllInformation == this.HasAllInformation)
-            {
-                return this;
-            }
-
-            return this.With(projectInfo: this.ProjectInfo.WithHasAllInformation(hasAllInformation).WithVersion(this.Version.GetNewerVersion()));
-        }
-
-        public ProjectState UpdateRunAnalyzers(bool runAnalyzers)
-        {
-            if (runAnalyzers == this.RunAnalyzers)
-            {
-                return this;
-            }
-
-            return this.With(projectInfo: this.ProjectInfo.WithRunAnalyzers(runAnalyzers).WithVersion(this.Version.GetNewerVersion()));
-        }
-
         public static bool IsSameLanguage(ProjectState project1, ProjectState project2)
-        {
-            return project1.LanguageServices == project2.LanguageServices;
-        }
+            => project1.LanguageServices == project2.LanguageServices;
 
         /// <summary>
         /// Determines whether <see cref="ProjectReferences"/> contains a reference to a specified project.
@@ -635,101 +631,34 @@ namespace Microsoft.CodeAnalysis
             return false;
         }
 
-        public ProjectState RemoveProjectReference(ProjectReference projectReference)
+        public ProjectState WithProjectReferences(IReadOnlyList<ProjectReference> projectReferences)
         {
-            Debug.Assert(this.ProjectReferences.Contains(projectReference));
-
-            return this.With(
-                projectInfo: this.ProjectInfo.WithProjectReferences(this.ProjectReferences.ToImmutableArray().Remove(projectReference)).WithVersion(this.Version.GetNewerVersion()));
-        }
-
-        public ProjectState AddProjectReferences(IEnumerable<ProjectReference> projectReferences)
-        {
-            var newProjectRefs = this.ProjectReferences;
-            foreach (var projectReference in projectReferences)
+            if (projectReferences == ProjectReferences)
             {
-                Debug.Assert(!newProjectRefs.Contains(projectReference));
-                newProjectRefs = newProjectRefs.ToImmutableArray().Add(projectReference);
+                return this;
             }
 
-            return this.With(
-                projectInfo: this.ProjectInfo.WithProjectReferences(newProjectRefs).WithVersion(this.Version.GetNewerVersion()));
+            return With(projectInfo: ProjectInfo.With(projectReferences: projectReferences).WithVersion(Version.GetNewerVersion()));
         }
 
-        public ProjectState WithProjectReferences(IEnumerable<ProjectReference> projectReferences)
+        public ProjectState WithMetadataReferences(IReadOnlyList<MetadataReference> metadataReferences)
         {
-            return this.With(
-                projectInfo: this.ProjectInfo.WithProjectReferences(projectReferences).WithVersion(this.Version.GetNewerVersion()));
-        }
-
-        public ProjectState AddMetadataReference(MetadataReference toMetadata)
-        {
-            Debug.Assert(!this.MetadataReferences.Contains(toMetadata));
-
-            return this.With(
-                projectInfo: this.ProjectInfo.WithMetadataReferences(this.MetadataReferences.ToImmutableArray().Add(toMetadata)).WithVersion(this.Version.GetNewerVersion()));
-        }
-
-        public ProjectState RemoveMetadataReference(MetadataReference toMetadata)
-        {
-            Debug.Assert(this.MetadataReferences.Contains(toMetadata));
-
-            return this.With(
-                projectInfo: this.ProjectInfo.WithMetadataReferences(this.MetadataReferences.ToImmutableArray().Remove(toMetadata)).WithVersion(this.Version.GetNewerVersion()));
-        }
-
-        public ProjectState AddMetadataReferences(IEnumerable<MetadataReference> metadataReferences)
-        {
-            var newMetaRefs = this.MetadataReferences;
-            foreach (var metadataReference in metadataReferences)
+            if (metadataReferences == MetadataReferences)
             {
-                Debug.Assert(!newMetaRefs.Contains(metadataReference));
-                newMetaRefs = newMetaRefs.ToImmutableArray().Add(metadataReference);
+                return this;
             }
 
-            return this.With(
-                projectInfo: this.ProjectInfo.WithMetadataReferences(newMetaRefs).WithVersion(this.Version.GetNewerVersion()));
-        }
-
-        public ProjectState WithMetadataReferences(IEnumerable<MetadataReference> metadataReferences)
-        {
-            return this.With(
-                projectInfo: this.ProjectInfo.WithMetadataReferences(metadataReferences).WithVersion(this.Version.GetNewerVersion()));
-        }
-
-        public ProjectState AddAnalyzerReference(AnalyzerReference analyzerReference)
-        {
-            Debug.Assert(!this.AnalyzerReferences.Contains(analyzerReference));
-
-            return this.With(
-                projectInfo: this.ProjectInfo.WithAnalyzerReferences(this.AnalyzerReferences.ToImmutableArray().Add(analyzerReference)).WithVersion(this.Version.GetNewerVersion()));
-        }
-
-        public ProjectState RemoveAnalyzerReference(AnalyzerReference analyzerReference)
-        {
-            Debug.Assert(this.AnalyzerReferences.Contains(analyzerReference));
-
-            return this.With(
-                projectInfo: this.ProjectInfo.WithAnalyzerReferences(this.AnalyzerReferences.ToImmutableArray().Remove(analyzerReference)).WithVersion(this.Version.GetNewerVersion()));
-        }
-
-        public ProjectState AddAnalyzerReferences(IEnumerable<AnalyzerReference> analyzerReferences)
-        {
-            var newAnalyzerReferences = this.AnalyzerReferences;
-            foreach (var analyzerReference in analyzerReferences)
-            {
-                Debug.Assert(!newAnalyzerReferences.Contains(analyzerReference));
-                newAnalyzerReferences = newAnalyzerReferences.ToImmutableArray().Add(analyzerReference);
-            }
-
-            return this.With(
-                projectInfo: this.ProjectInfo.WithAnalyzerReferences(newAnalyzerReferences).WithVersion(this.Version.GetNewerVersion()));
+            return With(projectInfo: ProjectInfo.With(metadataReferences: metadataReferences).WithVersion(Version.GetNewerVersion()));
         }
 
         public ProjectState WithAnalyzerReferences(IEnumerable<AnalyzerReference> analyzerReferences)
         {
-            return this.With(
-                projectInfo: this.ProjectInfo.WithAnalyzerReferences(analyzerReferences).WithVersion(this.Version.GetNewerVersion()));
+            if (analyzerReferences == AnalyzerReferences)
+            {
+                return this;
+            }
+
+            return With(projectInfo: ProjectInfo.WithAnalyzerReferences(analyzerReferences).WithVersion(Version.GetNewerVersion()));
         }
 
         public ProjectState AddDocuments(ImmutableArray<DocumentState> documents)
@@ -764,59 +693,57 @@ namespace Microsoft.CodeAnalysis
         private ProjectState CreateNewStateForChangedAnalyzerConfigDocuments(ImmutableSortedDictionary<DocumentId, AnalyzerConfigDocumentState> newAnalyzerConfigDocumentStates)
         {
             var newAnalyzerConfigSet = ComputeAnalyzerConfigSetValueSource(newAnalyzerConfigDocumentStates.Values);
+            var projectInfo = ProjectInfo.WithVersion(this.Version.GetNewerVersion());
 
-            // The addition of any .editorconfig can modify the diagnostic reporting options that are on
-            // a specific syntax tree; therefore we must update all our syntax trees.
-            var docMap = _documentStates;
-
-            foreach (var (docId, oldDocState) in _documentStates)
+            // Changing analyzer configs changes compilation options
+            if (CompilationOptions != null)
             {
-                var newDocState = oldDocState.UpdateAnalyzerConfigSet(newAnalyzerConfigSet);
-                docMap = docMap.SetItem(docId, newDocState);
+                var newProvider = new WorkspaceSyntaxTreeOptionsProvider(newAnalyzerConfigSet);
+                projectInfo = projectInfo
+                    .WithCompilationOptions(CompilationOptions.WithSyntaxTreeOptionsProvider(newProvider));
             }
 
             return this.With(
-                projectInfo: this.ProjectInfo.WithVersion(this.Version.GetNewerVersion()),
+                projectInfo: projectInfo,
                 analyzerConfigDocumentStates: newAnalyzerConfigDocumentStates,
-                documentStates: docMap,
                 analyzerConfigSet: newAnalyzerConfigSet);
         }
 
-        public ProjectState RemoveDocument(DocumentId documentId)
+        public ProjectState RemoveDocuments(ImmutableArray<DocumentId> documentIds)
         {
-            Debug.Assert(this.DocumentStates.ContainsKey(documentId));
-
+            // We create a new CachingAnalyzerConfigSet for the new snapshot to avoid holding onto cached information
+            // for removed documents.
             return this.With(
                 projectInfo: this.ProjectInfo.WithVersion(this.Version.GetNewerVersion()),
-                documentIds: _documentIds.Remove(documentId),
-                documentStates: _documentStates.Remove(documentId));
+                documentIds: _documentIds.RemoveRange(documentIds),
+                documentStates: _documentStates.RemoveRange(documentIds),
+                analyzerConfigSet: ComputeAnalyzerConfigSetValueSource(AnalyzerConfigDocumentStates.Values));
         }
 
-        public ProjectState RemoveAdditionalDocument(DocumentId documentId)
+        public ProjectState RemoveAdditionalDocuments(ImmutableArray<DocumentId> documentIds)
         {
-            Debug.Assert(this.AdditionalDocumentStates.ContainsKey(documentId));
-
             return this.With(
                 projectInfo: this.ProjectInfo.WithVersion(this.Version.GetNewerVersion()),
-                additionalDocumentIds: _additionalDocumentIds.Remove(documentId),
-                additionalDocumentStates: _additionalDocumentStates.Remove(documentId));
+                additionalDocumentIds: _additionalDocumentIds.RemoveRange(documentIds),
+                additionalDocumentStates: _additionalDocumentStates.RemoveRange(documentIds));
         }
 
-        public ProjectState RemoveAnalyzerConfigDocument(DocumentId documentId)
+        public ProjectState RemoveAnalyzerConfigDocuments(ImmutableArray<DocumentId> documentIds)
         {
-            Debug.Assert(_analyzerConfigDocumentStates.ContainsKey(documentId));
-
-            var newAnalyzerConfigDocumentStates = _analyzerConfigDocumentStates.Remove(documentId);
+            var newAnalyzerConfigDocumentStates = _analyzerConfigDocumentStates.RemoveRange(documentIds);
 
             return CreateNewStateForChangedAnalyzerConfigDocuments(newAnalyzerConfigDocumentStates);
         }
 
         public ProjectState RemoveAllDocuments()
         {
+            // We create a new CachingAnalyzerConfigSet for the new snapshot to avoid holding onto cached information
+            // for removed documents.
             return this.With(
                 projectInfo: this.ProjectInfo.WithVersion(this.Version.GetNewerVersion()).WithDocuments(SpecializedCollections.EmptyEnumerable<DocumentInfo>()),
                 documentIds: ImmutableList<DocumentId>.Empty,
-                documentStates: ImmutableSortedDictionary.Create<DocumentId, DocumentState>(DocumentIdComparer.Instance));
+                documentStates: ImmutableSortedDictionary.Create<DocumentId, DocumentState>(DocumentIdComparer.Instance),
+                analyzerConfigSet: ComputeAnalyzerConfigSetValueSource(AnalyzerConfigDocumentStates.Values));
         }
 
         public ProjectState UpdateDocument(DocumentState newDocument, bool textChanged, bool recalculateDependentVersions)
@@ -861,7 +788,7 @@ namespace Microsoft.CodeAnalysis
                 latestDocumentTopLevelChangeVersion: dependentSemanticVersion);
         }
 
-        public ProjectState UpdateAnalyzerConfigDocument(AnalyzerConfigDocumentState newDocument, bool textChanged, bool recalculateDependentVersions)
+        public ProjectState UpdateAnalyzerConfigDocument(AnalyzerConfigDocumentState newDocument)
         {
             Debug.Assert(this.ContainsAnalyzerConfigDocument(newDocument.Id));
 
@@ -954,16 +881,25 @@ namespace Microsoft.CodeAnalysis
                     _lazyLatestDocumentTopLevelChangeVersion;
         }
 
-        private sealed class DocumentIdComparer : IComparer<DocumentId>
+        private sealed class DocumentIdComparer : IComparer<DocumentId?>
         {
-            public static IComparer<DocumentId> Instance = new DocumentIdComparer();
+            public static readonly IComparer<DocumentId?> Instance = new DocumentIdComparer();
 
             private DocumentIdComparer()
             {
             }
 
-            public int Compare(DocumentId x, DocumentId y)
+            public int Compare(DocumentId? x, DocumentId? y)
             {
+                if (x is null)
+                {
+                    return y is null ? 0 : -1;
+                }
+                else if (y is null)
+                {
+                    return 1;
+                }
+
                 return x.Id.CompareTo(y.Id);
             }
         }

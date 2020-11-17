@@ -2,8 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
-#nullable enable
-
+using System;
 using System.Collections.Immutable;
 using System.Composition;
 using System.Diagnostics;
@@ -29,6 +28,7 @@ namespace Microsoft.CodeAnalysis.CSharp.ChangeNamespace
         AbstractChangeNamespaceService<NamespaceDeclarationSyntax, CompilationUnitSyntax, MemberDeclarationSyntax>
     {
         [ImportingConstructor]
+        [Obsolete(MefConstruction.ImportingConstructorMessage, error: true)]
         public CSharpChangeNamespaceService()
         {
         }
@@ -72,7 +72,7 @@ namespace Microsoft.CodeAnalysis.CSharp.ChangeNamespace
 
         protected override string GetDeclaredNamespace(SyntaxNode container)
         {
-            if (container is CompilationUnitSyntax compilationUnit)
+            if (container is CompilationUnitSyntax)
             {
                 return string.Empty;
             }
@@ -157,7 +157,8 @@ namespace Microsoft.CodeAnalysis.CSharp.ChangeNamespace
                 newNode = newNode.WithTriviaFrom(oldNode);
                 return true;
             }
-            else if (syntaxFacts.IsNameOfMemberAccessExpression(nameRef))
+            else if (syntaxFacts.IsNameOfSimpleMemberAccessExpression(nameRef) ||
+                     syntaxFacts.IsNameOfMemberBindingExpression(nameRef))
             {
                 RoslynDebug.Assert(nameRef.Parent is object);
                 oldNode = nameRef.Parent;
