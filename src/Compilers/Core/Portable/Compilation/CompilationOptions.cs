@@ -362,7 +362,7 @@ namespace Microsoft.CodeAnalysis
         {
             get
             {
-                return OptimizationLevel == OptimizationLevel.Debug;
+                return false;
             }
         }
 
