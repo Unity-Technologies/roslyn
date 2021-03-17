@@ -824,7 +824,7 @@ namespace Microsoft.CodeAnalysis.Operations
                         }
                     }
 
-                    return new CSharpLazyPropertyReferenceOperation(this, boundObjectInitializerMember, isObjectOrCollectionInitializer: true, property.GetPublicSymbol(), _semanticModel, syntax, type, constantValue, isImplicit);
+                    return new CSharpLazyPropertyReferenceOperation(this, boundObjectInitializerMember, isObjectOrCollectionInitializer, property.GetPublicSymbol(), _semanticModel, syntax, type, constantValue, isImplicit);
                 default:
                     throw ExceptionUtilities.Unreachable;
             }
@@ -1934,7 +1934,7 @@ namespace Microsoft.CodeAnalysis.Operations
             {
                 if (part.Kind == BoundKind.StringInsert)
                 {
-                    builder.Add((IInterpolatedStringContentOperation)Create(part));
+                    builder.Add((IInterpolatedStringContentOperation)CreateInternal(part));
                 }
                 else
                 {

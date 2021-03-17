@@ -23,14 +23,6 @@ namespace Microsoft.CodeAnalysis.Remote
     {
         public event EventHandler<bool>? StatusChanged;
 
-        /// <summary>
-        /// Return an unique string per client.
-        /// 
-        /// one can use this to distinguish different clients that are connected to different RemoteHosts including
-        /// cases where 2 external process finding each others
-        /// </summary>
-        public abstract string ClientId { get; }
-
         protected void Started()
         {
             OnStatusChanged(started: true);

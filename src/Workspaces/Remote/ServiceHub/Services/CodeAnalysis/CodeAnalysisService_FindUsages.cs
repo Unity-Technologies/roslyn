@@ -94,24 +94,24 @@ namespace Microsoft.CodeAnalysis.Remote
 
             public IStreamingProgressTracker ProgressTracker => this;
 
-            public Task ReportMessageAsync(string message)
-                => _endPoint.InvokeAsync(nameof(ReportMessageAsync), new object[] { message }, CancellationToken);
+            public async ValueTask ReportMessageAsync(string message)
+                => await _endPoint.InvokeAsync(nameof(ReportMessageAsync), new object[] { message }, CancellationToken).ConfigureAwait(false);
 
-            public Task ReportProgressAsync(int current, int maximum)
-                => _endPoint.InvokeAsync(nameof(ReportProgressAsync), new object[] { current, maximum }, CancellationToken);
+            public async ValueTask ReportProgressAsync(int current, int maximum)
+                => await _endPoint.InvokeAsync(nameof(ReportProgressAsync), new object[] { current, maximum }, CancellationToken).ConfigureAwait(false);
 
-            public Task SetSearchTitleAsync(string title)
-                => _endPoint.InvokeAsync(nameof(SetSearchTitleAsync), new object[] { title }, CancellationToken);
+            public async ValueTask SetSearchTitleAsync(string title)
+                => await _endPoint.InvokeAsync(nameof(SetSearchTitleAsync), new object[] { title }, CancellationToken).ConfigureAwait(false);
 
-            public Task OnDefinitionFoundAsync(DefinitionItem definition)
+            public async ValueTask OnDefinitionFoundAsync(DefinitionItem definition)
             {
                 var id = GetOrAddDefinitionItemId(definition);
-                return _endPoint.InvokeAsync(nameof(OnDefinitionFoundAsync),
+                await _endPoint.InvokeAsync(nameof(OnDefinitionFoundAsync),
                     new object[]
                     {
                         SerializableDefinitionItem.Dehydrate(id, definition),
                     },
-                    CancellationToken);
+                    CancellationToken).ConfigureAwait(false);
             }
 
             private int GetOrAddDefinitionItemId(DefinitionItem item)
@@ -128,15 +128,15 @@ namespace Microsoft.CodeAnalysis.Remote
                 }
             }
 
-            public Task OnReferenceFoundAsync(SourceReferenceItem reference)
+            public async ValueTask OnReferenceFoundAsync(SourceReferenceItem reference)
             {
                 var definitionItem = GetOrAddDefinitionItemId(reference.Definition);
-                return _endPoint.InvokeAsync(nameof(OnReferenceFoundAsync),
+                await _endPoint.InvokeAsync(nameof(OnReferenceFoundAsync),
                     new object[]
                     {
                         SerializableSourceReferenceItem.Dehydrate(definitionItem, reference),
                     },
-                    CancellationToken);
+                    CancellationToken).ConfigureAwait(false);
             }
 
             #endregion

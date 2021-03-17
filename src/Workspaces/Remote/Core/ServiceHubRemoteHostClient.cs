@@ -33,14 +33,14 @@ namespace Microsoft.CodeAnalysis.Remote
         private readonly ISerializerService _serializer;
         private readonly RemoteEndPoint _endPoint;
         private readonly HubClient _hubClient;
-        private readonly HostGroup _hostGroup;
+        private readonly IErrorReportingService? _errorReportingService;
+        private readonly IRemoteHostClientShutdownCancellationService? _shutdownCancellationService;
 
         private readonly ConnectionPools? _connectionPools;
 
         private ServiceHubRemoteHostClient(
             HostWorkspaceServices services,
             HubClient hubClient,
-            HostGroup hostGroup,
             Stream stream)
         {
             _connectionPools = new ConnectionPools(
@@ -52,7 +52,6 @@ namespace Microsoft.CodeAnalysis.Remote
 
             _services = services;
             _hubClient = hubClient;
-            _hostGroup = hostGroup;
 
             _endPoint = new RemoteEndPoint(stream, hubClient.Logger, incomingCallTarget: this);
             _endPoint.Disconnected += OnDisconnected;
@@ -61,10 +60,12 @@ namespace Microsoft.CodeAnalysis.Remote
 
             _assetStorage = services.GetRequiredService<ISolutionAssetStorageProvider>().AssetStorage;
             _serializer = services.GetRequiredService<ISerializerService>();
+            _errorReportingService = services.GetService<IErrorReportingService>();
+            _shutdownCancellationService = services.GetService<IRemoteHostClientShutdownCancellationService>();
         }
 
         private void OnUnexpectedExceptionThrown(Exception unexpectedException)
-            => _services.GetService<IErrorReportingService>()?.ShowRemoteHostCrashedErrorInfo(unexpectedException);
+            => _errorReportingService?.ShowRemoteHostCrashedErrorInfo(unexpectedException);
 
         public static async Task<RemoteHostClient> CreateAsync(HostWorkspaceServices services, CancellationToken cancellationToken)
         {
@@ -72,15 +73,11 @@ namespace Microsoft.CodeAnalysis.Remote
             {
                 Logger.Log(FunctionId.RemoteHost_Bitness, KeyValueLogMessage.Create(LogType.Trace, m => m["64bit"] = RemoteHostOptions.IsServiceHubProcess64Bit(services)));
 
-                // let each client to have unique id so that we can distinguish different clients when service is restarted
-                var clientId = $"VS ({Process.GetCurrentProcess().Id}) ({Guid.NewGuid()})";
-
-                var hostGroup = new HostGroup(clientId);
                 var hubClient = new HubClient("ManagedLanguage.IDE.RemoteHostClient");
 
-                var remoteHostStream = await RequestServiceAsync(services, hubClient, WellKnownServiceHubService.RemoteHost, hostGroup, cancellationToken).ConfigureAwait(false);
+                var remoteHostStream = await RequestServiceAsync(services, hubClient, WellKnownServiceHubService.RemoteHost, cancellationToken).ConfigureAwait(false);
 
-                var client = new ServiceHubRemoteHostClient(services, hubClient, hostGroup, remoteHostStream);
+                var client = new ServiceHubRemoteHostClient(services, hubClient, remoteHostStream);
 
                 var uiCultureLCID = CultureInfo.CurrentUICulture.LCID;
                 var cultureLCID = CultureInfo.CurrentCulture.LCID;
@@ -100,7 +97,6 @@ namespace Microsoft.CodeAnalysis.Remote
             HostWorkspaceServices services,
             HubClient client,
             RemoteServiceName serviceName,
-            HostGroup hostGroup,
             CancellationToken cancellationToken)
         {
             var is64bit = RemoteHostOptions.IsServiceHubProcess64Bit(services);
@@ -108,7 +104,7 @@ namespace Microsoft.CodeAnalysis.Remote
             // Make sure we are on the thread pool to avoid UI thread dependencies if external code uses ConfigureAwait(true)
             await TaskScheduler.Default;
 
-            var descriptor = new ServiceDescriptor(serviceName.ToString(is64bit)) { HostGroup = hostGroup };
+            var descriptor = new ServiceHub.Client.ServiceDescriptor(serviceName.ToString(is64bit));
             try
             {
                 return await client.RequestServiceAsync(descriptor, cancellationToken).ConfigureAwait(false);
@@ -142,10 +138,6 @@ namespace Microsoft.CodeAnalysis.Remote
             }
         }
 
-        public HostGroup HostGroup => _hostGroup;
-
-        public override string ClientId => _hostGroup.Id;
-
         public override Task<RemoteServiceConnection> CreateConnectionAsync(RemoteServiceName serviceName, object? callbackTarget, CancellationToken cancellationToken)
         {
             // When callbackTarget is given, we can't share/pool connection since callbackTarget attaches a state to connection.
@@ -162,7 +154,7 @@ namespace Microsoft.CodeAnalysis.Remote
 
         private async Task<RemoteServiceConnection> CreateConnectionImplAsync(RemoteServiceName serviceName, object? callbackTarget, IPooledConnectionReclamation? poolReclamation, CancellationToken cancellationToken)
         {
-            var serviceStream = await RequestServiceAsync(_services, _hubClient, serviceName, _hostGroup, cancellationToken).ConfigureAwait(false);
+            var serviceStream = await RequestServiceAsync(_services, _hubClient, serviceName, cancellationToken).ConfigureAwait(false);
             return new JsonRpcConnection(_services, _hubClient.Logger, callbackTarget, serviceStream, poolReclamation);
         }
 

@@ -23,7 +23,7 @@ using Microsoft.CodeAnalysis.Test.Utilities;
 using Microsoft.CodeAnalysis.Text;
 using Microsoft.CodeAnalysis.TodoComments;
 using Microsoft.CodeAnalysis.UnitTests;
-using Nerdbank;
+using Nerdbank.Streams;
 using Roslyn.Test.Utilities;
 using Roslyn.Utilities;
 using Xunit;
@@ -45,7 +45,7 @@ namespace Roslyn.VisualStudio.Next.UnitTests.Remote
         {
             var remoteLogger = new TraceSource("inprocRemoteClient");
             var testData = new RemoteHostTestData(new RemoteWorkspaceManager(new SolutionAssetCache()), isInProc: true);
-            var streams = FullDuplexStream.CreateStreams();
+            var streams = FullDuplexStream.CreatePair();
             using var _ = new RemoteHostService(streams.Item1, new InProcRemoteHostClient.ServiceProvider(remoteLogger, testData));
         }
 
@@ -111,8 +111,8 @@ namespace Roslyn.VisualStudio.Next.UnitTests.Remote
             var newState = await newDocument.State.GetStateChecksumsAsync(CancellationToken.None);
 
             // check that text already exist in remote side
-            Assert.True(client.TestData.WorkspaceManager.SolutionAssetCache.TryGetAsset<SourceText>(newState.Text, out var remoteText));
-            Assert.Equal(newText.ToString(), remoteText.ToString());
+            Assert.True(client.TestData.WorkspaceManager.SolutionAssetCache.TryGetAsset<SerializableSourceText>(newState.Text, out var serializableRemoteText));
+            Assert.Equal(newText.ToString(), (await serializableRemoteText.GetTextAsync(CancellationToken.None)).ToString());
         }
 
         [Fact]

@@ -126,6 +126,11 @@ namespace Microsoft.CodeAnalysis
         public string? DocumentationPath { get; internal set; }
 
         /// <summary>
+        /// Absolute path of the directory to place generated files in, or <c>null</c> to not emit any generated files.
+        /// </summary>
+        public string? GeneratedFilesOutputDirectory { get; internal set; }
+
+        /// <summary>
         /// Options controlling the generation of a SARIF log file containing compilation or
         /// analysis diagnostics, or null if no log file is desired.
         /// </summary>
@@ -486,6 +491,9 @@ namespace Microsoft.CodeAnalysis
                         break;
                     case AnalyzerLoadFailureEventArgs.FailureErrorCode.NoAnalyzers:
                         diagnostic = new DiagnosticInfo(messageProvider, messageProvider.WRN_NoAnalyzerInAssembly, analyzerReference.FullPath);
+                        break;
+                    case AnalyzerLoadFailureEventArgs.FailureErrorCode.ReferencesFramework:
+                        diagnostic = new DiagnosticInfo(messageProvider, messageProvider.WRN_AnalyzerReferencesFramework, analyzerReference.FullPath, e.TypeName!);
                         break;
                     case AnalyzerLoadFailureEventArgs.FailureErrorCode.None:
                     default:

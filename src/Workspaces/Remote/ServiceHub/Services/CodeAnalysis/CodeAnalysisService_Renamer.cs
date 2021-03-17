@@ -99,7 +99,6 @@ namespace Microsoft.CodeAnalysis.Remote
             }, cancellationToken);
         }
 
-        [return: NotNullIfNotNull("nonConflictSymbolIds")]
         private static async Task<ImmutableHashSet<ISymbol>?> GetNonConflictSymbolsAsync(Solution solution, SerializableSymbolAndProjectId[]? nonConflictSymbolIds, CancellationToken cancellationToken)
         {
             if (nonConflictSymbolIds == null)

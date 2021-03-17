@@ -48,14 +48,14 @@ namespace Microsoft.CodeAnalysis.Editor.FindUsages
             => _context.ProgressTracker.ItemCompletedAsync();
 
         public Task ReportMessageAsync(string message)
-            => _context.ReportMessageAsync(message);
+            => _context.ReportMessageAsync(message).AsTask();
 
         [Obsolete]
         public Task ReportProgressAsync(int current, int maximum)
-            => _context.ReportProgressAsync(current, maximum);
+            => _context.ReportProgressAsync(current, maximum).AsTask();
 
         public Task SetSearchTitleAsync(string title)
-            => _context.SetSearchTitleAsync(title);
+            => _context.SetSearchTitleAsync(title).AsTask();
 
         public Task OnDefinitionFoundAsync(SerializableDefinitionItem definition)
         {
@@ -67,11 +67,11 @@ namespace Microsoft.CodeAnalysis.Editor.FindUsages
                 _idToDefinition.Add(id, rehydrated);
             }
 
-            return _context.OnDefinitionFoundAsync(rehydrated);
+            return _context.OnDefinitionFoundAsync(rehydrated).AsTask();
         }
 
         public Task OnReferenceFoundAsync(SerializableSourceReferenceItem reference)
-            => _context.OnReferenceFoundAsync(reference.Rehydrate(_solution, GetDefinition(reference.DefinitionId)));
+            => _context.OnReferenceFoundAsync(reference.Rehydrate(_solution, GetDefinition(reference.DefinitionId))).AsTask();
 
         private DefinitionItem GetDefinition(int definitionId)
         {

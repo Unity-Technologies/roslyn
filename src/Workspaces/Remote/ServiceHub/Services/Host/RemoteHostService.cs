@@ -54,6 +54,12 @@ namespace Microsoft.CodeAnalysis.Remote
             // we set up logger here
             RoslynLogger.SetLogger(new EtwLogger(s_logChecker));
 
+#if DEBUG
+            // Make sure debug assertions in ServiceHub result in exceptions instead of the assertion UI
+            Trace.Listeners.Clear();
+            Trace.Listeners.Add(new ThrowingTraceListener());
+#endif
+
             SetNativeDllSearchDirectories();
         }
 
@@ -64,10 +70,10 @@ namespace Microsoft.CodeAnalysis.Remote
 
             if (TestData == null || !TestData.IsInProc)
             {
-                // Set this process's priority BelowNormal.
+                // Try setting this process's priority BelowNormal.
                 // this should let us to freely try to use all resources possible without worrying about affecting
                 // host's work such as responsiveness or build.
-                Process.GetCurrentProcess().PriorityClass = ProcessPriorityClass.BelowNormal;
+                Process.GetCurrentProcess().TrySetPriorityClass(ProcessPriorityClass.BelowNormal);
             }
 
             // this service provide a way for client to make sure remote host is alive
@@ -300,7 +306,7 @@ namespace Microsoft.CodeAnalysis.Remote
                         return;
                     }
 
-                    var newText = text.WithChanges(textChanges);
+                    var newText = new SerializableSourceText(text.WithChanges(textChanges));
                     var newChecksum = serializer.CreateChecksum(newText, cancellationToken);
 
                     // save new text in the cache so that when asked, the data is most likely already there
@@ -319,9 +325,9 @@ namespace Microsoft.CodeAnalysis.Remote
                 {
                     // check the cheap and fast one first.
                     // see if the cache has the source text
-                    if (WorkspaceManager.SolutionAssetCache.TryGetAsset<SourceText>(baseTextChecksum, out var sourceText))
+                    if (WorkspaceManager.SolutionAssetCache.TryGetAsset<SerializableSourceText>(baseTextChecksum, out var serializableSourceText))
                     {
-                        return sourceText;
+                        return await serializableSourceText.GetTextAsync(cancellationToken).ConfigureAwait(false);
                     }
 
                     // do slower one

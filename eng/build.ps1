@@ -51,6 +51,7 @@ param (
   [string]$officialSkipTests = "",
   [string]$officialSourceBranchName = "",
   [string]$officialIbcDrop = "",
+  [string]$officialVisualStudioDropAccessToken = "",
 
   # Test actions
   [switch]$test32,
@@ -105,12 +106,13 @@ function Print-Usage() {
   Write-Host "  -sourceBuild              Simulate building source-build"
   Write-Host ""
   Write-Host "Official build settings:"
-  Write-Host "  -officialBuildId                            An official build id, e.g. 20190102.3"
-  Write-Host "  -officialSkipTests <bool>                   Pass 'true' to not run tests"
-  Write-Host "  -officialSkipApplyOptimizationData <bool>   Pass 'true' to not apply optimization data"
-  Write-Host "  -officialSourceBranchName <string>          The source branch name"
-  Write-Host "  -officialIbcDrop <string>                   IBC data drop to use (e.g. 'ProfilingOutputs/DevDiv/VS/..')."
-  Write-Host "                                              'default' for the most recent available for the branch."
+  Write-Host "  -officialBuildId                                  An official build id, e.g. 20190102.3"
+  Write-Host "  -officialSkipTests <bool>                         Pass 'true' to not run tests"
+  Write-Host "  -officialSkipApplyOptimizationData <bool>         Pass 'true' to not apply optimization data"
+  Write-Host "  -officialSourceBranchName <string>                The source branch name"
+  Write-Host "  -officialIbcDrop <string>                         IBC data drop to use (e.g. 'ProfilingOutputs/DevDiv/VS/..')."
+  Write-Host "                                                    'default' for the most recent available for the branch."
+  Write-Host "  -officialVisualStudioDropAccessToken <string>     The access token to access OptProf data drop"
   Write-Host ""
   Write-Host "Command line arguments starting with '/p:' are passed through to MSBuild."
 }
@@ -145,6 +147,7 @@ function Process-Arguments() {
   OfficialBuildOnly "officialSkipTests"
   OfficialBuildOnly "officialSkipApplyOptimizationData"
   OfficialBuildOnly "officialSourceBranchName"
+  OfficialBuildOnly "officialVisualStudioDropAccessToken"
 
   if ($officialBuildId) {
     $script:useGlobalNuGetCache = $false
@@ -230,11 +233,6 @@ function BuildSolution() {
   # Set DotNetBuildFromSource to 'true' if we're simulating building for source-build.
   $buildFromSource = if ($sourceBuild) { "/p:DotNetBuildFromSource=true" } else { "" }
 
-  # If we are using msbuild.exe restore using static graph
-  # This check can be removed and turned on for all builds once roslyn depends on a .NET Core SDK
-  # that has a new enough msbuild for the -graph switch to be present
-  $restoreUseStaticGraphEvaluation = if ($msbuildEngine -ne 'dotnet') { "/p:RestoreUseStaticGraphEvaluation=true" } else { "" }
-  
   try {
     MSBuild $toolsetBuildProj `
       $bl `
@@ -256,8 +254,9 @@ function BuildSolution() {
       /p:TreatWarningsAsErrors=$warnAsError `
       /p:EnableNgenOptimization=$applyOptimizationData `
       /p:IbcOptimizationDataDir=$ibcDir `
-      $restoreUseStaticGraphEvaluation `
+      /p:RestoreUseStaticGraphEvaluation=true `
       /p:VisualStudioIbcDrop=$ibcDropName `
+      /p:VisualStudioDropAccessToken=$officialVisualStudioDropAccessToken `
       $suppressExtensionDeployment `
       $msbuildWarnAsError `
       $buildFromSource `
@@ -299,7 +298,7 @@ function GetIbcDropName() {
     }
 
     # Don't try and get the ibc drop if we're not in an official build as it won't be used anyway
-    if (!$officialBuildId) {
+    if (!$applyOptimizationData -or !$officialBuildId) {
         return ""
     }
 
@@ -311,7 +310,8 @@ function GetIbcDropName() {
     $branch = GetIbcSourceBranchName
     Write-Host "Optimization data branch name is '$branch'."
 
-    $drop = Find-OptimizationInputsStoreForBranch -ProjectName "DevDiv" -RepositoryName "VS" -BranchName $branch
+    $pat = ConvertTo-SecureString $officialVisualStudioDropAccessToken -AsPlainText -Force
+    $drop = Find-OptimizationInputsStoreForBranch -ProjectName "DevDiv" -RepositoryName "VS" -BranchName $branch -PAT $pat
     return $drop.Name
 }
 
@@ -384,7 +384,6 @@ function TestUsingOptimizedRunner() {
   $args += " `"-out:$testResultsDir`""
   $args += " `"-logs:$LogDir`""
   $args += " `"-secondaryLogs:$secondaryLogDir`""
-  $args += " -nocache"
   $args += " -tfm:net472"
 
   if ($testDesktop -or $testIOperation) {
@@ -606,6 +605,7 @@ function Prepare-TempDir() {
   $env:TMP=$TempDir
 
   Copy-Item (Join-Path $RepoRoot "src\Workspaces\MSBuildTest\Resources\.editorconfig") $TempDir
+  Copy-Item (Join-Path $RepoRoot "src\Workspaces\MSBuildTest\Resources\global.json") $TempDir
   Copy-Item (Join-Path $RepoRoot "src\Workspaces\MSBuildTest\Resources\Directory.Build.props") $TempDir
   Copy-Item (Join-Path $RepoRoot "src\Workspaces\MSBuildTest\Resources\Directory.Build.targets") $TempDir
   Copy-Item (Join-Path $RepoRoot "src\Workspaces\MSBuildTest\Resources\Directory.Build.rsp") $TempDir

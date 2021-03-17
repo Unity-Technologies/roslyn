@@ -4,6 +4,7 @@
 
 #nullable enable
 
+using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Threading;
 using System.Threading.Tasks;
@@ -11,7 +12,7 @@ using Microsoft.CodeAnalysis.DesignerAttribute;
 
 namespace Microsoft.CodeAnalysis.Remote
 {
-    internal sealed partial class RemoteDesignerAttributeIncrementalAnalyzer : AbstractDesignerAttributeIncrementalAnalyzer
+    internal sealed class RemoteDesignerAttributeIncrementalAnalyzer : AbstractDesignerAttributeIncrementalAnalyzer
     {
         /// <summary>
         /// Channel back to VS to inform it of the designer attributes we discover.
@@ -23,20 +24,20 @@ namespace Microsoft.CodeAnalysis.Remote
             _endPoint = endPoint;
         }
 
-        protected override async Task ReportProjectRemovedAsync(ProjectId projectId, CancellationToken cancellationToken)
+        protected override Task ReportProjectRemovedAsync(ProjectId projectId, CancellationToken cancellationToken)
         {
-            await _endPoint.InvokeAsync(
+            return _endPoint.InvokeAsync(
                 nameof(IDesignerAttributeListener.OnProjectRemovedAsync),
                 new object[] { projectId },
-                cancellationToken).ConfigureAwait(false);
+                cancellationToken);
         }
 
-        protected override async Task ReportDesignerAttributeDataAsync(ImmutableArray<DesignerAttributeData> data, CancellationToken cancellationToken)
+        protected override Task ReportDesignerAttributeDataAsync(ImmutableArray<DesignerAttributeData> data, CancellationToken cancellationToken)
         {
-            await _endPoint.InvokeAsync(
+            return _endPoint.InvokeAsync(
                 nameof(IDesignerAttributeListener.ReportDesignerAttributeDataAsync),
                 new object[] { data },
-                cancellationToken).ConfigureAwait(false);
+                cancellationToken);
         }
     }
 }

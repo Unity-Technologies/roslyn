@@ -175,22 +175,9 @@
     </ItemGroup>
   </Target>
 
-  <!--
-    Work around missing code fix references causing VBCSCompiler.exe to reject compilations.
-    https://github.com/dotnet/roslyn/issues/46684
-  -->
-  <Target Name="ExcludeCodeFixes"
-          BeforeTargets="CoreCompile"
-          Condition="'$(UseRoslynAnalyzers)' != 'false' AND '$(BuildingProject)' == 'true'">
-    <!--
-      Disable analyzers that only provide code fixes.
-    -->
-    <ItemGroup>
-      <Analyzer Remove="@(Analyzer)"
-                Condition="'%(Filename)' == 'Microsoft.CodeAnalysis.CSharp.CodeStyle.Fixes'
-                  OR '%(Filename)' == 'Microsoft.VisualStudio.Threading.Analyzers.CodeFixes'"/>
-    </ItemGroup>
-  </Target>
+  <ItemGroup>
+    <PackageDownload Include="Humanizer.Core" Version="[$(HumanizerCoreVersion)]" />
+  </ItemGroup>
 
   <!-- 
     This target is used to copy referenced projects to a sub-directory vs. the direct output 
@@ -392,5 +379,11 @@
       <Reference Remove="@(Reference)" Condition=" '%(FileName)' == 'Microsoft.VisualBasic' or '%(FileName)' == 'Microsoft.VisualBasic.Core' " />
     </ItemGroup>
   </Target>
+
+  <!-- Override this to work around https://github.com/dotnet/sdk/issues/13427. The property doesn't
+       appear to be used for anything other than controlling the warning. -->
+  <PropertyGroup>
+    <_MicrosoftWindowsDesktopSdkImported>false</_MicrosoftWindowsDesktopSdkImported>
+  </PropertyGroup>
 
 </Project>
