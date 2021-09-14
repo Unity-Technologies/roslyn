@@ -2,8 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
-#nullable enable
-
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
@@ -12,6 +10,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.CodeAnalysis.PooledObjects;
 
@@ -225,6 +224,48 @@ namespace Microsoft.CodeAnalysis
         }
 
         /// <summary>
+        /// Maps an immutable array through a function that returns ValueTasks, returning the new ImmutableArray.
+        /// </summary>
+        public static async ValueTask<ImmutableArray<TResult>> SelectAsArrayAsync<TItem, TResult>(this ImmutableArray<TItem> array, Func<TItem, CancellationToken, ValueTask<TResult>> selector, CancellationToken cancellationToken)
+        {
+            var builder = ArrayBuilder<TResult>.GetInstance(array.Length);
+
+            foreach (var item in array)
+            {
+                builder.Add(await selector(item, cancellationToken).ConfigureAwait(false));
+            }
+
+            return builder.ToImmutableAndFree();
+        }
+
+        public static ValueTask<ImmutableArray<TResult>> SelectManyAsArrayAsync<TItem, TArg, TResult>(this ImmutableArray<TItem> source, Func<TItem, TArg, CancellationToken, ValueTask<ImmutableArray<TResult>>> selector, TArg arg, CancellationToken cancellationToken)
+        {
+            if (source.Length == 0)
+            {
+                return new ValueTask<ImmutableArray<TResult>>(ImmutableArray<TResult>.Empty);
+            }
+
+            if (source.Length == 1)
+            {
+                return selector(source[0], arg, cancellationToken);
+            }
+
+            return CreateTask();
+
+            async ValueTask<ImmutableArray<TResult>> CreateTask()
+            {
+                var builder = ArrayBuilder<TResult>.GetInstance();
+
+                foreach (var item in source)
+                {
+                    builder.AddRange(await selector(item, arg, cancellationToken).ConfigureAwait(false));
+                }
+
+                return builder.ToImmutableAndFree();
+            }
+        }
+
+        /// <summary>
         /// Zips two immutable arrays together through a mapping function, producing another immutable array.
         /// </summary>
         /// <returns>If the items's length is 0, this will return an empty immutable array.</returns>
@@ -376,6 +417,22 @@ namespace Microsoft.CodeAnalysis
             return false;
         }
 
+        public static bool All<T, TArg>(this ImmutableArray<T> array, Func<T, TArg, bool> predicate, TArg arg)
+        {
+            int n = array.Length;
+            for (int i = 0; i < n; i++)
+            {
+                var a = array[i];
+
+                if (!predicate(a, arg))
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
         public static async Task<bool> AnyAsync<T>(this ImmutableArray<T> array, Func<T, Task<bool>> predicateAsync)
         {
             int n = array.Length;
@@ -384,6 +441,22 @@ namespace Microsoft.CodeAnalysis
                 var a = array[i];
 
                 if (await predicateAsync(a).ConfigureAwait(false))
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        public static async Task<bool> AnyAsync<T, TArg>(this ImmutableArray<T> array, Func<T, TArg, Task<bool>> predicateAsync, TArg arg)
+        {
+            int n = array.Length;
+            for (int i = 0; i < n; i++)
+            {
+                var a = array[i];
+
+                if (await predicateAsync(a, arg).ConfigureAwait(false))
                 {
                     return true;
                 }
@@ -731,5 +804,50 @@ namespace Microsoft.CodeAnalysis
 
         internal static int IndexOf<T>(this ImmutableArray<T> array, T item, IEqualityComparer<T> comparer)
             => array.IndexOf(item, startIndex: 0, comparer);
+
+        internal static bool IsSorted<T>(this ImmutableArray<T> array, IComparer<T> comparer)
+        {
+            for (var i = 1; i < array.Length; i++)
+            {
+                if (comparer.Compare(array[i - 1], array[i]) > 0)
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        // same as Array.BinarySearch but the ability to pass arbitrary value to the comparer without allocation
+        internal static int BinarySearch<TElement, TValue>(this ImmutableArray<TElement> array, TValue value, Func<TElement, TValue, int> comparer)
+            => BinarySearch(array.AsSpan(), value, comparer);
+
+        internal static int BinarySearch<TElement, TValue>(this ReadOnlySpan<TElement> array, TValue value, Func<TElement, TValue, int> comparer)
+        {
+            int low = 0;
+            int high = array.Length - 1;
+
+            while (low <= high)
+            {
+                int middle = low + ((high - low) >> 1);
+                int comparison = comparer(array[middle], value);
+
+                if (comparison == 0)
+                {
+                    return middle;
+                }
+
+                if (comparison > 0)
+                {
+                    high = middle - 1;
+                }
+                else
+                {
+                    low = middle + 1;
+                }
+            }
+
+            return ~low;
+        }
     }
 }

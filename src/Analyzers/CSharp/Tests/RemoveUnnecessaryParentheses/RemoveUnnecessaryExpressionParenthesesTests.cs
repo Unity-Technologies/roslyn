@@ -2,6 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+#nullable disable
+
 using System;
 using System.Linq;
 using System.Threading.Tasks;
@@ -2623,6 +2625,54 @@ parameters: new TestParameters(options: RemoveAllUnnecessaryParentheses));
         bool x = o is 1 or 2;
     }
 }", offeredWhenRequireForClarityIsEnabled: true);
+        }
+
+        [WorkItem(50025, "https://github.com/dotnet/roslyn/issues/50025")]
+        [Fact, Trait(Traits.Feature, Traits.Features.CodeActionsRemoveUnnecessaryParentheses)]
+        public async Task TestDoNotRemoveWithConstantAndTypeAmbiguity()
+        {
+            await TestMissingAsync(
+@"
+public class C
+{    
+    public const int Goo = 1;  
+    
+    public void M(Goo o)
+    {
+        if (o is $$(Goo)) M(1);
+    }
+}
+
+public class Goo { }");
+        }
+
+        [WorkItem(50025, "https://github.com/dotnet/roslyn/issues/50025")]
+        [Fact, Trait(Traits.Feature, Traits.Features.CodeActionsRemoveUnnecessaryParentheses)]
+        public async Task TestDoRemoveWithNoConstantAndTypeAmbiguity()
+        {
+            await TestAsync(
+@"
+public class C
+{    
+    public const int Goo = 1;  
+    
+    public void M(object o)
+    {
+        if (o is $$(Goo)) M(1);
+    }    
+}
+",
+@"
+public class C
+{    
+    public const int Goo = 1;  
+    
+    public void M(object o)
+    {
+        if (o is Goo) M(1);
+    }    
+}
+", offeredWhenRequireForClarityIsEnabled: true);
         }
     }
 }

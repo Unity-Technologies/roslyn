@@ -10,7 +10,7 @@ using Microsoft.CodeAnalysis.Shared.Extensions;
 
 namespace Microsoft.CodeAnalysis.FindSymbols.Finders
 {
-    internal class OperatorSymbolReferenceFinder : AbstractReferenceFinder<IMethodSymbol>
+    internal class OperatorSymbolReferenceFinder : AbstractMethodOrPropertyOrEventSymbolReferenceFinder<IMethodSymbol>
     {
         protected override bool CanFind(IMethodSymbol symbol)
             => symbol.MethodKind == MethodKind.UserDefinedOperator;
@@ -18,7 +18,7 @@ namespace Microsoft.CodeAnalysis.FindSymbols.Finders
         protected override Task<ImmutableArray<Document>> DetermineDocumentsToSearchAsync(
             IMethodSymbol symbol,
             Project project,
-            IImmutableSet<Document> documents,
+            IImmutableSet<Document>? documents,
             FindReferencesSearchOptions options,
             CancellationToken cancellationToken)
         {
@@ -26,14 +26,14 @@ namespace Microsoft.CodeAnalysis.FindSymbols.Finders
             return FindDocumentsAsync(project, documents, op, cancellationToken);
         }
 
-        protected override Task<ImmutableArray<FinderLocation>> FindReferencesInDocumentAsync(
+        protected override ValueTask<ImmutableArray<FinderLocation>> FindReferencesInDocumentAsync(
             IMethodSymbol symbol,
             Document document,
             SemanticModel semanticModel,
             FindReferencesSearchOptions options,
             CancellationToken cancellationToken)
         {
-            var syntaxFacts = document.GetLanguageService<ISyntaxFactsService>();
+            var syntaxFacts = document.GetRequiredLanguageService<ISyntaxFactsService>();
             var op = symbol.GetPredefinedOperator();
 
             return FindReferencesInDocumentAsync(symbol, document, semanticModel, t =>

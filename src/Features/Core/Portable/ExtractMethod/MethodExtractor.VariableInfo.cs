@@ -2,6 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+#nullable disable
+
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -95,7 +97,7 @@ namespace Microsoft.CodeAnalysis.ExtractMethod
             {
                 Contract.ThrowIfNull(variable);
                 Contract.ThrowIfFalse(variable.CanBeUsedAsReturnValue);
-                Contract.ThrowIfFalse(variable.ParameterModifier == ParameterBehavior.Out || variable.ParameterModifier == ParameterBehavior.Ref);
+                Contract.ThrowIfFalse(variable.ParameterModifier is ParameterBehavior.Out or ParameterBehavior.Ref);
 
                 return new VariableInfo(variable._variableSymbol, variable._variableStyle, useAsReturnValue: true);
             }

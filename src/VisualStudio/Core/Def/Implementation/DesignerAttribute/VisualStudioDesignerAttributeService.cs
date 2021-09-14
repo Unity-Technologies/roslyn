@@ -2,8 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
-#nullable enable
-
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -20,6 +18,7 @@ using Microsoft.CodeAnalysis.Host;
 using Microsoft.CodeAnalysis.Host.Mef;
 using Microsoft.CodeAnalysis.PooledObjects;
 using Microsoft.CodeAnalysis.Remote;
+using Microsoft.CodeAnalysis.Shared.TestHooks;
 using Microsoft.CodeAnalysis.SolutionCrawler;
 using Microsoft.VisualStudio.Designer.Interfaces;
 using Microsoft.VisualStudio.LanguageServices.Implementation.ProjectSystem;
@@ -31,7 +30,7 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.DesignerAttribu
 {
     [ExportEventListener(WellKnownEventListeners.Workspace, WorkspaceKind.Host), Shared]
     internal class VisualStudioDesignerAttributeService
-        : ForegroundThreadAffinitizedObject, IDesignerAttributeListener, IEventListener<object>
+        : ForegroundThreadAffinitizedObject, IDesignerAttributeListener, IEventListener<object>, IDisposable
     {
         private readonly VisualStudioWorkspaceImpl _workspace;
 
@@ -44,7 +43,7 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.DesignerAttribu
         /// Our connection to the remote OOP server. Created on demand when we startup and then
         /// kept around for the lifetime of this service.
         /// </summary>
-        private RemoteServiceConnection? _connection;
+        private RemoteServiceConnection<IRemoteDesignerAttributeDiscoveryService>? _lazyConnection;
 
         /// <summary>
         /// Cache from project to the CPS designer service for it.  Computed on demand (which
@@ -52,7 +51,7 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.DesignerAttribu
         /// that project.
         /// </summary>
         private readonly ConcurrentDictionary<ProjectId, IProjectItemDesignerTypeUpdateService?> _cpsProjects
-            = new ConcurrentDictionary<ProjectId, IProjectItemDesignerTypeUpdateService?>();
+            = new();
 
         /// <summary>
         /// Cached designer service for notifying legacy projects about designer attributes.
@@ -68,6 +67,7 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.DesignerAttribu
         public VisualStudioDesignerAttributeService(
             VisualStudioWorkspaceImpl workspace,
             IThreadingContext threadingContext,
+            IAsynchronousOperationListenerProvider asynchronousOperationListenerProvider,
             Shell.SVsServiceProvider serviceProvider)
             : base(threadingContext)
         {
@@ -77,7 +77,13 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.DesignerAttribu
             _workQueue = new AsyncBatchingWorkQueue<DesignerAttributeData>(
                 TimeSpan.FromSeconds(1),
                 this.NotifyProjectSystemAsync,
+                asynchronousOperationListenerProvider.GetListener(FeatureAttribute.DesignerAttributes),
                 ThreadingContext.DisposalToken);
+        }
+
+        public void Dispose()
+        {
+            _lazyConnection?.Dispose();
         }
 
         void IEventListener<object>.StartListening(Workspace workspace, object _)
@@ -98,7 +104,7 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.DesignerAttribu
             {
                 // Cancellation is normal (during VS closing).  Just ignore.
             }
-            catch (Exception e) when (FatalError.ReportWithoutCrash(e))
+            catch (Exception e) when (FatalError.ReportAndCatch(e))
             {
                 // Otherwise report a watson for any other exception.  Don't bring down VS.  This is
                 // a BG service we don't want impacting the user experience.
@@ -118,15 +124,12 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.DesignerAttribu
 
             // Pass ourselves in as the callback target for the OOP service.  As it discovers
             // designer attributes it will call back into us to notify VS about it.
-            _connection = await client.CreateConnectionAsync(
-                WellKnownServiceHubService.RemoteDesignerAttributeService,
-                callbackTarget: this, cancellationToken).ConfigureAwait(false);
+            _lazyConnection = client.CreateConnection<IRemoteDesignerAttributeDiscoveryService>(callbackTarget: this);
 
             // Now kick off scanning in the OOP process.
-            await _connection.RunRemoteAsync(
-                nameof(IRemoteDesignerAttributeService.StartScanningForDesignerAttributesAsync),
-                solution: null,
-                arguments: Array.Empty<object>(),
+            // If the call fails an error has already been reported and there is nothing more to do.
+            _ = await _lazyConnection.TryInvokeAsync(
+                (service, callbackId, cancellationToken) => service.StartScanningForDesignerAttributesAsync(callbackId, cancellationToken),
                 cancellationToken).ConfigureAwait(false);
         }
 
@@ -143,7 +146,7 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.DesignerAttribu
                     workspaceKinds: WorkspaceKind.Host));
         }
 
-        private async Task NotifyProjectSystemAsync(
+        private async ValueTask NotifyProjectSystemAsync(
             ImmutableArray<DesignerAttributeData> data, CancellationToken cancellationToken)
         {
             cancellationToken.ThrowIfCancellationRequested();
@@ -332,17 +335,17 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.DesignerAttribu
         /// <summary>
         /// Callback from the OOP service back into us.
         /// </summary>
-        public Task ReportDesignerAttributeDataAsync(ImmutableArray<DesignerAttributeData> data, CancellationToken cancellationToken)
+        public ValueTask ReportDesignerAttributeDataAsync(ImmutableArray<DesignerAttributeData> data, CancellationToken cancellationToken)
         {
             Contract.ThrowIfNull(_workQueue);
             _workQueue.AddWork(data);
-            return Task.CompletedTask;
+            return ValueTaskFactory.CompletedTask;
         }
 
-        public Task OnProjectRemovedAsync(ProjectId projectId, CancellationToken cancellationToken)
+        public ValueTask OnProjectRemovedAsync(ProjectId projectId, CancellationToken cancellationToken)
         {
             _cpsProjects.TryRemove(projectId, out _);
-            return Task.CompletedTask;
+            return ValueTaskFactory.CompletedTask;
         }
     }
 }

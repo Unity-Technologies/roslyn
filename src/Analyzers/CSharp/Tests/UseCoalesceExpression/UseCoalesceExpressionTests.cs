@@ -2,6 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+#nullable disable
+
 using System.Threading.Tasks;
 using Microsoft.CodeAnalysis.CodeFixes;
 using Microsoft.CodeAnalysis.CSharp.UseCoalesceExpression;
@@ -576,6 +578,27 @@ class C
         _ = cond
             ? s ?? """"
             : """";
+    }
+}");
+        }
+
+        [Fact, Trait(Traits.Feature, Traits.Features.CodeActionsUseCoalesceExpression)]
+        [WorkItem(53190, "https://github.com/dotnet/roslyn/issues/53190")]
+        public async Task TestNotWithTargetTyping()
+        {
+            await TestMissingAsync(
+@"
+class Program
+{
+    class A { }
+    class B { }
+
+    static void Main(string[] args)
+    {
+        var a = new A();
+        var b = new B();
+
+        object x = [||]a != null ? a : b;
     }
 }");
         }

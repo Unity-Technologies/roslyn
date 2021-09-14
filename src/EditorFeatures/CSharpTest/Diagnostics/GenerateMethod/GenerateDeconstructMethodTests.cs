@@ -2,6 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+#nullable disable
+
 using System.Threading.Tasks;
 using Microsoft.CodeAnalysis.CodeFixes;
 using Microsoft.CodeAnalysis.CSharp.CodeFixes.GenerateDeconstructMethod;
@@ -37,6 +39,33 @@ namespace Microsoft.CodeAnalysis.Editor.CSharp.UnitTests.Diagnostics.GenerateDec
 @"using System;
 
 class Class
+{
+    private void Deconstruct(out int x, out int y)
+    {
+        throw new NotImplementedException();
+    }
+
+    void Method()
+    {
+        (int x, int y) = this;
+    }
+}");
+        }
+
+        [Fact, Trait(Traits.Feature, Traits.Features.CodeActionsGenerateMethod)]
+        public async Task TestDeconstructionDeclaration_Simple_Record()
+        {
+            await TestInRegularAndScriptAsync(
+@"record R
+{
+    void Method()
+    {
+        (int x, int y) = [|this|];
+    }
+}",
+@"using System;
+
+record R
 {
     private void Deconstruct(out int x, out int y)
     {

@@ -2,8 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
-#nullable enable
-
 namespace Microsoft.CodeAnalysis.CSharp
 {
 #pragma warning disable CA1200 // Avoid using cref tags with a prefix - The prefix is required since this file is referenced in projects that can't access syntax nodes
@@ -383,8 +381,9 @@ namespace Microsoft.CodeAnalysis.CSharp
         AndKeyword = 8439,
         /// <summary>Represents <see langword="not"/>.</summary>
         NotKeyword = 8440,
-        /// <summary>Represents <see langword="data"/>.</summary>
-        DataKeyword = 8441,
+
+        // Don't use 8441. It corresponds to a deleted kind (DataKeyword) that was previously shipped.
+
         /// <summary>Represents <see langword="with"/>.</summary>
         WithKeyword = 8442,
         /// <summary>Represents <see langword="init"/>.</summary>
@@ -856,5 +855,11 @@ namespace Microsoft.CodeAnalysis.CSharp
 
         FunctionPointerUnmanagedCallingConventionList = 9066,
         FunctionPointerUnmanagedCallingConvention = 9067,
+
+        RecordStructDeclaration = 9068,
+
+        ExpressionColon = 9069,
+        LineDirectivePosition = 9070,
+        LineSpanDirectiveTrivia = 9071,
     }
 }

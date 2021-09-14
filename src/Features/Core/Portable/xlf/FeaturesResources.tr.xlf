@@ -2,6 +2,11 @@
 <xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
   <file datatype="xml" source-language="en" target-language="tr" original="../FeaturesResources.resx">
     <body>
+      <trans-unit id="0_directive">
+        <source>#{0} directive</source>
+        <target state="new">#{0} directive</target>
+        <note />
+      </trans-unit>
       <trans-unit id="AM_PM_abbreviated">
         <source>AM/PM (abbreviated)</source>
         <target state="translated">AM/PM (kısa)</target>
@@ -90,6 +95,11 @@ AM ve PM arasındaki farkın korunmasının gerekli olduğu diller için "tt" be
         <target state="translated">'{0}' demet öğesi adını ekle</target>
         <note />
       </trans-unit>
+      <trans-unit id="Adding_0_into_a_generic_type_will_prevent_the_debug_session_from_continuing">
+        <source>Adding '{0}' into a generic type will prevent the debug session from continuing.</source>
+        <target state="translated">Genel bir türe '{0}' ekleme, hata ayıklama oturumunun devam etmesini engelleyecek.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="Adding_0_into_an_interface_method_will_prevent_the_debug_session_from_continuing">
         <source>Adding '{0}' into an interface method will prevent the debug session from continuing.</source>
         <target state="translated">Arabirim yöntemine '{0}' eklenmesi, hata ayıklama oturumunun devam etmesini engeller.</target>
@@ -98,6 +108,11 @@ AM ve PM arasındaki farkın korunmasının gerekli olduğu diller için "tt" be
       <trans-unit id="Adding_0_into_an_interface_will_prevent_the_debug_session_from_continuing">
         <source>Adding '{0}' into an interface will prevent the debug session from continuing.</source>
         <target state="translated">Arabirime '{0}' eklenmesi, hata ayıklama oturumunun devam etmesini engeller.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Adding_a_positional_parameter_to_a_record_will_prevent_the_debug_session_from_continuing">
+        <source>Adding a positional parameter to a record will prevent the debug session from continuing.</source>
+        <target state="translated">Bir kayda konumsal bir parametre eklenmesi hata ayıklama oturumunun devam etmesini engeller.</target>
         <note />
       </trans-unit>
       <trans-unit id="Adding_method_with_explicit_interface_specifier_will_prevernt_the_debug_session_from_continuing">
@@ -124,6 +139,21 @@ AM ve PM arasındaki farkın korunmasının gerekli olduğu diller için "tt" be
         <source>Alternation conditions do not capture and cannot be named</source>
         <target state="translated">Değişim koşulları yakalamak değil ve adlandırılamaz</target>
         <note>This is an error message shown to the user when they write an invalid Regular Expression. Example: (?(?'x'))</note>
+      </trans-unit>
+      <trans-unit id="Apply_file_header_preferences">
+        <source>Apply file header preferences</source>
+        <target state="translated">Dosya üst bilgisi tercihlerini uygula</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Apply_object_collection_initialization_preferences">
+        <source>Apply object/collection initialization preferences</source>
+        <target state="translated">Nesne/koleksiyon başlatma tercihlerini uygula</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="An_active_statement_has_been_removed_from_its_original_method_You_must_revert_your_changes_to_continue_or_restart_the_debugging_session">
+        <source>An active statement has been removed from its original method. You must revert your changes to continue or restart the debugging session.</source>
+        <target state="translated">Etkin bir deyim özgün yönteminden kaldırılmış. Devam etmek için değişikliklerinizi geri almalısınız veya hata ayıklama oturumunu yeniden başlatmalısınız.</target>
+        <note />
       </trans-unit>
       <trans-unit id="Awaited_task_returns_0">
         <source>Awaited task returns '{0}'</source>
@@ -205,6 +235,11 @@ AM ve PM arasındaki farkın korunmasının gerekli olduğu diller için "tt" be
         <target state="translated">'{0}' öğesini '{1}' olarak değiştirmek, durum makinesinin şeklini değiştirdiğinden hata ayıklama oturumunun devam etmesini engeller.</target>
         <note />
       </trans-unit>
+      <trans-unit id="Changing_visibility_of_0_will_prevent_the_debug_session_from_continuing">
+        <source>Changing visibility of {0} will prevent the debug session from continuing.</source>
+        <target state="translated">{0} öğesinin görünürlüğünü değiştirmek, hata ayıklama oturumunun devam etmesini engeller.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="Configure_0_code_style">
         <source>Configure {0} code style</source>
         <target state="translated">{0} kod stilini yapılandır</target>
@@ -245,6 +280,16 @@ AM ve PM arasındaki farkın korunmasının gerekli olduğu diller için "tt" be
         <target state="translated">LINQ (görüşmesi formu) dönüştürmek</target>
         <note />
       </trans-unit>
+      <trans-unit id="Convert_to_record">
+        <source>Convert to record</source>
+        <target state="translated">Kayda dönüştür</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Convert_to_record_struct">
+        <source>Convert to record struct</source>
+        <target state="translated">Kayıt yapısına dönüştür</target>
+        <note />
+      </trans-unit>
       <trans-unit id="Convert_to_struct">
         <source>Convert to struct</source>
         <target state="translated">Yapıya dönüştür</target>
@@ -275,29 +320,9 @@ AM ve PM arasındaki farkın korunmasının gerekli olduğu diller için "tt" be
         <target state="translated">Kalanları özellik olarak oluştur ve ata</target>
         <note />
       </trans-unit>
-      <trans-unit id="DisposableFieldsShouldBeDisposedDescription">
-        <source>A type that implements System.IDisposable declares fields that are of types that also implement IDisposable. The Dispose method of the field is not called by the Dispose method of the declaring type. To fix a violation of this rule, call Dispose on fields that are of types that implement IDisposable if you are responsible for allocating and releasing the unmanaged resources held by the field.</source>
-        <target state="translated">System.IDisposable uygulayan bir tür, kendileri de IDisposable uygulayan türlerde alanlar bildiriyor. Alanın Dispose metodu, bildirim türünün Dispose metodu tarafından çağrılmıyor. Bu kural ihlalini düzeltmek için, alan tarafından tutulan yönetilmeyen kaynakları ayırmak ve serbest bırakmaktan sorumluysanız, IDisposable uygulayan türlerdeki alanlarda Dispose çağrısı yapın.</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="Disposable_field_0_is_never_disposed">
-        <source>Disposable field '{0}' is never disposed</source>
-        <target state="translated">'{0}' atılabilir alanı hiç atılmadı</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="Disposable_fields_should_be_disposed">
-        <source>Disposable fields should be disposed</source>
-        <target state="translated">Atılabilir alanlar atılmalıdır</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="Disposable_object_created_by_0_is_never_disposed">
-        <source>Disposable object created by '{0}' is never disposed</source>
-        <target state="translated">'{0}' tarafından oluşturulan atılabilir nesne hiç atılmadı</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="Dispose_objects_before_losing_scope">
-        <source>Dispose objects before losing scope</source>
-        <target state="translated">Kapsamı kaybetmeden çnce nesneleri bırakın</target>
+      <trans-unit id="Deleting_a_positional_parameter_from_a_record_will_prevent_the_debug_session_from_continuing">
+        <source>Deleting a positional parameter from a record will prevent the debug session from continuing.</source>
+        <target state="translated">Bir konumsal parametrenin bir kayıttan silinmesi hata ayıklama oturumunun devam etmesini engeller.</target>
         <note />
       </trans-unit>
       <trans-unit id="Do_not_change_this_code_Put_cleanup_code_in_0_method">
@@ -330,9 +355,24 @@ AM ve PM arasındaki farkın korunmasının gerekli olduğu diller için "tt" be
         <target state="translated">'{0}' projesinde yapılan değişiklikler hata ayıklama oturumunun devam etmesini engelleyecek: {1}</target>
         <note />
       </trans-unit>
+      <trans-unit id="Edit_and_continue_is_not_supported_by_the_runtime">
+        <source>Edit and continue is not supported by the runtime.</source>
+        <target state="translated">Düzenleme ve devam etme işlemleri çalışma zamanı tarafından desteklenmiyor.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ErrorReadingFile">
         <source>Error while reading file '{0}': {1}</source>
         <target state="translated">'{0}' dosyası okunurken hata: {1}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Error_creating_instance_of_CodeFixProvider">
+        <source>Error creating instance of CodeFixProvider</source>
+        <target state="translated">CodeFixProvider örneği oluşturulurken hata oluştu</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Error_creating_instance_of_CodeFixProvider_0">
+        <source>Error creating instance of CodeFixProvider '{0}'</source>
+        <target state="translated">'{0}' CodeFixProvider örneği oluşturulurken hata oluştu</target>
         <note />
       </trans-unit>
       <trans-unit id="Example">
@@ -344,6 +384,11 @@ AM ve PM arasındaki farkın korunmasının gerekli olduğu diller için "tt" be
         <source>Examples:</source>
         <target state="translated">Örnekler:</target>
         <note>Plural form when we have multiple examples to show.</note>
+      </trans-unit>
+      <trans-unit id="Explicitly_implemented_methods_of_records_must_have_parameter_names_that_match_the_compiler_generated_equivalent_0">
+        <source>Explicitly implemented methods of records must have parameter names that match the compiler generated equivalent '{0}'</source>
+        <target state="translated">Açık olarak uygulanan kayıt yöntemlerinin derleyici tarafından oluşturulan '{0}' eşdeğeri ile eşleşen parametre adlarına sahip olması gerekir</target>
+        <note />
       </trans-unit>
       <trans-unit id="Extract_base_class">
         <source>Extract base class...</source>
@@ -378,6 +423,11 @@ AM ve PM arasındaki farkın korunmasının gerekli olduğu diller için "tt" be
       <trans-unit id="Fix_typo_0">
         <source>Fix typo '{0}'</source>
         <target state="translated">'{0}' yazım hatasını düzeltin</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Format_document">
+        <source>Format document</source>
+        <target state="translated">Belgeyi biçimlendir</target>
         <note />
       </trans-unit>
       <trans-unit id="Formatting_document">
@@ -475,6 +525,16 @@ AM ve PM arasındaki farkın korunmasının gerekli olduğu diller için "tt" be
         <target state="translated">'{0}' aracılığıyla uygula</target>
         <note />
       </trans-unit>
+      <trans-unit id="Implementing_a_record_positional_parameter_0_as_read_only_will_prevent_the_debug_session_from_continuing">
+        <source>Implementing a record positional parameter '{0}' as read only will prevent the debug session from continuing,</source>
+        <target state="translated">'{0}' kayıt konumsal parametresinin salt okunur olarak uygulanması hata ayıklama oturumunun devam etmesini engeller.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Implementing_a_record_positional_parameter_0_with_a_set_accessor_will_prevent_the_debug_session_from_continuing">
+        <source>Implementing a record positional parameter '{0}' with a set accessor will prevent the debug session from continuing.</source>
+        <target state="translated">Küme erişimcisi içeren '{0}' kayıt konumsal parametresinin uygulanması hata ayıklama oturumunun devam etmesini engeller.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="Incomplete_character_escape">
         <source>Incomplete \p{X} character escape</source>
         <target state="translated">Tamamlanmamış \p{X} karakter kaçış</target>
@@ -530,6 +590,21 @@ AM ve PM arasındaki farkın korunmasının gerekli olduğu diller için "tt" be
         <target state="translated">Yerel ekle</target>
         <note />
       </trans-unit>
+      <trans-unit id="Introduce_parameter">
+        <source>Introduce parameter</source>
+        <target state="new">Introduce parameter</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Introduce_parameter_for_0">
+        <source>Introduce parameter for '{0}'</source>
+        <target state="new">Introduce parameter for '{0}'</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Introduce_parameter_for_all_occurrences_of_0">
+        <source>Introduce parameter for all occurrences of '{0}'</source>
+        <target state="new">Introduce parameter for all occurrences of '{0}'</target>
+        <note />
+      </trans-unit>
       <trans-unit id="Introduce_query_variable">
         <source>Introduce query variable</source>
         <target state="translated">Sorgu değişkeni ekle</target>
@@ -553,6 +628,16 @@ AM ve PM arasındaki farkın korunmasının gerekli olduğu diller için "tt" be
       <trans-unit id="Invert_conditional">
         <source>Invert conditional</source>
         <target state="translated">Koşullu öğeyi ters çevir</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Making_a_method_an_iterator_will_prevent_the_debug_session_from_continuing">
+        <source>Making a method an iterator will prevent the debug session from continuing.</source>
+        <target state="translated">Metodun yineleyici yapılması, hata ayıklama oturumunun devam etmesini engeller.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Making_a_method_async_will_prevent_the_debug_session_from_continuing">
+        <source>Making a method 'async' will prevent the debug session from continuing.</source>
+        <target state="translated">Metodun 'async' yapılması, hata ayıklama oturumunun devam etmesini engeller.</target>
         <note />
       </trans-unit>
       <trans-unit id="Malformed">
@@ -600,11 +685,6 @@ AM ve PM arasındaki farkın korunmasının gerekli olduğu diller için "tt" be
         <target state="translated">Eksik denetim karakteri</target>
         <note>This is an error message shown to the user when they write an invalid Regular Expression. Example: \c</note>
       </trans-unit>
-      <trans-unit id="Modifying_0_which_contains_a_switch_expression_will_prevent_the_debug_session_from_continuing">
-        <source>Modifying '{0}' which contains a switch expression will prevent the debug session from continuing.</source>
-        <target state="translated">Switch ifadesi içeren '{0}' öğesinin değiştirilmesi hata ayıklama oturumunun devam etmesini engeller.</target>
-        <note />
-      </trans-unit>
       <trans-unit id="Modifying_body_of_member_will_prevent_the_debug_session_from_continuing_because_the_body_has_too_many_statements">
         <source>Modifying the body of '{0}' will prevent the debug session from continuing because the body has too many statements.</source>
         <target state="translated">'{0}' gövdesinin değiştirilmesi, gövdede çok fazla deyim olduğundan hata ayıklama oturumunun devam etmesini engeller.</target>
@@ -613,7 +693,7 @@ AM ve PM arasındaki farkın korunmasının gerekli olduğu diller için "tt" be
       <trans-unit id="Modifying_body_of_member_will_prevent_the_debug_session_from_continuing_due_to_internal_error">
         <source>Modifying the body of '{0}' will prevent the debug session from continuing due to internal error: {1}</source>
         <target state="translated">'{0}' gövdesinin değiştirilmesi, {1} iç hatası nedeniyle hata ayıklama oturumunun devam etmesini engeller.</target>
-        <note />
+        <note>{1} is a multi-line exception message including a stacktrace. Place it at the end of the message and don’t add any punctation after or around {1}</note>
       </trans-unit>
       <trans-unit id="Modifying_source_file_will_prevent_the_debug_session_from_continuing_because_the_file_is_too_big">
         <source>Modifying source file '{0}' will prevent the debug session from continuing because the file is too big.</source>
@@ -643,17 +723,27 @@ AM ve PM arasındaki farkın korunmasının gerekli olduğu diller için "tt" be
       <trans-unit id="Modifying_source_file_will_prevent_the_debug_session_from_continuing_due_to_internal_error">
         <source>Modifying source file '{0}' will prevent the debug session from continuing due to internal error: {1}</source>
         <target state="translated">'{0}' kaynak dosyasının değiştirilmesi, {1} iç hatası nedeniyle hata ayıklama oturumunun devam etmesini engeller.</target>
-        <note />
+        <note>{1} is a multi-line exception message including a stacktrace. Place it at the end of the message and don’t add any punctation after or around {1}</note>
       </trans-unit>
       <trans-unit id="Nested_quantifier_0">
         <source>Nested quantifier {0}</source>
         <target state="translated">İç içe geçmiş niceleyici {0}</target>
         <note>This is an error message shown to the user when they write an invalid Regular Expression. Example: a**. In this case {0} will be '*', the extra unnecessary quantifier.</note>
       </trans-unit>
+      <trans-unit id="No_valid_location_to_insert_method_call">
+        <source>No valid location to insert method call.</source>
+        <target state="translated">Metot çağrısının ekleneceği geçerli konum yok.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="Not_enough_close_parens">
         <source>Not enough )'s</source>
         <target state="translated">Değil yeterli)'ın</target>
         <note>This is an error message shown to the user when they write an invalid Regular Expression. Example: (a</note>
+      </trans-unit>
+      <trans-unit id="Operators">
+        <source>Operators</source>
+        <target state="translated">Operatörler</target>
+        <note />
       </trans-unit>
       <trans-unit id="Property_reference_cannot_be_updated">
         <source>Property reference cannot be updated</source>
@@ -1825,9 +1915,24 @@ Sıfır genişlikli pozitif geri yönlü onaylamalar genellikle normal ifadeleri
         <target state="translated">Meta verilerde bulunan ilgili metot imzaları güncelleştirilmez.</target>
         <note />
       </trans-unit>
+      <trans-unit id="Removal_of_document_not_supported">
+        <source>Removal of document not supported</source>
+        <target state="translated">Belgenin kaldırılması desteklenmiyor</target>
+        <note />
+      </trans-unit>
       <trans-unit id="Remove_async_modifier">
         <source>Remove 'async' modifier</source>
         <target state="translated">'async' değiştiricisini kaldırın</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Remove_unnecessary_casts">
+        <source>Remove unnecessary casts</source>
+        <target state="translated">Gereksiz atamaları kaldır</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Remove_unused_variables">
+        <source>Remove unused variables</source>
+        <target state="translated">Kullanılmayan değişkenleri kaldır</target>
         <note />
       </trans-unit>
       <trans-unit id="Replace_0_with_1">
@@ -1843,6 +1948,11 @@ Sıfır genişlikli pozitif geri yönlü onaylamalar genellikle normal ifadeleri
       <trans-unit id="RudeEdit">
         <source>Rude edit</source>
         <target state="translated">İşlenmemiş düzenleme</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Sort_accessibility_modifiers">
+        <source>Sort accessibility modifiers</source>
+        <target state="translated">Erişilebilirlik değiştiricilerini sırala</target>
         <note />
       </trans-unit>
       <trans-unit id="Split_into_consecutive_0_statements">
@@ -1882,7 +1992,7 @@ Sıfır genişlikli pozitif geri yönlü onaylamalar genellikle normal ifadeleri
       </trans-unit>
       <trans-unit id="The_assembly_0_containing_type_1_references_NET_Framework">
         <source>The assembly '{0}' containing type '{1}' references .NET Framework, which is not supported.</source>
-        <target state="new">The assembly '{0}' containing type '{1}' references .NET Framework, which is not supported.</target>
+        <target state="translated">'{1}' türünü içeren '{0}' bütünleştirilmiş kodu, desteklenmeyen .NET Framework'e başvuruyor.</target>
         <note />
       </trans-unit>
       <trans-unit id="The_selection_contains_a_local_function_call_without_its_declaration">
@@ -1985,9 +2095,9 @@ Sıfır genişlikli pozitif geri yönlü onaylamalar genellikle normal ifadeleri
         <target state="translated">Etkin bir deyim etrafındaki '{0}' öğesini güncelleştirmek, hata ayıklama oturumunun devam etmesini engeller.</target>
         <note />
       </trans-unit>
-      <trans-unit id="UseRecommendedDisposePatternDescription">
-        <source>Use recommended dispose pattern to ensure that locally scoped disposable objects are disposed on all paths. If possible, wrap the creation within a 'using' statement or a 'using' declaration. Otherwise, use a try-finally pattern, with a dedicated local variable declared before the try region and an unconditional Dispose invocation on non-null value in the 'finally' region, say 'x?.Dispose()'. If the object is explicitly disposed within the try region or the dispose ownership is transferred to another object or method, assign 'null' to the local variable just after such an operation to prevent double dispose in 'finally'</source>
-        <target state="translated">Yerel olarak kapsamı oluşturulan atılabilir nesnelerin tüm yollarda atıldığından emin olmak için önerilen atma desenini kullanın. Mümkünse, oluşturulan nesneyi 'using' deyimi veya 'using' bildirimiyle sarmalayın. Aksi halde, try bölgesinden önce bildirilen ayrılmış bir yerel değişkeni ve 'finally' bölgesinde null olmayan değer üzerinde koşulsuz bir Dispose çağrısı (örneğin, 'x?.Dispose()') olan bir try-finally deseni kullanın. Nesne try bölgesi içinde açıkça atıldıysa veya atma sahipliği başka bir nesne ya da metoda aktarıldıysa, 'finally' bölgesinde çift atma gerçekleşmesini önlemek için bu tür bir işlemden hemen sonra yerel değişkene 'null' atayın</target>
+      <trans-unit id="Updating_the_attributes_of_0_is_not_supported_by_the_runtime">
+        <source>Updating the attributes of '{0}' is not supported by the runtime.</source>
+        <target state="new">Updating the attributes of '{0}' is not supported by the runtime.</target>
         <note />
       </trans-unit>
       <trans-unit id="Use_block_body_for_lambda_expressions">
@@ -2004,16 +2114,6 @@ Sıfır genişlikli pozitif geri yönlü onaylamalar genellikle normal ifadeleri
         <source>Use interpolated verbatim string</source>
         <target state="translated">Enterpolasyonlu kelimesi kelimesine dizeyi kullanın</target>
         <note />
-      </trans-unit>
-      <trans-unit id="Use_recommended_dispose_pattern">
-        <source>Use recommended dispose pattern</source>
-        <target state="translated">Önerilen atma desenini kullan</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="Use_recommended_dispose_pattern_to_ensure_that_object_created_by_0_is_disposed_on_all_paths_using_statement_declaration_or_try_finally">
-        <source>Use recommended dispose pattern to ensure that object created by '{0}' is disposed on all paths: using statement/declaration or try/finally</source>
-        <target state="translated">'{0}' tarafından oluşturulan nesnenin tüm yollarda atıldığından emin olmak için önerilen atma desenini kullanın: using deyimi/bildirimi veya try/finally</target>
-        <note>{Locked="using"}{Locked="try"}{Locked="finally"} "using", "try" and "finally" are C# keywords and should not be localized.</note>
       </trans-unit>
       <trans-unit id="Value_colon">
         <source>Value:</source>
@@ -2085,14 +2185,24 @@ Sıfır genişlikli pozitif geri yönlü onaylamalar genellikle normal ifadeleri
         <target state="translated">Kaydırma</target>
         <note />
       </trans-unit>
+      <trans-unit id="You_can_use_the_navigation_bar_to_switch_contexts">
+        <source>You can use the navigation bar to switch contexts.</source>
+        <target state="translated">Bağlamlarda geçiş yapmak için gezinti çubuğunu kullanabilirsiniz.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="_0_cannot_be_null_or_empty">
-        <source>'{0}' cannot be null or empty</source>
-        <target state="translated">'{0}' null veya boş olamaz</target>
+        <source>'{0}' cannot be null or empty.</source>
+        <target state="translated">'{0}' null veya boş olamaz.</target>
         <note />
       </trans-unit>
       <trans-unit id="_0_cannot_be_null_or_whitespace">
-        <source>'{0}' cannot be null or whitespace</source>
-        <target state="translated">'{0}' null veya boşluk karakteri olamaz</target>
+        <source>'{0}' cannot be null or whitespace.</source>
+        <target state="translated">'{0}' null veya boşluk olamaz.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="_0_dash_1">
+        <source>{0} - {1}</source>
+        <target state="translated">{0} - {1}</target>
         <note />
       </trans-unit>
       <trans-unit id="_0_is_not_null_here">
@@ -2267,13 +2377,13 @@ Bir saat değerinin saniyenin on binde birlik bileşenini görüntülemek mümk�
 
 If the "f" format specifier is used without other format specifiers, it's interpreted as the "f" standard date and time format specifier.
 
-When you use "f" format specifiers as part of a format string supplied to the ParseExact, TryParseExact, ParseExact, or TryParseExact method, the number of "f" format specifiers indicates the number of most significant digits of the seconds fraction that must be present to successfully parse the string.</source>
-        <target state="translated">"f" özel biçim belirticisi, saniye kesirinin en anlamlı basamağını; yani bir tarih ve saat değerinde saniyenin onda birini temsil eder.
+When you use "f" format specifiers as part of a format string supplied to the ParseExact or TryParseExact method, the number of "f" format specifiers indicates the number of most significant digits of the seconds fraction that must be present to successfully parse the string.</source>
+        <target state="new">The "f" custom format specifier represents the most significant digit of the seconds fraction; that is, it represents the tenths of a second in a date and time value.
 
-"f" biçim belirticisi başka biçim belirticileri olmadan kullanılırsa, standart tarih ve saat biçim belirticisi "f" olarak yorumlanır.
+If the "f" format specifier is used without other format specifiers, it's interpreted as the "f" standard date and time format specifier.
 
-"f" biçim belirticisi Parse, TryParse, ParseExact veya TryParseExact yöntemine geçilen bir biçim dizesinde kullanıldığında, "f" biçim belirticilerinin sayısı, dizenin başarıyla ayrıştırılması için saniye kesirinde bulunması gereken anlamlı basamak sayısını gösterir.</target>
-        <note />
+When you use "f" format specifiers as part of a format string supplied to the ParseExact or TryParseExact method, the number of "f" format specifiers indicates the number of most significant digits of the seconds fraction that must be present to successfully parse the string.</target>
+        <note>{Locked="ParseExact"}{Locked="TryParseExact"}{Locked=""f""}</note>
       </trans-unit>
       <trans-unit id="_10ths_of_a_second_non_zero">
         <source>10ths of a second (non-zero)</source>
@@ -2339,6 +2449,16 @@ If the "H" format specifier is used without other custom format specifiers, it's
       <trans-unit id="_24_hour_clock_2_digits_description">
         <source>The "HH" custom format specifier (plus any number of additional "H" specifiers) represents the hour as a number from 00 through 23; that is, the hour is represented by a zero-based 24-hour clock that counts the hours since midnight. A single-digit hour is formatted with a leading zero.</source>
         <target state="translated">"HH" özel biçim belirticisi (ve herhangi bir sayıda ek "H" belirticisi) saati 00 ile 23 arasında bir sayı ile temsil eder; yani saat, gece yarısından bu yana geçen saat sayısını belirten sıfır tabanlı 24 saatlik bir düzen ile temsil edilir. Tek haneli bir saat, başına sıfır eklenerek biçimlendirilir.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="and_update_call_sites_directly">
+        <source>and update call sites directly</source>
+        <target state="new">and update call sites directly</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="code">
+        <source>code</source>
+        <target state="translated">kod</target>
         <note />
       </trans-unit>
       <trans-unit id="date_separator">
@@ -2467,9 +2587,24 @@ The "f" standard format specifier represents a combination of the long date ("D"
         <target state="translated">genel aşırı yüklemeler</target>
         <note />
       </trans-unit>
+      <trans-unit id="in_0_1_2">
+        <source>in {0} ({1} - {2})</source>
+        <target state="translated">{0} ({1}-{2}) içinde</target>
+        <note />
+      </trans-unit>
       <trans-unit id="in_Source_attribute">
         <source>in Source (attribute)</source>
         <target state="translated">Kaynakta (öznitelik)</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="into_extracted_method_to_invoke_at_call_sites">
+        <source>into extracted method to invoke at call sites</source>
+        <target state="new">into extracted method to invoke at call sites</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="into_new_overload">
+        <source>into new overload</source>
+        <target state="new">into new overload</target>
         <note />
       </trans-unit>
       <trans-unit id="long_date">
@@ -2491,6 +2626,11 @@ The "f" standard format specifier represents a combination of the long date ("D"
         <source>The "T" standard format specifier represents a custom date and time format string that is defined by a specific culture's DateTimeFormatInfo.LongTimePattern property. For example, the custom format string for the invariant culture is "HH:mm:ss".</source>
         <target state="translated">"T" standart biçim belirticisi, belirli bir kültürün DateTimeFormatInfo.LongTimePattern özelliği tarafından tanımlanan bir özel tarih ve saat biçimi dizesini temsil eder. Örneğin, sabit kültür için özel biçim dizesi "HH:mm:ss" şeklindedir.</target>
         <note />
+      </trans-unit>
+      <trans-unit id="member_kind_and_name">
+        <source>{0} '{1}'</source>
+        <target state="translated">{0} '{1}'</target>
+        <note>e.g. "method 'M'"</note>
       </trans-unit>
       <trans-unit id="minute_1_2_digits">
         <source>minute (1-2 digits)</source>
@@ -2944,11 +3084,6 @@ If the "g" format specifier is used without other custom format specifiers, it's
         <target state="translated">Await ifadesi içeren bir karmaşık deyimin güncelleştirilmesi, hata ayıklama işleminin devam etmesini engeller.</target>
         <note />
       </trans-unit>
-      <trans-unit id="Changing_visibility_of_a_constructor_will_prevent_the_debug_session_from_continuing">
-        <source>Changing visibility of a constructor will prevent the debug session from continuing.</source>
-        <target state="translated">Bir oluşturucunun görünürlüğünü değiştirmek, hata ayıklama oturumunun devam etmesini engeller.</target>
-        <note />
-      </trans-unit>
       <trans-unit id="Capturing_variable_0_that_hasn_t_been_captured_before_will_prevent_the_debug_session_from_continuing">
         <source>Capturing variable '{0}' that hasn't been captured before will prevent the debug session from continuing.</source>
         <target state="translated">Daha önce yakalanmayan '{0}' değişkeninin yakalanması hata ayıklama oturumunun devam etmesini engeller.</target>
@@ -3155,8 +3290,8 @@ If the "g" format specifier is used without other custom format specifiers, it's
         <note />
       </trans-unit>
       <trans-unit id="Deleting_0_will_prevent_the_debug_session_from_continuing">
-        <source>Deleting '{0}' will prevent the debug session from continuing.</source>
-        <target state="translated">'{0}' öğesini silme, hata ayıklama oturumunun devam etmesini engelleyecek.</target>
+        <source>Deleting {0} will prevent the debug session from continuing.</source>
+        <target state="translated">{0} öğesini silme, hata ayıklama oturumunun devam etmesini engelleyecek.</target>
         <note />
       </trans-unit>
       <trans-unit id="Deleting_0_around_an_active_statement_will_prevent_the_debug_session_from_continuing">
@@ -3172,11 +3307,6 @@ If the "g" format specifier is used without other custom format specifiers, it's
       <trans-unit id="Deleting_a_method_body_will_prevent_the_debug_session_from_continuing">
         <source>Deleting a method body will prevent the debug session from continuing.</source>
         <target state="translated">Bir yöntem gövdesi silme, hata ayıklama oturumunun devam etmesini engelleyecek.</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="An_active_statement_has_been_removed_from_its_original_method_You_must_revert_your_changes_to_continue_or_restart_the_debugging_session">
-        <source>An active statement has been removed from its original method. You must revert your changes to continue or restart the debugging session.</source>
-        <target state="translated">Etkin bir deyim özgün yönteminden kaldırılmış. Devam etmek için değişikliklerinizi geri almalısınız veya hata ayıklama oturumunu yeniden başlatmalısınız.</target>
         <note />
       </trans-unit>
       <trans-unit id="Updating_async_or_iterator_modifier_around_an_active_statement_will_prevent_the_debug_session_from_continuing">
@@ -3207,11 +3337,6 @@ If the "g" format specifier is used without other custom format specifiers, it's
       <trans-unit id="Modifying_the_initializer_of_0_in_a_generic_type_will_prevent_the_debug_session_from_continuing">
         <source>Modifying the initializer of '{0}' in a generic type will prevent the debug session from continuing.</source>
         <target state="translated">Genel bir tür içindeki '{0}' öğesinin başlatıcısını değiştirme, hata ayıklama oturumunun devam etmesini engelleyecek.</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="Modifying_the_initializer_of_0_in_a_partial_type_will_prevent_the_debug_session_from_continuing">
-        <source>Modifying the initializer of '{0}' in a partial type will prevent the debug session from continuing.</source>
-        <target state="translated">Kısmi bir tür içindeki '{0}' öğesinin başlatıcısını değiştirme, hata ayıklama oturumunun devam etmesini engelleyecek.</target>
         <note />
       </trans-unit>
       <trans-unit id="Adding_a_constructor_to_a_type_with_a_field_or_property_initializer_that_contains_an_anonymous_function_will_prevent_the_debug_session_from_continuing">
@@ -3265,8 +3390,8 @@ If the "g" format specifier is used without other custom format specifiers, it's
         <note />
       </trans-unit>
       <trans-unit id="Removing_0_that_contains_an_active_statement_will_prevent_the_debug_session_from_continuing">
-        <source>Removing '{0}' that contains an active statement will prevent the debug session from continuing.</source>
-        <target state="translated">Etkin bir deyim içeren '{0}' öğesini kaldırma, hata ayıklama oturumunun devam etmesini engelleyecek.</target>
+        <source>Removing {0} that contains an active statement will prevent the debug session from continuing.</source>
+        <target state="translated">Etkin bir deyim içeren {0} öğesini kaldırma, hata ayıklama oturumunun devam etmesini engelleyecek.</target>
         <note />
       </trans-unit>
       <trans-unit id="Adding_a_new_file_will_prevent_the_debug_session_from_continuing">
@@ -3391,18 +3516,13 @@ Devam etmek istiyor musunuz?</target>
         <note />
       </trans-unit>
       <trans-unit id="Not_Available">
-        <source>Not Available</source>
-        <target state="translated">Kullanılamıyor</target>
+        <source>Not Available ⚠</source>
+        <target state="translated">Kullanılabilir Değil ⚠</target>
         <note />
       </trans-unit>
       <trans-unit id="_0_1">
         <source>    {0} - {1}</source>
         <target state="translated">    {0} - {1}</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="You_can_use_the_navigation_bar_to_switch_context">
-        <source>You can use the navigation bar to switch context.</source>
-        <target state="translated">Bağlamda geçiş yapmak için gezinti çubuğunu kullanabilirsiniz.</target>
         <note />
       </trans-unit>
       <trans-unit id="in_Source">
@@ -3663,6 +3783,11 @@ When this standard format specifier is used, the formatting or parsing operation
 "s" biçim belirticisinin amacı, tarih ve saat değerlerine göre tutarlı olarak artan veya azalan düzende sıralanan sonuç dizeleri üretmelidir. Bu nedenle "s" standart biçim belirticisi bir tarih ve saat değerini tutarlı bir biçimde temsil etse de biçimlendirme işlemi biçimlendirilmekte olan tarih ve saat nesnesinin değerini nesnenin DateTime.Kind özelliğini veya DateTimeOffset.Offset değerini yansıtacak şekilde değiştirmez. Örneğin, 2014-11-15T18:32:17+00:00 ve 2014-11-15T18:32:17+08:00 tarih ve saat değerleri biçimlendirilerek oluşturulan sonuç dizeleri aynıdır.
 
 Bu standart biçim belirticisi kullanıldığında, biçimlendirme veya ayrıştırma işlemi her zaman sabit kültürü kullanır.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="static_constructor">
+        <source>static constructor</source>
+        <target state="translated">statik oluşturucu</target>
         <note />
       </trans-unit>
       <trans-unit id="symbol_cannot_be_a_namespace">

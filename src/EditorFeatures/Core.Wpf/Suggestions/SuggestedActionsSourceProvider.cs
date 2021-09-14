@@ -9,15 +9,18 @@ using System.ComponentModel.Composition;
 using Microsoft.CodeAnalysis.CodeFixes;
 using Microsoft.CodeAnalysis.CodeRefactorings;
 using Microsoft.CodeAnalysis.Diagnostics;
-using Microsoft.CodeAnalysis.Editor.Host;
+using Microsoft.CodeAnalysis.Editor.Shared.Extensions;
 using Microsoft.CodeAnalysis.Editor.Shared.Utilities;
 using Microsoft.CodeAnalysis.Editor.Tags;
+using Microsoft.CodeAnalysis.Experiments;
 using Microsoft.CodeAnalysis.Host.Mef;
+using Microsoft.CodeAnalysis.Options;
 using Microsoft.CodeAnalysis.Shared.TestHooks;
 using Microsoft.CodeAnalysis.Shared.Utilities;
 using Microsoft.VisualStudio.Language.Intellisense;
 using Microsoft.VisualStudio.Text;
 using Microsoft.VisualStudio.Text.Editor;
+using Microsoft.VisualStudio.Utilities;
 using Roslyn.Utilities;
 
 namespace Microsoft.CodeAnalysis.Editor.Implementation.Suggestions
@@ -41,13 +44,13 @@ namespace Microsoft.CodeAnalysis.Editor.Implementation.Suggestions
         private readonly IDiagnosticAnalyzerService _diagnosticService;
         private readonly ICodeFixService _codeFixService;
         private readonly ISuggestedActionCategoryRegistryService _suggestedActionCategoryRegistry;
-
+        private readonly IGlobalOptionService _optionService;
         public readonly ICodeActionEditHandlerService EditHandler;
         public readonly IAsynchronousOperationListener OperationListener;
-        public readonly IWaitIndicator WaitIndicator;
+        public readonly IUIThreadOperationExecutor UIThreadOperationExecutor;
         public readonly ImmutableArray<Lazy<ISuggestedActionCallback>> ActionCallbacks;
 
-        public readonly ImmutableArray<Lazy<IImageMonikerService, OrderableMetadata>> ImageMonikerServices;
+        public readonly ImmutableArray<Lazy<IImageIdService, OrderableMetadata>> ImageIdServices;
 
         [ImportingConstructor]
         [Obsolete(MefConstruction.ImportingConstructorMessage, error: true)]
@@ -57,10 +60,11 @@ namespace Microsoft.CodeAnalysis.Editor.Implementation.Suggestions
             IDiagnosticAnalyzerService diagnosticService,
             ICodeFixService codeFixService,
             ICodeActionEditHandlerService editHandler,
-            IWaitIndicator waitIndicator,
+            IUIThreadOperationExecutor uiThreadOperationExecutor,
             ISuggestedActionCategoryRegistryService suggestedActionCategoryRegistry,
             IAsynchronousOperationListenerProvider listenerProvider,
-            [ImportMany] IEnumerable<Lazy<IImageMonikerService, OrderableMetadata>> imageMonikerServices,
+            IGlobalOptionService optionService,
+            [ImportMany] IEnumerable<Lazy<IImageIdService, OrderableMetadata>> imageIdServices,
             [ImportMany] IEnumerable<Lazy<ISuggestedActionCallback>> actionCallbacks)
         {
             _threadingContext = threadingContext;
@@ -68,20 +72,28 @@ namespace Microsoft.CodeAnalysis.Editor.Implementation.Suggestions
             _diagnosticService = diagnosticService;
             _codeFixService = codeFixService;
             _suggestedActionCategoryRegistry = suggestedActionCategoryRegistry;
+            _optionService = optionService;
             ActionCallbacks = actionCallbacks.ToImmutableArray();
             EditHandler = editHandler;
-            WaitIndicator = waitIndicator;
+            UIThreadOperationExecutor = uiThreadOperationExecutor;
             OperationListener = listenerProvider.GetListener(FeatureAttribute.LightBulb);
 
-            ImageMonikerServices = ExtensionOrderer.Order(imageMonikerServices).ToImmutableArray();
+            ImageIdServices = ExtensionOrderer.Order(imageIdServices).ToImmutableArray();
         }
 
-        public ISuggestedActionsSource CreateSuggestedActionsSource(ITextView textView, ITextBuffer textBuffer)
+        public ISuggestedActionsSource? CreateSuggestedActionsSource(ITextView textView, ITextBuffer textBuffer)
         {
             Contract.ThrowIfNull(textView);
             Contract.ThrowIfNull(textBuffer);
 
-            return new SuggestedActionsSource(_threadingContext, this, textView, textBuffer, _suggestedActionCategoryRegistry);
+            // Disable lightbulb points when running under the LSP editor.
+            // The LSP client will interface with the editor to display our code actions.
+            if (textBuffer.IsInLspEditorContext())
+                return null;
+
+            return _optionService.GetOption(SuggestionsOptions.Asynchronous)
+                ? new AsyncSuggestedActionsSource(_threadingContext, this, textView, textBuffer, _suggestedActionCategoryRegistry)
+                : new SyncSuggestedActionsSource(_threadingContext, this, textView, textBuffer, _suggestedActionCategoryRegistry);
         }
     }
 }

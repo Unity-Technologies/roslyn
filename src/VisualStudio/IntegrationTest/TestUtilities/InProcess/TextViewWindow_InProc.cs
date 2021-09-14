@@ -66,32 +66,17 @@ namespace Microsoft.VisualStudio.IntegrationTest.Utilities.InProcess
 
         public void ShowLightBulb()
         {
-            InvokeSmartTasks();
-
-            // The editor has an asynchronous background operation that dismisses the light bulb if it was shown within
-            // 500ms of the operation starting. Wait 600ms and make sure the menu is still present.
-            // https://devdiv.visualstudio.com/DevDiv/_git/VS-Platform/pullrequest/268277
-            Thread.Sleep(600);
-
-            if (!IsLightBulbSessionExpanded())
+            InvokeOnUIThread(cancellationToken =>
             {
-                InvokeSmartTasks();
-            }
+                var shell = GetGlobalService<SVsUIShell, IVsUIShell>();
+                var cmdGroup = typeof(VSConstants.VSStd2KCmdID).GUID;
+                var cmdExecOpt = OLECMDEXECOPT.OLECMDEXECOPT_DONTPROMPTUSER;
 
-            void InvokeSmartTasks()
-            {
-                InvokeOnUIThread(cancellationToken =>
-                {
-                    var shell = GetGlobalService<SVsUIShell, IVsUIShell>();
-                    var cmdGroup = typeof(VSConstants.VSStd2KCmdID).GUID;
-                    var cmdExecOpt = OLECMDEXECOPT.OLECMDEXECOPT_DONTPROMPTUSER;
-
-                    const VSConstants.VSStd2KCmdID ECMD_SMARTTASKS = (VSConstants.VSStd2KCmdID)147;
-                    var cmdID = ECMD_SMARTTASKS;
-                    object obj = null;
-                    shell.PostExecCommand(cmdGroup, (uint)cmdID, (uint)cmdExecOpt, ref obj);
-                });
-            }
+                const VSConstants.VSStd2KCmdID ECMD_SMARTTASKS = (VSConstants.VSStd2KCmdID)147;
+                var cmdID = ECMD_SMARTTASKS;
+                object? obj = null;
+                shell.PostExecCommand(cmdGroup, (uint)cmdID, (uint)cmdExecOpt, ref obj);
+            });
         }
 
         public void WaitForLightBulbSession()
@@ -129,7 +114,7 @@ namespace Microsoft.VisualStudio.IntegrationTest.Utilities.InProcess
         public string[] GetCurrentClassifications()
             => InvokeOnUIThread(cancellationToken =>
             {
-                IClassifier classifier = null;
+                IClassifier? classifier = null;
                 try
                 {
                     var textView = GetActiveTextView();
@@ -270,14 +255,42 @@ namespace Microsoft.VisualStudio.IntegrationTest.Utilities.InProcess
                 action(view);
             };
 
-        public string GetQuickInfo()
-            => ExecuteOnActiveView(view =>
+        public void InvokeQuickInfo()
+        {
+            ThreadHelper.JoinableTaskFactory.Run(async () =>
             {
+                await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
+
+                var broker = GetComponentModelService<IAsyncQuickInfoBroker>();
+                var session = await broker.TriggerQuickInfoAsync(GetActiveTextView());
+                Contract.ThrowIfNull(session);
+            });
+        }
+
+        public string GetQuickInfo()
+        {
+            return ThreadHelper.JoinableTaskFactory.Run(async () =>
+            {
+                await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
+
+                var view = GetActiveTextView();
                 var broker = GetComponentModelService<IAsyncQuickInfoBroker>();
 
                 var session = broker.GetSession(view);
+
+                // GetSession will not return null if preceded by a call to InvokeQuickInfo
+                Contract.ThrowIfNull(session);
+
+                using var cts = new CancellationTokenSource(Helper.HangMitigatingTimeout);
+                while (session.State != QuickInfoSessionState.Visible)
+                {
+                    cts.Token.ThrowIfCancellationRequested();
+                    await Task.Delay(50, cts.Token).ConfigureAwait(true);
+                }
+
                 return QuickInfoToStringConverter.GetStringFromBulkContent(session.Content);
             });
+        }
 
         public void VerifyTags(string tagTypeName, int expectedCount)
             => ExecuteOnActiveView(view =>
@@ -287,6 +300,7 @@ namespace Microsoft.VisualStudio.IntegrationTest.Utilities.InProcess
             {
                 return tag.Tag.GetType().Equals(type);
             }
+
             var service = GetComponentModelService<IViewTagAggregatorFactoryService>();
             var aggregator = service.CreateTagAggregator<ITag>(view);
             var allTags = aggregator.GetTags(new SnapshotSpan(view.TextSnapshot, 0, view.TextSnapshot.Length));
@@ -409,11 +423,13 @@ namespace Microsoft.VisualStudio.IntegrationTest.Utilities.InProcess
                     }
 
                     var actionSetsForAction = await action.GetActionSetsAsync(CancellationToken.None);
-                    action = await GetFixAllSuggestedActionAsync(actionSetsForAction, fixAllScope.Value);
-                    if (action == null)
+                    var fixAllAction = await GetFixAllSuggestedActionAsync(actionSetsForAction, fixAllScope.Value);
+                    if (fixAllAction == null)
                     {
                         throw new InvalidOperationException($"Unable to find FixAll in {fixAllScope.ToString()} code fix for suggested action '{action.DisplayText}'.");
                     }
+
+                    action = fixAllAction;
 
                     if (willBlockUntilComplete
                         && action is FixAllSuggestedAction fixAllSuggestedAction
@@ -466,7 +482,7 @@ namespace Microsoft.VisualStudio.IntegrationTest.Utilities.InProcess
             return actions;
         }
 
-        private static async Task<FixAllSuggestedAction> GetFixAllSuggestedActionAsync(IEnumerable<SuggestedActionSet> actionSets, FixAllScope fixAllScope)
+        private static async Task<FixAllSuggestedAction?> GetFixAllSuggestedActionAsync(IEnumerable<SuggestedActionSet> actionSets, FixAllScope fixAllScope)
         {
             await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
 
@@ -486,10 +502,10 @@ namespace Microsoft.VisualStudio.IntegrationTest.Utilities.InProcess
                     if (action.HasActionSets)
                     {
                         var nestedActionSets = await action.GetActionSetsAsync(CancellationToken.None);
-                        fixAllSuggestedAction = await GetFixAllSuggestedActionAsync(nestedActionSets, fixAllScope);
-                        if (fixAllSuggestedAction != null)
+                        var fixAllCodeAction = await GetFixAllSuggestedActionAsync(nestedActionSets, fixAllScope);
+                        if (fixAllCodeAction != null)
                         {
-                            return fixAllSuggestedAction;
+                            return fixAllCodeAction;
                         }
                     }
                 }

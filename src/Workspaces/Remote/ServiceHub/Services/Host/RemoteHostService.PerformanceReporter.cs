@@ -2,6 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+#nullable disable
+
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -17,7 +19,7 @@ using RoslynLogger = Microsoft.CodeAnalysis.Internal.Log.Logger;
 
 namespace Microsoft.CodeAnalysis.Remote
 {
-    internal partial class RemoteHostService : ServiceBase, IRemoteHostService
+    internal partial class RemoteHostService
     {
         /// <summary>
         /// Track when last time report has sent and send new report if there is update after given internal
@@ -41,7 +43,7 @@ namespace Microsoft.CodeAnalysis.Remote
                 : base(
                     AsynchronousOperationListenerProvider.NullListener,
                     globalOperationNotificationService,
-                    (int)reportingInterval.TotalMilliseconds,
+                    reportingInterval,
                     shutdownToken)
             {
                 _event = new SemaphoreSlim(initialCount: 0);

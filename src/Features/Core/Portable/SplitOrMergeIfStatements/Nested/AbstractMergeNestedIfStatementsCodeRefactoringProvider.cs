@@ -2,6 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+#nullable disable
+
 using System;
 using System.Diagnostics;
 using System.Linq;
@@ -194,7 +196,7 @@ namespace Microsoft.CodeAnalysis.SplitOrMergeIfStatements
                 // A statement should always be in a statement container, but we'll do a defensive check anyway so that
                 // we don't crash if the helper is missing some cases or there's a new language feature it didn't account for.
                 Debug.Assert(syntaxFacts.GetStatementContainer(outerIfStatement) is object);
-                if (!(syntaxFacts.GetStatementContainer(outerIfStatement) is { } container))
+                if (syntaxFacts.GetStatementContainer(outerIfStatement) is not { } container)
                 {
                     return false;
                 }

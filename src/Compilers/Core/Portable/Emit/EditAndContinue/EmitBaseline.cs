@@ -2,8 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
-#nullable enable
-
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
@@ -214,6 +212,7 @@ namespace Microsoft.CodeAnalysis.Emit
                 eventMapAdded: new Dictionary<int, int>(),
                 propertyMapAdded: new Dictionary<int, int>(),
                 methodImplsAdded: new Dictionary<MethodImplKey, int>(),
+                customAttributesAdded: new Dictionary<EntityHandle, ImmutableArray<int>>(),
                 tableEntriesAdded: s_emptyTableSizes,
                 blobStreamLengthAdded: 0,
                 stringStreamLengthAdded: 0,
@@ -264,6 +263,7 @@ namespace Microsoft.CodeAnalysis.Emit
         internal readonly IReadOnlyDictionary<int, int> EventMapAdded;
         internal readonly IReadOnlyDictionary<int, int> PropertyMapAdded;
         internal readonly IReadOnlyDictionary<MethodImplKey, int> MethodImplsAdded;
+        internal readonly IReadOnlyDictionary<EntityHandle, ImmutableArray<int>> CustomAttributesAdded;
 
         internal readonly ImmutableArray<int> TableEntriesAdded;
 
@@ -319,6 +319,7 @@ namespace Microsoft.CodeAnalysis.Emit
             IReadOnlyDictionary<int, int> eventMapAdded,
             IReadOnlyDictionary<int, int> propertyMapAdded,
             IReadOnlyDictionary<MethodImplKey, int> methodImplsAdded,
+            IReadOnlyDictionary<EntityHandle, ImmutableArray<int>> customAttributesAdded,
             ImmutableArray<int> tableEntriesAdded,
             int blobStreamLengthAdded,
             int stringStreamLengthAdded,
@@ -379,6 +380,7 @@ namespace Microsoft.CodeAnalysis.Emit
             EventMapAdded = eventMapAdded;
             PropertyMapAdded = propertyMapAdded;
             MethodImplsAdded = methodImplsAdded;
+            CustomAttributesAdded = customAttributesAdded;
             TableEntriesAdded = tableEntriesAdded;
             BlobStreamLengthAdded = blobStreamLengthAdded;
             StringStreamLengthAdded = stringStreamLengthAdded;
@@ -409,6 +411,7 @@ namespace Microsoft.CodeAnalysis.Emit
             IReadOnlyDictionary<int, int> eventMapAdded,
             IReadOnlyDictionary<int, int> propertyMapAdded,
             IReadOnlyDictionary<MethodImplKey, int> methodImplsAdded,
+            IReadOnlyDictionary<EntityHandle, ImmutableArray<int>> customAttributesAdded,
             ImmutableArray<int> tableEntriesAdded,
             int blobStreamLengthAdded,
             int stringStreamLengthAdded,
@@ -440,6 +443,7 @@ namespace Microsoft.CodeAnalysis.Emit
                 eventMapAdded,
                 propertyMapAdded,
                 methodImplsAdded,
+                customAttributesAdded,
                 tableEntriesAdded,
                 blobStreamLengthAdded: blobStreamLengthAdded,
                 stringStreamLengthAdded: stringStreamLengthAdded,
@@ -465,7 +469,7 @@ namespace Microsoft.CodeAnalysis.Emit
                     return _anonymousTypeMap;
                 }
 
-                Debug.Assert(LazyMetadataSymbols != null);
+                RoslynDebug.AssertNotNull(LazyMetadataSymbols);
                 return LazyMetadataSymbols.AnonymousTypes;
             }
         }

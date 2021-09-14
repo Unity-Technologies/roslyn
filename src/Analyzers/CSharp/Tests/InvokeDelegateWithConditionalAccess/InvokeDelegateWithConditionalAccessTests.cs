@@ -2,6 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+#nullable disable
+
 using System.Threading.Tasks;
 using Microsoft.CodeAnalysis.CodeFixes;
 using Microsoft.CodeAnalysis.CSharp;
@@ -499,7 +501,7 @@ class C
         [||]var v = a;
         if (v != null)
         {
-            v();
+            v(); // Comment2
         }
     }
 }",
@@ -509,7 +511,7 @@ class C
     void Goo()
     {
         // Comment
-        a?.Invoke();
+        a?.Invoke(); // Comment2
     }
 }");
         }
@@ -526,7 +528,7 @@ class C
         // Comment
         [||]if (a != null)
         {
-            a();
+            a(); // Comment2
         }
     }
 }",
@@ -536,7 +538,60 @@ class C
     void Goo()
     {
         // Comment
-        a?.Invoke();
+        a?.Invoke(); // Comment2
+    }
+}");
+        }
+
+        [Fact, Trait(Traits.Feature, Traits.Features.CodeActionsInvokeDelegateWithConditionalAccess)]
+        [WorkItem(51563, "https://github.com/dotnet/roslyn/issues/51563")]
+        public async Task TestTrivia3()
+        {
+            await TestInRegularAndScript1Async(
+@"class C
+{
+    System.Action a;
+    void Goo()
+    {
+        // Comment
+        [||]var v = a;
+        if (v != null) { v(); /* 123 */ } // trails
+        System.Console.WriteLine();
+    }
+}",
+@"class C
+{
+    System.Action a;
+    void Goo()
+    {
+        // Comment
+        a?.Invoke(); /* 123 */  // trails
+        System.Console.WriteLine();
+    }
+}");
+        }
+
+        [Fact, Trait(Traits.Feature, Traits.Features.CodeActionsInvokeDelegateWithConditionalAccess)]
+        [WorkItem(51563, "https://github.com/dotnet/roslyn/issues/51563")]
+        public async Task TestTrivia4()
+        {
+            await TestInRegularAndScript1Async(
+@"class C
+{
+    System.Action a;
+    void Goo()
+    {
+        [||]if (a != null) { a(); /* 123 */ } // trails
+        System.Console.WriteLine();
+    }
+}",
+@"class C
+{
+    System.Action a;
+    void Goo()
+    {
+        a?.Invoke(); /* 123 */  // trails
+        System.Console.WriteLine();
     }
 }");
         }

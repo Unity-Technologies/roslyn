@@ -2,8 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
-#nullable enable
-
 using System.Collections.Immutable;
 using System.Diagnostics;
 using Microsoft.CodeAnalysis.CSharp.Symbols;
@@ -56,9 +54,9 @@ namespace Microsoft.CodeAnalysis.CSharp
 
                 currentBinary = currentBinary switch
                 {
-                    BoundBinaryOperator binary => binary.Update(binary.OperatorKind, binary.ConstantValueOpt, GetUpdatedSymbol(binary, binary.MethodOpt), binary.ResultKind, binary.OriginalUserDefinedOperatorsOpt, leftChild, right, type!),
+                    BoundBinaryOperator binary => binary.Update(binary.OperatorKind, binary.ConstantValueOpt, GetUpdatedSymbol(binary, binary.MethodOpt), binary.ConstrainedToTypeOpt, binary.ResultKind, binary.OriginalUserDefinedOperatorsOpt, leftChild, right, type!),
                     // https://github.com/dotnet/roslyn/issues/35031: We'll need to update logical.LogicalOperator
-                    BoundUserDefinedConditionalLogicalOperator logical => logical.Update(logical.OperatorKind, logical.LogicalOperator, logical.TrueOperator, logical.FalseOperator, logical.ResultKind, logical.OriginalUserDefinedOperatorsOpt, leftChild, right, type!),
+                    BoundUserDefinedConditionalLogicalOperator logical => logical.Update(logical.OperatorKind, logical.LogicalOperator, logical.TrueOperator, logical.FalseOperator, logical.ConstrainedToTypeOpt, logical.ResultKind, logical.OriginalUserDefinedOperatorsOpt, leftChild, right, type!),
                     _ => throw ExceptionUtilities.UnexpectedValue(currentBinary.Kind),
                 };
 

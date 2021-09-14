@@ -2,8 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
-#nullable enable
-
 using System.Collections.Immutable;
 using Microsoft.CodeAnalysis.CodeStyle;
 using Microsoft.CodeAnalysis.CSharp.CodeStyle;
@@ -29,6 +27,7 @@ namespace Microsoft.CodeAnalysis.CSharp.UsePatternMatching
     {
         public CSharpUseNotPatternDiagnosticAnalyzer()
             : base(IDEDiagnosticIds.UseNotPatternDiagnosticId,
+                   EnforceOnBuildValues.UseNotPattern,
                    CSharpCodeStyleOptions.PreferNotPattern,
                    LanguageNames.CSharp,
                    new LocalizableResourceString(
@@ -41,18 +40,21 @@ namespace Microsoft.CodeAnalysis.CSharp.UsePatternMatching
 
         protected override void InitializeWorker(AnalysisContext context)
         {
-            context.RegisterSyntaxNodeAction(SyntaxNodeAction, SyntaxKind.LogicalNotExpression);
+            context.RegisterCompilationStartAction(context =>
+            {
+                // "x is not Type y" is only available in C# 9.0 and above. Don't offer this refactoring
+                // in projects targeting a lesser version.
+                if (!((CSharpCompilation)context.Compilation).LanguageVersion.IsCSharp9OrAbove())
+                    return;
+
+                context.RegisterSyntaxNodeAction(n => SyntaxNodeAction(n), SyntaxKind.LogicalNotExpression);
+            });
         }
 
         private void SyntaxNodeAction(SyntaxNodeAnalysisContext syntaxContext)
         {
             var node = syntaxContext.Node;
             var syntaxTree = node.SyntaxTree;
-
-            // "x is not Type y" is only available in C# 9.0 and above. Don't offer this refactoring
-            // in projects targeting a lesser version.
-            if (!((CSharpParseOptions)syntaxTree.Options).LanguageVersion.IsCSharp9OrAbove())
-                return;
 
             var options = syntaxContext.Options;
             var cancellationToken = syntaxContext.CancellationToken;
