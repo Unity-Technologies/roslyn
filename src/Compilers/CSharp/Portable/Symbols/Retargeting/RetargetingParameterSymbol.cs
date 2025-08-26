@@ -2,11 +2,10 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
-#nullable disable
-
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics;
+using System.Threading;
 using Microsoft.CodeAnalysis.CSharp.Emit;
 
 namespace Microsoft.CodeAnalysis.CSharp.Symbols.Retargeting
@@ -25,6 +24,8 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols.Retargeting
         /// </summary>
         private ImmutableArray<CSharpAttributeData> _lazyCustomAttributes;
 
+        private TypeWithAnnotations.Boxed? _lazyTypeWithAnnotations;
+
         protected RetargetingParameterSymbol(ParameterSymbol underlyingParameter)
             : base(underlyingParameter)
         {
@@ -40,7 +41,14 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols.Retargeting
         {
             get
             {
-                return this.RetargetingModule.RetargetingTranslator.Retarget(_underlyingParameter.TypeWithAnnotations, RetargetOptions.RetargetPrimitiveTypesByTypeCode);
+                if (_lazyTypeWithAnnotations is null)
+                {
+                    Interlocked.CompareExchange(ref _lazyTypeWithAnnotations,
+                        new TypeWithAnnotations.Boxed(this.RetargetingModule.RetargetingTranslator.Retarget(_underlyingParameter.TypeWithAnnotations, RetargetOptions.RetargetPrimitiveTypesByTypeCode)),
+                        null);
+                }
+
+                return _lazyTypeWithAnnotations.Value;
             }
         }
 
@@ -52,13 +60,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols.Retargeting
             }
         }
 
-        public sealed override Symbol ContainingSymbol
-        {
-            get
-            {
-                return this.RetargetingModule.RetargetingTranslator.Retarget(_underlyingParameter.ContainingSymbol);
-            }
-        }
+        public abstract override Symbol ContainingSymbol { get; }
 
         public sealed override ImmutableArray<CSharpAttributeData> GetAttributes()
         {
@@ -118,9 +120,44 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols.Retargeting
             }
         }
 
-        internal sealed override CSharpCompilation DeclaringCompilation // perf, not correctness
+        /// <summary>
+        /// <inheritdoc/>
+        /// </summary>
+        /// <remarks>
+        /// This override is done for performance reasons. Lacking the override this would redirect to 
+        /// <see cref="RetargetingModuleSymbol.DeclaringCompilation"/> which returns null. The override 
+        /// short circuits the overhead in <see cref="Symbol.DeclaringCompilation"/> and the extra virtual
+        /// dispatch and just returns null.
+        /// </remarks>
+        internal sealed override CSharpCompilation? DeclaringCompilation
         {
             get { return null; }
+        }
+
+        internal sealed override ImmutableArray<int> InterpolatedStringHandlerArgumentIndexes => _underlyingParameter.InterpolatedStringHandlerArgumentIndexes;
+
+        internal sealed override bool HasInterpolatedStringHandlerArgumentError => _underlyingParameter.HasInterpolatedStringHandlerArgumentError;
+
+        internal sealed override bool HasEnumeratorCancellationAttribute => _underlyingParameter.HasEnumeratorCancellationAttribute;
+
+        internal sealed override bool IsCallerLineNumber
+        {
+            get { return _underlyingParameter.IsCallerLineNumber; }
+        }
+
+        internal sealed override bool IsCallerFilePath
+        {
+            get { return _underlyingParameter.IsCallerFilePath; }
+        }
+
+        internal sealed override bool IsCallerMemberName
+        {
+            get { return _underlyingParameter.IsCallerMemberName; }
+        }
+
+        internal sealed override int CallerArgumentExpressionParameterIndex
+        {
+            get { return _underlyingParameter.CallerArgumentExpressionParameterIndex; }
         }
     }
 
@@ -142,6 +179,8 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols.Retargeting
         {
             get { return _retargetingMethod.RetargetingModule; }
         }
+
+        public override Symbol ContainingSymbol => _retargetingMethod;
     }
 
     internal sealed class RetargetingPropertyParameterSymbol : RetargetingParameterSymbol
@@ -162,5 +201,29 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols.Retargeting
         {
             get { return _retargetingProperty.RetargetingModule; }
         }
+
+        public override Symbol ContainingSymbol => _retargetingProperty;
+    }
+
+    internal sealed class RetargetingExtensionReceiverParameterSymbol : RetargetingParameterSymbol
+    {
+        /// <summary>
+        /// Owning RetargetingNamedTypeSymbol.
+        /// </summary>
+        private readonly RetargetingNamedTypeSymbol _retargetingType;
+
+        public RetargetingExtensionReceiverParameterSymbol(RetargetingNamedTypeSymbol retargetingType, ParameterSymbol underlyingParameter)
+            : base(underlyingParameter)
+        {
+            Debug.Assert((object)retargetingType != null);
+            _retargetingType = retargetingType;
+        }
+
+        protected override RetargetingModuleSymbol RetargetingModule
+        {
+            get { return (RetargetingModuleSymbol)_retargetingType.ContainingModule; }
+        }
+
+        public override Symbol ContainingSymbol => _retargetingType;
     }
 }

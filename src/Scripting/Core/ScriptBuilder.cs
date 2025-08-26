@@ -90,10 +90,7 @@ namespace Microsoft.CodeAnalysis.Scripting
                 // emit can fail due to compilation errors or because there is nothing to emit:
                 ThrowIfAnyCompilationErrors(diagnostics, compiler.DiagnosticFormatter);
 
-                if (executor == null)
-                {
-                    executor = (s) => Task.FromResult(default(T));
-                }
+                executor ??= (s) => Task.FromResult(default(T));
 
                 return executor;
             }
@@ -155,13 +152,10 @@ namespace Microsoft.CodeAnalysis.Scripting
 
                 peStream.Position = 0;
 
-                if (pdbStreamOpt != null)
-                {
-                    pdbStreamOpt.Position = 0;
-                }
+                pdbStreamOpt?.Position = 0;
 
                 var assembly = _assemblyLoader.LoadAssemblyFromStream(peStream, pdbStreamOpt);
-                var runtimeEntryPoint = GetEntryPointRuntimeMethod(entryPoint, assembly, cancellationToken);
+                var runtimeEntryPoint = GetEntryPointRuntimeMethod(entryPoint, assembly);
 
                 return runtimeEntryPoint.CreateDelegate<Func<object[], Task<T>>>();
             }
@@ -189,7 +183,7 @@ namespace Microsoft.CodeAnalysis.Scripting
                 cancellationToken: cancellationToken);
         }
 
-        internal static MethodInfo GetEntryPointRuntimeMethod(IMethodSymbol entryPoint, Assembly assembly, CancellationToken cancellationToken)
+        internal static MethodInfo GetEntryPointRuntimeMethod(IMethodSymbol entryPoint, Assembly assembly)
         {
             string entryPointTypeName = MetadataHelpers.BuildQualifiedName(entryPoint.ContainingNamespace.MetadataName, entryPoint.ContainingType.MetadataName);
             string entryPointMethodName = entryPoint.MetadataName;

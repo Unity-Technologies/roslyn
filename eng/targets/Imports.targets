@@ -1,7 +1,7 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <!-- Licensed to the .NET Foundation under one or more agreements. The .NET Foundation licenses this file to you under the MIT license. See the LICENSE file in the project root for more information. -->
 <Project>
-  <Import Project="VisualStudio.targets"/>
+  <Import Project="VisualStudio.targets" Condition="'$(UsingToolVSSDK)' == 'true'"/>
   <Import Project="XUnit.targets" Condition="'$(IsTestProject)' == 'true'" />
 
   <!--
@@ -46,6 +46,11 @@
     -->
     <RoslynCheckCodeStyle Condition="'$(RoslynCheckCodeStyle)' == '' AND '$(DisableNullableWarnings)' == 'true'">false</RoslynCheckCodeStyle>
     <RoslynCheckCodeStyle Condition="'$(RoslynCheckCodeStyle)' == '' AND ('$(ContinuousIntegrationBuild)' != 'true' OR '$(RoslynEnforceCodeStyle)' == 'true')">true</RoslynCheckCodeStyle>
+
+    <EnforceCodeStyleInBuild Condition="'$(EnforceCodeStyleInBuild)' == '' AND '$(RoslynCheckCodeStyle)' == 'true'">true</EnforceCodeStyleInBuild>
+
+    <!--https://github.com/dotnet/sdk/issues/37826 -->
+    <MSBuildWarningsAsMessages Condition="'$(OutputType)' == 'Library'">$(MSBuildWarningsAsMessages);NETSDK1206</MSBuildWarningsAsMessages>
   </PropertyGroup>
 
   <!--
@@ -56,7 +61,7 @@
           Otherwise, default to 'true'.
   -->
   <PropertyGroup Condition="'$(RunAnalyzersDuringBuild)' == ''">
-    <RunAnalyzersDuringBuild Condition="'$(DesignTimeBuild)' != 'true' AND '$(ContinuousIntegrationBuild)' != 'true' AND !('$(RoslynEnforceCodeStyle)' == 'true' OR '$(RunCodeAnalysis)' == 'true')">false</RunAnalyzersDuringBuild>
+    <RunAnalyzersDuringBuild Condition="'$(RoslynEnforceCodeStyle)' != 'true' AND '$(RunCodeAnalysis)' != 'true'">false</RunAnalyzersDuringBuild>
     <RunAnalyzersDuringBuild Condition="'$(RunAnalyzersDuringBuild)' == ''">true</RunAnalyzersDuringBuild>
   </PropertyGroup>
 
@@ -64,25 +69,6 @@
     <NoWarn>$(NoWarn);Nullable</NoWarn>
   </PropertyGroup>
   
-  <ItemGroup Condition="'$(Language)' == 'CSharp' and '$(TargetFramework)' == 'net20'">
-    <_ExplicitReference Include="$(FrameworkPathOverride)\mscorlib.dll" />
-  </ItemGroup>
-
-  <!--
-    If the project targets Framework 2.0 reference assemblies provided by Microsoft.NetFramework.ReferenceAssemblies nuget package.
-    Use the latest Framework toolset to build, but set msbuild properties below
-    so to avoid 4.5 specific artifacts to be added to the compilation (references, attributes).
-  -->
-  <PropertyGroup Condition="'$(TargetFramework)' == 'net20'">
-    <GenerateTargetFrameworkAttribute>false</GenerateTargetFrameworkAttribute>
-    <NoStdLib>true</NoStdLib>
-    <ResGenExecuteAsTool>false</ResGenExecuteAsTool>
-    <GenerateResourceMSBuildRuntime>CurrentRuntime</GenerateResourceMSBuildRuntime>
-
-    <!-- Bypass a check in msbuild that .NET Framework 3.5 is installed on the machine when targeting .NET < 4.0 -->
-    <BypassFrameworkInstallChecks>true</BypassFrameworkInstallChecks>
-  </PropertyGroup>
-
   <!-- 
     Do not copy dependencies to the output directory of a library project, unless it's a unit test project.
   -->
@@ -109,6 +95,40 @@
     <!-- Include NonShipping.globalconfig for non-shipping projects -->
     <EditorConfigFiles Condition="'$(IsShipping)' != 'true'" Include="$(RepositoryEngineeringDir)config\globalconfigs\NonShipping.globalconfig" />
   </ItemGroup>
+
+  <!--
+    Common content for all Roslyn source packages.
+  -->
+
+  <PropertyGroup Condition="'$(IsSourcePackage)' == 'true'">
+    <TargetsForTfmSpecificContentInPackage>$(TargetsForTfmSpecificContentInPackage);_AddEditorConfigToSourcePackage;_AddLinkedCompileItemsToSourcePackage</TargetsForTfmSpecificContentInPackage>
+    <PackageDescription>
+      $(PackageDescription)
+
+      The source code included in this package is subject to arbitrary changes in future versions. 
+      Updating a reference to this package to a newer version of the package may require changes in the referencing project.
+      No compatibility guarantees are provided.
+    </PackageDescription>
+  </PropertyGroup>
+
+  <!-- Include SourcePackage.editorconfig in all source packages. -->
+  <Target Name="_AddEditorConfigToSourcePackage">
+    <ItemGroup>
+      <TfmSpecificPackageFile Include="$(MSBuildThisFileDirectory)..\config\SourcePackage.editorconfig" PackagePath="contentFiles/cs/$(TargetFramework)/.editorconfig" />
+    </ItemGroup>
+  </Target>
+
+  <!-- Include linked files. Arcade SDK only includes files in the project directory. -->
+  <Target Name="_AddLinkedCompileItemsToSourcePackage">
+    <ItemGroup>
+      <TfmSpecificPackageFile Include="@(Compile)" Condition="'%(Compile.Link)' != ''" PackagePath="contentFiles/cs/$(TargetFramework)/%(Compile.Link)" BuildAction="Compile"/>
+    </ItemGroup>
+  </Target>
+
+  <!-- Check that all shipping assemblies are packaged -->
+  <Target Name="_CheckTestProjectTargetFileName" BeforeTargets="Build" Condition="'$(IsShippingAssembly)' == 'true' and '$(IsPackable)' != 'true'">
+    <Error Text="Project output assembly is shipping (IsShipping == $(IsShipping), IsShippingAssembly == '$(IsShippingAssembly)', IsShippingPackage == '$(IsShippingPackage)') but is not packaged (IsPackable == '$(IsPackable)')" />
+  </Target>
 
   <!--
     Some dependencies bring in references to UIAutomationClient and UIAutomationTypes. These conflict with the faster
@@ -159,7 +179,7 @@
   <UsingTask TaskName="Microsoft.DotNet.Arcade.Sdk.CompareVersions" AssemblyFile="$(ArcadeSdkBuildTasksAssembly)" />
   <UsingTask TaskName="Microsoft.DotNet.Arcade.Sdk.SingleError" AssemblyFile="$(ArcadeSdkBuildTasksAssembly)" />
 
-  <Target Name="_CheckRequiredMSBuildVersion" BeforeTargets="BeforeBuild">
+  <Target Name="_CheckRequiredMSBuildVersion" BeforeTargets="BeforeBuild" Condition="'$(DotNetBuildSourceOnly)' != 'true'">
     <CompareVersions Left="$(MSBuildVersion)" Right="$(MinimumMSBuildVersion)">
       <Output TaskParameter="Result" PropertyName="_VersionComparisonResult"/>
     </CompareVersions>
@@ -168,22 +188,13 @@
                  Condition="$(_VersionComparisonResult) &lt; 0"/>
   </Target> 
 
-  <!--
-    Work around missing code fix references causing VBCSCompiler.exe to reject compilations.
-    https://github.com/dotnet/roslyn/issues/46684
-  -->
-  <Target Name="ExcludeCodeFixes"
-          BeforeTargets="CoreCompile"
-          Condition="'$(BuildingProject)' == 'true'">
-    <!--
-      Disable analyzers that only provide code fixes.
-    -->
-    <ItemGroup>
-      <Analyzer Remove="@(Analyzer)"
-                Condition="'%(Filename)' == 'Microsoft.CodeAnalysis.CSharp.CodeStyle.Fixes'
-                  OR '%(Filename)' == 'Microsoft.VisualStudio.Threading.Analyzers.CodeFixes'"/>
-    </ItemGroup>
-  </Target>
+  <Target Name="_CheckLongPathSupport" BeforeTargets="BeforeBuild" Condition="'$(MSBuildRuntimeType)' == 'Full'">
+    <PropertyGroup>
+      <_RoslynLongPathsEnabled>$([MSBuild]::GetRegistryValueFromView('HKEY_LOCAL_MACHINE\System\CurrentControlSet\Control\FileSystem', 'LongPathsEnabled', null, RegistryView.Registry64, RegistryView.Registry32))</_RoslynLongPathsEnabled>
+    </PropertyGroup>
+    
+    <Warning Condition="'$(_RoslynLongPathsEnabled)' != '1'" Text="Long paths are required for this project. Please run eng\enable-long-paths.reg" />
+  </Target> 
 
   <!-- 
     This target is used to copy referenced projects to a sub-directory vs. the direct output 
@@ -211,8 +222,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <!-- Include BannedSymbols covering all projects -->
-    <AdditionalFiles Include="$(MSBuildThisFileDirectory)..\config\BannedSymbols.txt" />
+    <!-- Include BannedSymbols covering all product projects -->
+    <AdditionalFiles Include="$(MSBuildThisFileDirectory)..\config\BannedSymbols.txt" Condition="'$(IsTestProject)' == 'false'" />
   </ItemGroup>
 
   <ItemGroup>
@@ -225,6 +236,14 @@
   -->
   <ItemGroup Condition="'$(IsPackable)' == 'true' and '$(IsShipping)' == 'true'">
     <None Include="$(ThirdPartyNoticesFilePath)" PackagePath="ThirdPartyNotices.rtf" Visible="false" Pack="true"/>
+  </ItemGroup>
+
+  <!--
+    Microsoft.VisualStudio.Extensibility.JsonGenerators.Sdk.props creates content items for all files in .vsextension dir.
+    NuGet includes content items in package, by default but these items should only be included in the VSIX.
+  -->
+  <ItemGroup>
+    <Content Update=".vsextension\**\*" Pack="false" />
   </ItemGroup>
 
   <!--
@@ -288,10 +307,11 @@
       <_InternalsVisibleToAttribute Include="System.Runtime.CompilerServices.RestrictedInternalsVisibleToAttribute">
         <_Parameter1>%(RestrictedInternalsVisibleTo.Identity)</_Parameter1>
         <_Parameter2 Condition="'%(RestrictedInternalsVisibleTo.Partner)' != ''">Microsoft.CodeAnalysis.ExternalAccess.%(RestrictedInternalsVisibleTo.Partner).Api</_Parameter2>
+        <_Parameter2 Condition="'%(RestrictedInternalsVisibleTo.Namespace)' != ''">%(RestrictedInternalsVisibleTo.Namespace)</_Parameter2>
       </_InternalsVisibleToAttribute>
     </ItemGroup>
 
-    <Warning Condition="'%(RestrictedInternalsVisibleTo.Partner)' == ''" Text="RestrictedInternalsVisibleTo items must specify the 'Partner' attribute. Target assembly: %(Identity)" />
+    <Warning Condition="'%(RestrictedInternalsVisibleTo.Partner)' == '' and '%(RestrictedInternalsVisibleTo.Namespace)' == ''" Text="RestrictedInternalsVisibleTo items must specify the 'Partner' or 'Namespace' attribute. Target assembly: %(Identity)" />
   </Target>
 
   <!-- Make sure expected compile items are included -->
@@ -384,5 +404,51 @@
     <ItemGroup>
       <Reference Remove="@(Reference)" Condition=" '%(FileName)' == 'Microsoft.VisualBasic' or '%(FileName)' == 'Microsoft.VisualBasic.Core' " />
     </ItemGroup>
+  </Target>
+
+  <!-- Workaround for https://github.com/dotnet/msbuild/issues/7161 -->
+  <Target Name="WorkaroundDotnetMsbuild7161"
+          AfterTargets="_CopyFilesMarkedCopyLocal"
+          Condition="'$(BuildingInsideVisualStudio)' == 'true' AND '@(ReferenceCopyLocalPaths)' != ''">
+    <Touch Files="@(CopyUpToDateMarker)"
+           AlwaysCreate="true"
+           Condition="'@(ReferencesCopiedInThisBuild)' != ''"/>
+  </Target>
+
+  <!-- Workaround for https://github.com/dotnet/runtime/pull/84936 -->
+  <Target Name="ExcludeSlowJSImportGenerator" AfterTargets="ResolveTargetingPackAssets">
+    <ItemGroup>
+      <Analyzer Remove="@(Analyzer)" Condition="'%(FileName)' == 'Microsoft.Interop.JavaScript.JSImportGenerator' AND '%(Analyzer.NuGetPackageId)' == 'Microsoft.NETCore.App.Ref'" />
+    </ItemGroup>
+  </Target>
+
+  <!-- Workaround for an issue where nested targets (e.g. GetCopyToPublishDirectoryItems in the SDK) call _SplitProjectReferencesByFileExistence without calling implict prerequisite AssignProjectConfiguration -->
+  <Target Name="Workaround_SplitProjectReferencesByFileExistence" BeforeTargets="_SplitProjectReferencesByFileExistence" DependsOnTargets="AssignProjectConfiguration" />
+
+  <!-- Workaround for an issue where nested targets (e.g. CopyFilesToPublishDirectory in the SDK) call _CopyResolvedFilesToPublishPreserveNewest without calling implict prerequisite GenerateManifests -->
+  <Target Name="Workaround_CopyResolvedFilesToPublishPreserveNewest" BeforeTargets="_CopyResolvedFilesToPublishPreserveNewest" DependsOnTargets="GenerateManifests" />
+
+  <Import Project="DoNotGenerateSatelliteAssemblies_Workaround.targets" Condition="'$(GenerateSatelliteAssemblies)' == 'false'" />
+
+  <!--
+    This target uses Inputs/Outputs so when it is skipped because they are up to date, ApplyOptimizations is skipped.
+    This is a workaround for https://github.com/dotnet/roslyn/issues/77941.
+  -->
+  <Target Name="_DisableApplyOptimizations"
+          BeforeTargets="_InitializeAssemblyOptimizationWithTargetAssembly">
+    <PropertyGroup>
+      <EnableNgenOptimization>false</EnableNgenOptimization>
+    </PropertyGroup>
+  </Target>
+  <Target Name="_DetermineIfApplyOptimizationsShouldBeDisabled"
+          AfterTargets="_DisableApplyOptimizations"
+          Inputs="$(MSBuildAllProjects);@(IntermediateAssembly)"
+          Outputs="@(IntermediateAssembly);$(PostCompileBinaryModificationSentinelFile)">
+    <CallTarget Targets="_EnableApplyOptimizations" />
+  </Target>
+  <Target Name="_EnableApplyOptimizations">
+    <PropertyGroup>
+      <EnableNgenOptimization>true</EnableNgenOptimization>
+    </PropertyGroup>
   </Target>
 </Project>

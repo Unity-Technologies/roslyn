@@ -5,7 +5,6 @@
 Imports System.Collections.Immutable
 Imports System.Text
 Imports Microsoft.CodeAnalysis
-Imports Microsoft.CodeAnalysis.Test.Extensions
 Imports Microsoft.CodeAnalysis.Test.Utilities
 Imports Microsoft.CodeAnalysis.VisualBasic
 Imports Microsoft.CodeAnalysis.VisualBasic.Symbols
@@ -199,7 +198,6 @@ End Module
             comp.AssertNoDiagnostics()
         End Sub
 
-
         <WorkItem(543179, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/543179")>
         <Fact()>
         Public Sub TestOptionalObject()
@@ -224,7 +222,6 @@ End Module
             comp.AssertNoDiagnostics()
         End Sub
 
-
         <WorkItem(543230, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/543230")>
         <Fact()>
         Public Sub TestOptionalIntegerWithStringValue()
@@ -246,7 +243,6 @@ End Module
             Dim comp = CompilationUtils.CreateCompilationWithMscorlib40AndVBRuntimeAndReferences(source)
             comp.VerifyDiagnostics(Diagnostic(ERRID.ERR_RequiredConstConversion2, """12""").WithArguments("String", "Integer"))
         End Sub
-
 
         <WorkItem(543395, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/543395")>
         <Fact()>
@@ -468,7 +464,6 @@ End Module
                     )
         End Sub
 
-
         <WorkItem(544603, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/544603")>
         <Fact()>
         Public Sub OptionalParameterValueRefersToContainingFunction2()
@@ -497,7 +492,6 @@ End Module
                     Diagnostic(ERRID.ERR_RequiredConstExpr, "Goo()")
                   )
         End Sub
-
 
         <WorkItem(544603, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/544603")>
         <Fact()>
@@ -528,7 +522,6 @@ End Module
                     Diagnostic(ERRID.ERR_UseOfKeywordNotInInstanceMethod1, "Me").WithArguments("Me")
                   )
         End Sub
-
 
         <WorkItem(545416, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/545416")>
         <Fact()>
@@ -2171,8 +2164,6 @@ a
             Assert.Equal(2L, Bug623122.Parameters(0).ExplicitDefaultValue)
             Assert.IsType(Of Long)(Bug623122.Parameters(0).ExplicitDefaultValue)
         End Sub
-
-
 
         <Fact>
         <WorkItem(529775, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/529775")>

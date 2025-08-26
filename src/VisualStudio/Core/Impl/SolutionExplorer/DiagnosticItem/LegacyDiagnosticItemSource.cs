@@ -2,25 +2,30 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
-using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.Diagnostics;
+using Microsoft.CodeAnalysis.Editor.Shared.Utilities;
+using Microsoft.CodeAnalysis.Shared.TestHooks;
 
-namespace Microsoft.VisualStudio.LanguageServices.Implementation.SolutionExplorer
+namespace Microsoft.VisualStudio.LanguageServices.Implementation.SolutionExplorer;
+
+internal sealed partial class LegacyDiagnosticItemSource : BaseDiagnosticAndGeneratorItemSource
 {
-    internal partial class LegacyDiagnosticItemSource : BaseDiagnosticItemSource
+    private readonly AnalyzerItem _item;
+
+    public LegacyDiagnosticItemSource(
+        IThreadingContext threadingContext,
+        AnalyzerItem item,
+        IAnalyzersCommandHandler commandHandler,
+        IAsynchronousOperationListenerProvider listenerProvider)
+        : base(
+            threadingContext,
+            item.AnalyzersFolder.Workspace,
+            item.AnalyzersFolder.ProjectId,
+            commandHandler,
+            listenerProvider)
     {
-        private readonly AnalyzerItem _item;
-
-        public LegacyDiagnosticItemSource(AnalyzerItem item, IAnalyzersCommandHandler commandHandler, IDiagnosticAnalyzerService diagnosticAnalyzerService)
-            : base(item.AnalyzersFolder.Workspace, item.AnalyzersFolder.ProjectId, commandHandler, diagnosticAnalyzerService)
-        {
-            _item = item;
-        }
-
-        public override object SourceItem => _item;
-        public override AnalyzerReference AnalyzerReference => _item.AnalyzerReference;
-
-        protected override BaseDiagnosticItem CreateItem(DiagnosticDescriptor diagnostic, ReportDiagnostic effectiveSeverity, string language)
-            => new LegacyDiagnosticItem(_item, diagnostic, effectiveSeverity, language, CommandHandler.DiagnosticContextMenuController);
+        _item = item;
+        this.AnalyzerReference = item.AnalyzerReference;
     }
+
+    public override object SourceItem => _item;
 }

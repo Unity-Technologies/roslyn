@@ -4,13 +4,14 @@
 
 Imports System.Composition
 Imports System.Diagnostics.CodeAnalysis
+Imports System.Threading
 Imports Microsoft.CodeAnalysis.CodeRefactorings
 Imports Microsoft.CodeAnalysis.IntroduceVariable
 Imports Microsoft.CodeAnalysis.Text
 Imports Microsoft.CodeAnalysis.VisualBasic.Syntax
 
 Namespace Microsoft.CodeAnalysis.VisualBasic.IntroduceVariable
-    <ExportCodeRefactoringProvider(LanguageNames.VisualBasic), [Shared]>
+    <ExportCodeRefactoringProvider(LanguageNames.VisualBasic, Name:=PredefinedCodeRefactoringProviderNames.IntroduceLocalForExpression), [Shared]>
     Friend Class VisualBasicIntroduceLocalForExpressionCodeRefactoringProvider
         Inherits AbstractIntroduceLocalForExpressionCodeRefactoringProvider(Of
             ExpressionSyntax,
@@ -39,6 +40,14 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.IntroduceVariable
             Return localDeclaration.RemoveNode(
                 localDeclaration.Declarators(0).AsClause,
                 SyntaxRemoveOptions.KeepUnbalancedDirectives Or SyntaxRemoveOptions.AddElasticMarker)
+        End Function
+
+        Protected Overrides Function FixupDeconstruction(expressionStatement As ExpressionStatementSyntax, localDeclaration As ExpressionStatementSyntax) As ExpressionStatementSyntax
+            Throw ExceptionUtilities.Unreachable()
+        End Function
+
+        Protected Overrides Function CreateTupleDeconstructionAsync(document As Document, tupleType As INamedTypeSymbol, expression As ExpressionSyntax, cancellationToken As CancellationToken) As Task(Of ExpressionStatementSyntax)
+            Throw New NotImplementedException()
         End Function
     End Class
 End Namespace

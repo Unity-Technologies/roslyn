@@ -18,7 +18,7 @@ namespace Microsoft.CodeAnalysis.CSharp
     /// Most callers just call <see cref="ToExpression"/> to get the combo but some (object and array initializers) 
     /// hoist all call-site initialization code and emit multiple invocations of the same site.
     /// </summary>
-    internal struct LoweredDynamicOperation
+    internal readonly struct LoweredDynamicOperation
     {
         private readonly SyntheticBoundNodeFactory? _factory;
         private readonly TypeSymbol _resultType;
@@ -42,9 +42,9 @@ namespace Microsoft.CodeAnalysis.CSharp
             TypeSymbol resultType)
         {
             var children = ArrayBuilder<BoundExpression>.GetInstance();
-            children.AddOptional(loweredReceiver);
+            children.AddIfNotNull(loweredReceiver);
             children.AddRange(loweredArguments);
-            children.AddOptional(loweredRight);
+            children.AddIfNotNull(loweredRight);
 
             return LoweredDynamicOperation.Bad(resultType, children.ToImmutableAndFree());
         }

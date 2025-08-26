@@ -4,11 +4,11 @@
 
 Imports System.Threading
 Imports Microsoft.CodeAnalysis
+Imports Microsoft.CodeAnalysis.Classification
 Imports Microsoft.CodeAnalysis.Editor.UnitTests
 Imports Microsoft.CodeAnalysis.Editor.UnitTests.Classification
 Imports Microsoft.CodeAnalysis.Editor.UnitTests.Classification.FormattedClassifications
 Imports Microsoft.CodeAnalysis.Editor.UnitTests.Extensions
-Imports Microsoft.CodeAnalysis.Editor.UnitTests.Workspaces
 Imports Microsoft.CodeAnalysis.Host
 Imports Microsoft.CodeAnalysis.Test.Utilities
 Imports Microsoft.CodeAnalysis.Text
@@ -23,7 +23,7 @@ Namespace Microsoft.VisualStudio.LanguageServices.UnitTests.Venus
     Public Class DocumentServiceTests
         <WpfFact, Trait(Traits.Feature, Traits.Features.Venus)>
         Public Async Function TestSpanMappingService() As Task
-            Using workspace = TestWorkspace.Create(
+            Using workspace = EditorTestWorkspace.Create(
                 <Workspace>
                     <Project Language="C#" CommonReferences="true">
                         <Document>class outter { {|Document:class C { $$ }|} }</Document>
@@ -47,7 +47,7 @@ Namespace Microsoft.VisualStudio.LanguageServices.UnitTests.Venus
 
         <WpfFact, Trait(Traits.Feature, Traits.Features.Venus)>
         Public Async Function TestSpanMappingService_InvalidPosition() As Task
-            Using workspace = TestWorkspace.Create(
+            Using workspace = EditorTestWorkspace.Create(
                 <Workspace>
                     <Project Language="C#" CommonReferences="true">
                         <Document>class outter { {|Document:class C$$ { }|} }</Document>
@@ -79,7 +79,7 @@ Namespace Microsoft.VisualStudio.LanguageServices.UnitTests.Venus
 
         <Fact, Trait(Traits.Feature, Traits.Features.Venus)>
         Public Sub TestDocumentOperation()
-            Using workspace = TestWorkspace.Create(
+            Using workspace = EditorTestWorkspace.Create(
                 <Workspace>
                     <Project Language="C#" CommonReferences="true">
                         <Document>class outter { {|Document:class C$$ { }|} }</Document>
@@ -100,9 +100,30 @@ Namespace Microsoft.VisualStudio.LanguageServices.UnitTests.Venus
             End Using
         End Sub
 
+        <Fact, Trait(Traits.Feature, Traits.Features.Workspace)>
+        Public Async Function TestSourceGeneratedDocumentOperation() As Task
+            Using workspace = EditorTestWorkspace.Create(
+                <Workspace>
+                    <Project Language="C#" CommonReferences="true">
+                        <DocumentFromSourceGenerator>class C { }</DocumentFromSourceGenerator>
+                    </Project>
+                </Workspace>, composition:=EditorTestCompositions.EditorFeatures)
+
+                Dim subjectDocument = workspace.Documents.Single()
+                Dim openDocument = subjectDocument.GetOpenTextContainer()
+                Dim sourceGeneratedDocumentId = workspace.GetDocumentIdInCurrentContext(openDocument)
+                Dim document = Assert.IsType(Of SourceGeneratedDocument)(Await workspace.CurrentSolution.GetDocumentAsync(sourceGeneratedDocumentId, includeSourceGenerated:=True))
+                Dim documentServices = document.State.DocumentServiceProvider
+                Dim documentOperations = documentServices.GetService(Of IDocumentOperationService)()
+
+                Assert.False(documentOperations.CanApplyChange)
+                Assert.True(documentOperations.SupportDiagnostics)
+            End Using
+        End Function
+
         <Fact, Trait(Traits.Feature, Traits.Features.Venus)>
         Public Async Function TestExcerptService_SingleLine() As Task
-            Using workspace = TestWorkspace.Create(
+            Using workspace = EditorTestWorkspace.Create(
                 <Workspace>
                     <Project Language="C#" CommonReferences="true">
                         <Document>class outter { {|Document:class C { }|} }</Document>
@@ -115,7 +136,7 @@ Namespace Microsoft.VisualStudio.LanguageServices.UnitTests.Venus
                 Dim service = New ContainedDocument.DocumentServiceProvider(projectedDocument.GetTextBuffer())
                 Dim excerptService = service.GetService(Of IDocumentExcerptService)
 
-                Dim result = Await excerptService.TryExcerptAsync(workspace.CurrentSolution.GetDocument(subjectDocument.Id), GetNamedSpan(subjectDocument), ExcerptMode.SingleLine, CancellationToken.None)
+                Dim result = Await excerptService.TryExcerptAsync(workspace.CurrentSolution.GetDocument(subjectDocument.Id), GetNamedSpan(subjectDocument), ExcerptMode.SingleLine, ClassificationOptions.Default, CancellationToken.None)
                 Assert.True(result.HasValue)
 
                 Dim content = result.Value.Content.ToString()
@@ -140,7 +161,7 @@ Namespace Microsoft.VisualStudio.LanguageServices.UnitTests.Venus
 
         <Fact, Trait(Traits.Feature, Traits.Features.Venus)>
         Public Async Function TestExcerptService_Tooltip_Singleline() As Task
-            Using workspace = TestWorkspace.Create(
+            Using workspace = EditorTestWorkspace.Create(
                 <Workspace>
                     <Project Language="C#" CommonReferences="true">
                         <Document>class outter { {|Document:class C { }|} }</Document>
@@ -154,7 +175,7 @@ Namespace Microsoft.VisualStudio.LanguageServices.UnitTests.Venus
                 Dim excerptService = service.GetService(Of IDocumentExcerptService)
 
                 ' make sure single line buffer doesn't throw on ExcerptMode.Tooltip
-                Dim result = Await excerptService.TryExcerptAsync(workspace.CurrentSolution.GetDocument(subjectDocument.Id), GetNamedSpan(subjectDocument), ExcerptMode.Tooltip, CancellationToken.None)
+                Dim result = Await excerptService.TryExcerptAsync(workspace.CurrentSolution.GetDocument(subjectDocument.Id), GetNamedSpan(subjectDocument), ExcerptMode.Tooltip, ClassificationOptions.Default, CancellationToken.None)
                 Assert.True(result.HasValue)
 
                 Dim content = result.Value.Content.ToString()
@@ -179,7 +200,7 @@ Namespace Microsoft.VisualStudio.LanguageServices.UnitTests.Venus
 
         <Fact, Trait(Traits.Feature, Traits.Features.Venus)>
         Public Async Function TestExcerptService_Tooltip_MultiLines() As Task
-            Using workspace = TestWorkspace.Create(
+            Using workspace = EditorTestWorkspace.Create(
                 <Workspace>
                     <Project Language="C#" CommonReferences="true">
                         <Document>class outter { {|Document:class C { }|} }</Document>
@@ -201,7 +222,7 @@ Namespace Microsoft.VisualStudio.LanguageServices.UnitTests.Venus
                 Dim service = New ContainedDocument.DocumentServiceProvider(projectedDocument.GetTextBuffer())
                 Dim excerptService = service.GetService(Of IDocumentExcerptService)
 
-                Dim result = Await excerptService.TryExcerptAsync(workspace.CurrentSolution.GetDocument(subjectDocument.Id), GetNamedSpan(subjectDocument), ExcerptMode.Tooltip, CancellationToken.None)
+                Dim result = Await excerptService.TryExcerptAsync(workspace.CurrentSolution.GetDocument(subjectDocument.Id), GetNamedSpan(subjectDocument), ExcerptMode.Tooltip, ClassificationOptions.Default, CancellationToken.None)
                 Assert.True(result.HasValue)
 
                 Dim content = result.Value.Content.ToString()
@@ -236,7 +257,7 @@ Namespace Microsoft.VisualStudio.LanguageServices.UnitTests.Venus
 
         <Fact, Trait(Traits.Feature, Traits.Features.Venus)>
         Public Async Function TestExcerptService_LeadingWhiteSpace() As Task
-            Using workspace = TestWorkspace.Create(
+            Using workspace = EditorTestWorkspace.Create(
                 <Workspace>
                     <Project Language="C#" CommonReferences="true">
                         <Document>class outter { {|Document:            class C { }         |} }</Document>
@@ -254,7 +275,7 @@ Namespace Microsoft.VisualStudio.LanguageServices.UnitTests.Venus
                 Dim service = New ContainedDocument.DocumentServiceProvider(projectedDocument.GetTextBuffer())
                 Dim excerptService = service.GetService(Of IDocumentExcerptService)
 
-                Dim result = Await excerptService.TryExcerptAsync(workspace.CurrentSolution.GetDocument(subjectDocument.Id), GetNamedSpan(subjectDocument), ExcerptMode.SingleLine, CancellationToken.None)
+                Dim result = Await excerptService.TryExcerptAsync(workspace.CurrentSolution.GetDocument(subjectDocument.Id), GetNamedSpan(subjectDocument), ExcerptMode.SingleLine, ClassificationOptions.Default, CancellationToken.None)
                 Assert.True(result.HasValue)
 
                 Dim content = result.Value.Content.ToString()

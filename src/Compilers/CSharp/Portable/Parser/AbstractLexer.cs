@@ -2,12 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
-#nullable disable
-
 using System;
 using System.Collections.Generic;
-using Microsoft.CodeAnalysis.CSharp.Symbols;
-using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Text;
 
 namespace Microsoft.CodeAnalysis.CSharp.Syntax.InternalSyntax
@@ -15,8 +11,13 @@ namespace Microsoft.CodeAnalysis.CSharp.Syntax.InternalSyntax
     // separate out text windowing implementation (keeps scanning & lexing functions from abusing details)
     internal class AbstractLexer : IDisposable
     {
-        internal readonly SlidingTextWindow TextWindow;
-        private List<SyntaxDiagnosticInfo> _errors;
+        /// <summary>
+        /// Not readonly.  This is a mutable struct that will be modified as we lex tokens.
+        /// </summary>
+        internal SlidingTextWindow TextWindow;
+
+        private List<SyntaxDiagnosticInfo>? _errors;
+        protected int LexemeStartPosition;
 
         protected AbstractLexer(SourceText text)
         {
@@ -25,12 +26,12 @@ namespace Microsoft.CodeAnalysis.CSharp.Syntax.InternalSyntax
 
         public virtual void Dispose()
         {
-            this.TextWindow.Dispose();
+            this.TextWindow.Free();
         }
 
         protected void Start()
         {
-            TextWindow.Start();
+            LexemeStartPosition = this.TextWindow.Position;
             _errors = null;
         }
 
@@ -39,7 +40,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Syntax.InternalSyntax
             get { return _errors != null; }
         }
 
-        protected SyntaxDiagnosticInfo[] GetErrors(int leadingTriviaWidth)
+        protected SyntaxDiagnosticInfo[]? GetErrors(int leadingTriviaWidth)
         {
             if (_errors != null)
             {
@@ -100,7 +101,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Syntax.InternalSyntax
             this.AddError(MakeError(code, args));
         }
 
-        protected void AddError(SyntaxDiagnosticInfo error)
+        protected void AddError(SyntaxDiagnosticInfo? error)
         {
             if (error != null)
             {
@@ -133,8 +134,17 @@ namespace Microsoft.CodeAnalysis.CSharp.Syntax.InternalSyntax
 
         private int GetLexemeOffsetFromPosition(int position)
         {
-            return position >= TextWindow.LexemeStartPosition ? position - TextWindow.LexemeStartPosition : position;
+            return position >= LexemeStartPosition ? position - LexemeStartPosition : position;
         }
+
+        protected string GetNonInternedLexemeText()
+            => TextWindow.GetText(LexemeStartPosition, intern: false);
+
+        protected string GetInternedLexemeText()
+            => TextWindow.GetText(LexemeStartPosition, intern: true);
+
+        protected int CurrentLexemeWidth
+            => this.TextWindow.Position - LexemeStartPosition;
 
         protected static SyntaxDiagnosticInfo MakeError(ErrorCode code)
         {

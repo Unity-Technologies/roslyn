@@ -2,71 +2,59 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
-using System.Collections.Immutable;
+using System.Threading;
 using Microsoft.CodeAnalysis.CodeStyle;
 using Microsoft.CodeAnalysis.Diagnostics;
-using Microsoft.CodeAnalysis.LanguageServices;
+using Microsoft.CodeAnalysis.LanguageService;
 using Microsoft.CodeAnalysis.Operations;
 using Microsoft.CodeAnalysis.Options;
 
-namespace Microsoft.CodeAnalysis.UseConditionalExpression
+namespace Microsoft.CodeAnalysis.UseConditionalExpression;
+
+internal abstract class AbstractUseConditionalExpressionDiagnosticAnalyzer<TIfStatementSyntax>(
+    string descriptorId,
+    EnforceOnBuild enforceOnBuild,
+    LocalizableResourceString message,
+    PerLanguageOption2<CodeStyleOption2<bool>> option)
+    : AbstractBuiltInCodeStyleDiagnosticAnalyzer(descriptorId,
+        enforceOnBuild,
+        option,
+        new LocalizableResourceString(nameof(AnalyzersResources.Convert_to_conditional_expression), AnalyzersResources.ResourceManager, typeof(AnalyzersResources)),
+        message)
+    where TIfStatementSyntax : SyntaxNode
 {
-    internal abstract class AbstractUseConditionalExpressionDiagnosticAnalyzer<
-        TIfStatementSyntax>
-        : AbstractBuiltInCodeStyleDiagnosticAnalyzer
-        where TIfStatementSyntax : SyntaxNode
+    public sealed override DiagnosticAnalyzerCategory GetAnalyzerCategory()
+        => DiagnosticAnalyzerCategory.SemanticSpanAnalysis;
+
+    protected abstract ISyntaxFacts GetSyntaxFacts();
+    protected abstract (bool matched, bool canSimplify) TryMatchPattern(
+        IConditionalOperation ifOperation, ISymbol containingSymbol, CancellationToken cancellationToken);
+    protected abstract CodeStyleOption2<bool> GetStylePreference(OperationAnalysisContext context);
+
+    protected sealed override void InitializeWorker(AnalysisContext context)
+        => context.RegisterOperationAction(AnalyzeOperation, OperationKind.Conditional);
+
+    private void AnalyzeOperation(OperationAnalysisContext context)
     {
-        private readonly PerLanguageOption2<CodeStyleOption2<bool>> _option;
+        var cancellationToken = context.CancellationToken;
+        var ifOperation = (IConditionalOperation)context.Operation;
+        if (ifOperation.Syntax is not TIfStatementSyntax ifStatement)
+            return;
 
-        public sealed override DiagnosticAnalyzerCategory GetAnalyzerCategory()
-            => DiagnosticAnalyzerCategory.SemanticSpanAnalysis;
+        var option = GetStylePreference(context);
+        if (!option.Value || ShouldSkipAnalysis(context, option.Notification))
+            return;
 
-        protected AbstractUseConditionalExpressionDiagnosticAnalyzer(
-            string descriptorId,
-            LocalizableResourceString message,
-            PerLanguageOption2<CodeStyleOption2<bool>> option)
-            : base(descriptorId,
-                   option,
-                   new LocalizableResourceString(nameof(AnalyzersResources.Convert_to_conditional_expression), AnalyzersResources.ResourceManager, typeof(AnalyzersResources)),
-                   message)
-        {
-            _option = option;
-        }
+        var (matched, canSimplify) = TryMatchPattern(ifOperation, context.ContainingSymbol, cancellationToken);
+        if (!matched)
+            return;
 
-        protected abstract ISyntaxFacts GetSyntaxFacts();
-        protected abstract bool TryMatchPattern(IConditionalOperation ifOperation, ISymbol containingSymbol);
-
-        protected sealed override void InitializeWorker(AnalysisContext context)
-            => context.RegisterOperationAction(AnalyzeOperation, OperationKind.Conditional);
-
-        private void AnalyzeOperation(OperationAnalysisContext context)
-        {
-            var ifOperation = (IConditionalOperation)context.Operation;
-            if (!(ifOperation.Syntax is TIfStatementSyntax ifStatement))
-            {
-                return;
-            }
-
-            var language = ifStatement.Language;
-
-            var option = context.GetOption(_option, language);
-            if (!option.Value)
-            {
-                return;
-            }
-
-            if (!TryMatchPattern(ifOperation, context.ContainingSymbol))
-            {
-                return;
-            }
-
-            var additionalLocations = ImmutableArray.Create(ifStatement.GetLocation());
-            context.ReportDiagnostic(DiagnosticHelper.Create(
-                Descriptor,
-                ifStatement.GetFirstToken().GetLocation(),
-                option.Notification.Severity,
-                additionalLocations,
-                properties: null));
-        }
+        context.ReportDiagnostic(DiagnosticHelper.Create(
+            Descriptor,
+            ifStatement.GetFirstToken().GetLocation(),
+            option.Notification,
+            context.Options,
+            additionalLocations: [ifStatement.GetLocation()],
+            properties: canSimplify ? UseConditionalExpressionHelpers.CanSimplifyProperties : null));
     }
 }

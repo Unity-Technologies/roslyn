@@ -2,38 +2,39 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
-#nullable disable
-
-using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Threading;
-using System.Threading.Tasks;
 using Microsoft.CodeAnalysis.Completion.Providers;
 using Microsoft.CodeAnalysis.CSharp.Extensions.ContextQuery;
-using Roslyn.Utilities;
 
-namespace Microsoft.CodeAnalysis.CSharp.Completion.KeywordRecommenders
+namespace Microsoft.CodeAnalysis.CSharp.Completion.KeywordRecommenders;
+
+internal abstract class AbstractNativeIntegerKeywordRecommender : IKeywordRecommender<CSharpSyntaxContext>
 {
-    internal abstract class AbstractNativeIntegerKeywordRecommender : IKeywordRecommender<CSharpSyntaxContext>
+    protected abstract RecommendedKeyword Keyword { get; }
+
+    private static bool IsValidContext(CSharpSyntaxContext context)
     {
-        protected abstract RecommendedKeyword Keyword { get; }
-
-        private static bool IsValidContext(CSharpSyntaxContext context)
+        if (context.IsTaskLikeTypeContext ||
+            context.IsGenericConstraintContext ||
+            context.IsAttributeNameContext)
         {
-            if (context.IsStatementContext ||
-                context.IsGlobalStatementContext ||
-                context.IsPossibleTupleContext ||
-                context.IsAtStartOfPattern ||
-                (context.IsTypeContext && !context.IsEnumBaseListContext))
-            {
-                return true;
-            }
-
-            return context.IsLocalVariableDeclarationContext;
+            return false;
         }
 
-        public Task<IEnumerable<RecommendedKeyword>> RecommendKeywordsAsync(int position, CSharpSyntaxContext context, CancellationToken cancellationToken)
+        if (context.IsStatementContext ||
+            context.IsGlobalStatementContext ||
+            context.IsPossibleTupleContext ||
+            context.IsAtStartOfPattern ||
+            context.IsUsingAliasTypeContext ||
+            (context.IsTypeContext && !context.IsEnumBaseListContext))
         {
-            return Task.FromResult(IsValidContext(context) ? SpecializedCollections.SingletonEnumerable(Keyword) : null);
+            return true;
         }
+
+        return context.IsLocalVariableDeclarationContext;
     }
+
+    public ImmutableArray<RecommendedKeyword> RecommendKeywords(int position, CSharpSyntaxContext context, CancellationToken cancellationToken)
+        => IsValidContext(context) ? [Keyword] : [];
 }

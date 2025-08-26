@@ -2,24 +2,22 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
-#nullable disable
-
 using System.Threading;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.PooledObjects;
 using Microsoft.CodeAnalysis.Structure;
 
-namespace Microsoft.CodeAnalysis.CSharp.Structure
+namespace Microsoft.CodeAnalysis.CSharp.Structure;
+
+internal sealed class EnumMemberDeclarationStructureProvider : AbstractSyntaxNodeStructureProvider<EnumMemberDeclarationSyntax>
 {
-    internal class EnumMemberDeclarationStructureProvider : AbstractSyntaxNodeStructureProvider<EnumMemberDeclarationSyntax>
+    protected override void CollectBlockSpans(
+        SyntaxToken previousToken,
+        EnumMemberDeclarationSyntax enumMemberDeclaration,
+        ArrayBuilder<BlockSpan> spans,
+        BlockStructureOptions options,
+        CancellationToken cancellationToken)
     {
-        protected override void CollectBlockSpans(
-            EnumMemberDeclarationSyntax enumMemberDeclaration,
-            ArrayBuilder<BlockSpan> spans,
-            BlockStructureOptionProvider optionProvider,
-            CancellationToken cancellationToken)
-        {
-            CSharpStructureHelpers.CollectCommentBlockSpans(enumMemberDeclaration, spans, optionProvider);
-        }
+        CSharpStructureHelpers.CollectCommentBlockSpans(enumMemberDeclaration, spans, options);
     }
 }

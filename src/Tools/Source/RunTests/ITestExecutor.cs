@@ -4,31 +4,26 @@
 
 using System;
 using System.Collections.Immutable;
-using System.IO;
 
 namespace RunTests
 {
     internal readonly struct TestExecutionOptions
     {
         internal string DotnetFilePath { get; }
-        internal ProcDumpInfo? ProcDumpInfo { get; }
         internal string TestResultsDirectory { get; }
-        internal string? Trait { get; }
-        internal string? NoTrait { get; }
+        internal string? TestFilter { get; }
         internal bool IncludeHtml { get; }
-        internal bool TestVsi { get; }
         internal bool Retry { get; }
+        internal bool CollectDumps { get; }
 
-        internal TestExecutionOptions(string dotnetFilePath, ProcDumpInfo? procDumpInfo, string testResultsDirectory, string? trait, string? noTrait, bool includeHtml, bool testVsi, bool retry)
+        internal TestExecutionOptions(string dotnetFilePath, string testResultsDirectory, string? testFilter, bool includeHtml, bool retry, bool collectDumps)
         {
             DotnetFilePath = dotnetFilePath;
-            ProcDumpInfo = procDumpInfo;
             TestResultsDirectory = testResultsDirectory;
-            Trait = trait;
-            NoTrait = noTrait;
+            TestFilter = testFilter;
             IncludeHtml = includeHtml;
-            TestVsi = testVsi;
             Retry = retry;
+            CollectDumps = collectDumps;
         }
     }
 
@@ -50,14 +45,14 @@ namespace RunTests
         /// <summary>
         /// Path to the XML results file.
         /// </summary>
-        internal string ResultsFilePath { get; }
+        internal string? ResultsFilePath { get; }
 
         /// <summary>
         /// Path to the HTML results file if HTML output is enabled, otherwise, <see langword="null"/>.
         /// </summary>
         internal string? HtmlResultsFilePath { get; }
 
-        internal TestResultInfo(int exitCode, string resultsFilePath, string? htmlResultsFilePath, TimeSpan elapsed, string standardOutput, string errorOutput)
+        internal TestResultInfo(int exitCode, string? resultsFilePath, string? htmlResultsFilePath, TimeSpan elapsed, string standardOutput, string errorOutput)
         {
             ExitCode = exitCode;
             ResultsFilePath = resultsFilePath;
@@ -71,7 +66,7 @@ namespace RunTests
     internal readonly struct TestResult
     {
         internal TestResultInfo TestResultInfo { get; }
-        internal AssemblyInfo AssemblyInfo { get; }
+        internal WorkItemInfo WorkItemInfo { get; }
         internal string CommandLine { get; }
         internal string? Diagnostics { get; }
 
@@ -80,19 +75,17 @@ namespace RunTests
         /// </summary>
         internal ImmutableArray<ProcessResult> ProcessResults { get; }
 
-        internal string AssemblyPath => AssemblyInfo.AssemblyPath;
-        internal string AssemblyName => Path.GetFileName(AssemblyPath);
-        internal string DisplayName => AssemblyInfo.DisplayName;
+        internal string DisplayName => WorkItemInfo.DisplayName;
         internal bool Succeeded => ExitCode == 0;
         internal int ExitCode => TestResultInfo.ExitCode;
         internal TimeSpan Elapsed => TestResultInfo.Elapsed;
         internal string StandardOutput => TestResultInfo.StandardOutput;
         internal string ErrorOutput => TestResultInfo.ErrorOutput;
-        internal string ResultsDisplayFilePath => TestResultInfo.HtmlResultsFilePath ?? TestResultInfo.ResultsFilePath;
+        internal string? ResultsDisplayFilePath => TestResultInfo.HtmlResultsFilePath ?? TestResultInfo.ResultsFilePath;
 
-        internal TestResult(AssemblyInfo assemblyInfo, TestResultInfo testResultInfo, string commandLine, ImmutableArray<ProcessResult> processResults = default, string? diagnostics = null)
+        internal TestResult(WorkItemInfo workItemInfo, TestResultInfo testResultInfo, string commandLine, ImmutableArray<ProcessResult> processResults = default, string? diagnostics = null)
         {
-            AssemblyInfo = assemblyInfo;
+            WorkItemInfo = workItemInfo;
             TestResultInfo = testResultInfo;
             CommandLine = commandLine;
             ProcessResults = processResults.IsDefault ? ImmutableArray<ProcessResult>.Empty : processResults;

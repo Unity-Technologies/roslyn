@@ -5,6 +5,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using Microsoft.CodeAnalysis.Collections;
 using Roslyn.Utilities;
 
 namespace Microsoft.CodeAnalysis.Text
@@ -132,6 +133,11 @@ namespace Microsoft.CodeAnalysis.Text
         private string GetDebuggerDisplay()
         {
             return $"new TextChangeRange(new TextSpan({Span.Start}, {Span.Length}), {NewLength})";
+        }
+
+        public override string ToString()
+        {
+            return $"TextChangeRange(Span={Span}, NewLength={NewLength})";
         }
     }
 }

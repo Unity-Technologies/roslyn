@@ -265,37 +265,37 @@ namespace Roslyn.Test.Utilities
             throw new NotImplementedException();
         }
 
-        public override void ReportInvalidAttributeArgument(DiagnosticBag diagnostics, SyntaxNode attributeSyntax, int parameterIndex, AttributeData attribute)
+        protected override void ReportInvalidAttributeArgument(DiagnosticBag diagnostics, SyntaxNode attributeSyntax, int parameterIndex, AttributeData attribute)
         {
             throw new NotImplementedException();
         }
 
-        public override void ReportInvalidNamedArgument(DiagnosticBag diagnostics, SyntaxNode attributeSyntax, int namedArgumentIndex, ITypeSymbol attributeClass, string parameterName)
+        protected override void ReportInvalidNamedArgument(DiagnosticBag diagnostics, SyntaxNode attributeSyntax, int namedArgumentIndex, ITypeSymbol attributeClass, string parameterName)
         {
             throw new NotImplementedException();
         }
 
-        public override void ReportParameterNotValidForType(DiagnosticBag diagnostics, SyntaxNode attributeSyntax, int namedArgumentIndex)
+        protected override void ReportParameterNotValidForType(DiagnosticBag diagnostics, SyntaxNode attributeSyntax, int namedArgumentIndex)
         {
             throw new NotImplementedException();
         }
 
-        public override void ReportMarshalUnmanagedTypeNotValidForFields(DiagnosticBag diagnostics, SyntaxNode attributeSyntax, int parameterIndex, string unmanagedTypeName, AttributeData attribute)
+        protected override void ReportMarshalUnmanagedTypeNotValidForFields(DiagnosticBag diagnostics, SyntaxNode attributeSyntax, int parameterIndex, string unmanagedTypeName, AttributeData attribute)
         {
             throw new NotImplementedException();
         }
 
-        public override void ReportMarshalUnmanagedTypeOnlyValidForFields(DiagnosticBag diagnostics, SyntaxNode attributeSyntax, int parameterIndex, string unmanagedTypeName, AttributeData attribute)
+        protected override void ReportMarshalUnmanagedTypeOnlyValidForFields(DiagnosticBag diagnostics, SyntaxNode attributeSyntax, int parameterIndex, string unmanagedTypeName, AttributeData attribute)
         {
             throw new NotImplementedException();
         }
 
-        public override void ReportAttributeParameterRequired(DiagnosticBag diagnostics, SyntaxNode attributeSyntax, string parameterName)
+        protected override void ReportAttributeParameterRequired(DiagnosticBag diagnostics, SyntaxNode attributeSyntax, string parameterName)
         {
             throw new NotImplementedException();
         }
 
-        public override void ReportAttributeParameterRequired(DiagnosticBag diagnostics, SyntaxNode attributeSyntax, string parameterName1, string parameterName2)
+        protected override void ReportAttributeParameterRequired(DiagnosticBag diagnostics, SyntaxNode attributeSyntax, string parameterName1, string parameterName2)
         {
             throw new NotImplementedException();
         }
@@ -400,6 +400,14 @@ namespace Roslyn.Test.Utilities
             }
         }
 
+        public override int ERR_TooManyUserStrings_RestartRequired
+        {
+            get
+            {
+                throw new NotImplementedException();
+            }
+        }
+
         public override int ERR_PeWritingFailure
         {
             get
@@ -416,7 +424,7 @@ namespace Roslyn.Test.Utilities
             }
         }
 
-        public override int ERR_EncUpdateFailedMissingAttribute
+        public override int ERR_EncUpdateFailedMissingSymbol
         {
             get
             {
@@ -463,5 +471,15 @@ namespace Roslyn.Test.Utilities
         public override int WRN_GeneratorFailedDuringInitialization => throw new NotImplementedException();
 
         public override int WRN_AnalyzerReferencesFramework => throw new NotImplementedException();
+
+        public override int WRN_AnalyzerReferencesNewerCompiler => throw new NotImplementedException();
+
+        public override int WRN_DuplicateAnalyzerReference => throw new NotImplementedException();
+
+        public override int ERR_FunctionPointerTypesInAttributeNotSupported => throw new NotImplementedException();
+
+        public override int ERR_DataSectionStringLiteralHashCollision => throw new NotImplementedException();
+
+        public override int? WRN_ByValArraySizeConstRequired => throw new NotImplementedException();
     }
 }

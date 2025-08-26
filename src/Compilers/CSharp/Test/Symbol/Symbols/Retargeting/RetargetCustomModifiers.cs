@@ -10,10 +10,11 @@ using Microsoft.CodeAnalysis.CSharp.Symbols.Retargeting;
 using Microsoft.CodeAnalysis.CSharp.Symbols;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.CSharp.Test.Utilities;
-using Microsoft.CodeAnalysis.Test.Extensions;
+using Microsoft.CodeAnalysis.Test.Utilities;
 using Microsoft.CodeAnalysis.Text;
 using Xunit;
 using Roslyn.Test.Utilities;
+using Basic.Reference.Assemblies;
 
 namespace Microsoft.CodeAnalysis.CSharp.UnitTests.Symbols.Retargeting
 {
@@ -22,8 +23,8 @@ namespace Microsoft.CodeAnalysis.CSharp.UnitTests.Symbols.Retargeting
         [Fact]
         public void Test1()
         {
-            var oldMsCorLib = TestMetadata.Net40.mscorlib;
-            var newMsCorLib = TestMetadata.Net451.mscorlib;
+            var oldMsCorLib = Net40.References.mscorlib;
+            var newMsCorLib = NetFramework.mscorlib;
 
             var c1 = CSharpCompilation.Create("C1", references: new[]
             {
@@ -129,8 +130,8 @@ namespace Microsoft.CodeAnalysis.CSharp.UnitTests.Symbols.Retargeting
         [Fact]
         public void Test2()
         {
-            var oldMsCorLib = TestMetadata.Net40.mscorlib;
-            var newMsCorLib = TestMetadata.Net451.mscorlib;
+            var oldMsCorLib = Net40.References.mscorlib;
+            var newMsCorLib = NetFramework.mscorlib;
 
             var source = @"
 public class Modifiers

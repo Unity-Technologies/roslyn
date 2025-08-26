@@ -6,12 +6,12 @@
 
 using System.Collections.Generic;
 using Microsoft.CodeAnalysis.CSharp.Test.Utilities;
-using Microsoft.CodeAnalysis.Test.Extensions;
 using Microsoft.CodeAnalysis.Test.Utilities;
 using Roslyn.Test.Utilities;
 using Xunit;
 using System.Linq;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using Basic.Reference.Assemblies;
 
 namespace Microsoft.CodeAnalysis.CSharp.UnitTests.CodeGen
 {
@@ -22,9 +22,8 @@ namespace Microsoft.CodeAnalysis.CSharp.UnitTests.CodeGen
         =
         {
             AssemblyMetadata.CreateFromImage(TestResources.WinRt.Windows_Languages_WinRTTest).GetReference(display: "WinRTTest"),
-            AssemblyMetadata.CreateFromImage(TestMetadata.ResourcesNet451.SystemCore).GetReference(display: "SystemCore")
+            AssemblyMetadata.CreateFromImage(Net461.Resources.SystemCore).GetReference(display: "SystemCore")
         };
-
 
         [Fact, WorkItem(762316, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/762316")]
         public void InheritFromTypeWithProjections()

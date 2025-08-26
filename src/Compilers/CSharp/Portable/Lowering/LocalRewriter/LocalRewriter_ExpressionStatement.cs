@@ -31,7 +31,7 @@ namespace Microsoft.CodeAnalysis.CSharp
                 BoundStatement result = node.Update(loweredExpression);
                 if (!suppressInstrumentation && this.Instrument && !node.WasCompilerGenerated)
                 {
-                    result = _instrumenter.InstrumentExpressionStatement(node, result);
+                    result = Instrumenter.InstrumentExpressionStatement(node, result);
                 }
 
                 return result;
@@ -74,6 +74,9 @@ namespace Microsoft.CodeAnalysis.CSharp
 
                 case BoundKind.ConditionalAccess:
                     return RewriteConditionalAccess((BoundConditionalAccess)expression, used: false);
+
+                case BoundKind.IncrementOperator:
+                    return VisitIncrementOperator((BoundIncrementOperator)expression, used: false);
             }
             return VisitExpression(expression);
         }

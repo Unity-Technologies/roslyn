@@ -3,6 +3,11 @@
 // See the LICENSE file in the project root for more information.
 
 #nullable disable
+// Uncomment to enable the IOperation test hook on all test runs. Do not commit this uncommented.
+//#define ROSLYN_TEST_IOPERATION
+
+// Uncomment to enable the Used Assemblies test hook on all test runs. Do not commit this uncommented.
+//#define ROSLYN_TEST_USEDASSEMBLIES
 
 using System;
 using System.Collections.Generic;
@@ -10,27 +15,37 @@ using System.Collections.Immutable;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using System.Reflection.Metadata;
 using System.Text;
-using System.Text.RegularExpressions;
 using System.Threading;
 using Microsoft.CodeAnalysis.CodeGen;
+using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.Emit;
 using Microsoft.CodeAnalysis.FlowAnalysis;
 using Microsoft.CodeAnalysis.Operations;
 using Microsoft.CodeAnalysis.PooledObjects;
-using Microsoft.CodeAnalysis.Symbols;
-using Microsoft.CodeAnalysis.Test.Extensions;
+using Microsoft.CodeAnalysis.Text;
 using Roslyn.Test.Utilities;
 using Roslyn.Utilities;
 using Xunit;
-using Xunit.Sdk;
+using SeparatedWithManyChildren = Microsoft.CodeAnalysis.Syntax.SyntaxList.SeparatedWithManyChildren;
 
 namespace Microsoft.CodeAnalysis.Test.Utilities
 {
     public static class CompilationExtensions
     {
-        internal static bool EnableVerifyIOperation { get; } = !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("ROSLYN_TEST_IOPERATION"));
+        internal static bool EnableVerifyIOperation { get; } =
+#if ROSLYN_TEST_IOPERATION
+                                    true;
+#else
+                        !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("ROSLYN_TEST_IOPERATION"));
+#endif
+
+        internal static bool EnableVerifyUsedAssemblies { get; } =
+#if ROSLYN_TEST_USEDASSEMBLIES
+            true;
+#else
+            !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("ROSLYN_TEST_USEDASSEMBLIES"));
+#endif
 
         internal static ImmutableArray<byte> EmitToArray(
             this Compilation compilation,
@@ -68,6 +83,7 @@ namespace Microsoft.CodeAnalysis.Test.Utilities
                 debugEntryPoint: debugEntryPoint,
                 sourceLinkStream: sourceLinkStream,
                 embeddedTexts: embeddedTexts,
+                rebuildData: null,
                 testData: testData,
                 cancellationToken: default(CancellationToken));
 
@@ -101,16 +117,25 @@ namespace Microsoft.CodeAnalysis.Test.Utilities
             EmitOptions options = null,
             bool embedInteropTypes = false,
             ImmutableArray<string> aliases = default,
-            DiagnosticDescription[] expectedWarnings = null)
+            DiagnosticDescription[] expectedWarnings = null,
+            DocumentationProvider documentation = null) => EmitToPortableExecutableReference(comp, options, embedInteropTypes, aliases, expectedWarnings, documentation);
+
+        public static PortableExecutableReference EmitToPortableExecutableReference(
+            this Compilation comp,
+            EmitOptions options = null,
+            bool embedInteropTypes = false,
+            ImmutableArray<string> aliases = default,
+            DiagnosticDescription[] expectedWarnings = null,
+            DocumentationProvider documentation = null)
         {
             var image = comp.EmitToArray(options, expectedWarnings: expectedWarnings);
             if (comp.Options.OutputKind == OutputKind.NetModule)
             {
-                return ModuleMetadata.CreateFromImage(image).GetReference(display: comp.MakeSourceModuleName());
+                return ModuleMetadata.CreateFromImage(image).GetReference(documentation, display: comp.MakeSourceModuleName());
             }
             else
             {
-                return AssemblyMetadata.CreateFromImage(image).GetReference(aliases: aliases, embedInteropTypes: embedInteropTypes, display: comp.MakeSourceAssemblySimpleName());
+                return AssemblyMetadata.CreateFromImage(image).GetReference(documentation, aliases: aliases, embedInteropTypes: embedInteropTypes, display: comp.MakeSourceAssemblySimpleName());
             }
         }
 
@@ -119,6 +144,7 @@ namespace Microsoft.CodeAnalysis.Test.Utilities
             EmitBaseline baseline,
             ImmutableArray<SemanticEdit> edits,
             IEnumerable<ISymbol> allAddedSymbols = null,
+            EmitDifferenceOptions? options = null,
             CompilationTestData testData = null)
         {
             testData ??= new CompilationTestData();
@@ -128,8 +154,6 @@ namespace Microsoft.CodeAnalysis.Test.Utilities
             using var ilStream = new MemoryStream();
             using var pdbStream = new MemoryStream();
 
-            var updatedMethods = new List<MethodDefinitionHandle>();
-
             var result = compilation.EmitDifference(
                 baseline,
                 edits,
@@ -137,7 +161,7 @@ namespace Microsoft.CodeAnalysis.Test.Utilities
                 mdStream,
                 ilStream,
                 pdbStream,
-                updatedMethods,
+                options ?? EmitDifferenceOptions.Default,
                 testData,
                 CancellationToken.None);
 
@@ -146,8 +170,7 @@ namespace Microsoft.CodeAnalysis.Test.Utilities
                 ilStream.ToImmutable(),
                 pdbStream.ToImmutable(),
                 testData,
-                result,
-                updatedMethods.ToImmutableArray());
+                result);
         }
 
         internal static void VerifyAssemblyVersionsAndAliases(this Compilation compilation, params string[] expectedAssembliesAndAliases)
@@ -255,12 +278,9 @@ namespace Microsoft.CodeAnalysis.Test.Utilities
             }
 
             var compilation = createCompilation();
-            var roots = ArrayBuilder<IOperation>.GetInstance();
+            var roots = ArrayBuilder<(IOperation operation, ISymbol associatedSymbol)>.GetInstance();
             var stopWatch = new Stopwatch();
-            if (!System.Diagnostics.Debugger.IsAttached)
-            {
-                stopWatch.Start();
-            }
+            start(stopWatch);
 
             void checkTimeout()
             {
@@ -288,21 +308,23 @@ namespace Microsoft.CodeAnalysis.Test.Utilities
                         Assert.Same(semanticModel, operation.SemanticModel);
                         Assert.NotSame(semanticModel, ((Operation)operation).OwningSemanticModel);
                         Assert.NotNull(((Operation)operation).OwningSemanticModel);
-                        Assert.Same(semanticModel, ((Operation)operation).OwningSemanticModel.ContainingModelOrSelf);
-                        Assert.Same(semanticModel, semanticModel.ContainingModelOrSelf);
+                        Assert.Same(semanticModel, ((Operation)operation).OwningSemanticModel.ContainingPublicModelOrSelf);
+                        Assert.Same(semanticModel, semanticModel.ContainingPublicModelOrSelf);
 
                         if (operation.Parent == null)
                         {
-                            roots.Add(operation);
+                            roots.Add((operation, semanticModel.GetDeclaredSymbol(operation.Syntax)));
                         }
                     }
                 }
+
+                tree.VerifyChildNodePositions();
             }
 
             var explicitNodeMap = new Dictionary<SyntaxNode, IOperation>();
             var visitor = TestOperationVisitor.Singleton;
 
-            foreach (var root in roots)
+            foreach (var (root, associatedSymbol) in roots)
             {
                 foreach (var operation in root.DescendantsAndSelf())
                 {
@@ -324,15 +346,23 @@ namespace Microsoft.CodeAnalysis.Test.Utilities
                 }
 
                 stopWatch.Stop();
-                checkControlFlowGraph(root);
-                stopWatch.Start();
+                checkControlFlowGraph(root, associatedSymbol);
+                start(stopWatch);
             }
 
             roots.Free();
             stopWatch.Stop();
             return;
 
-            void checkControlFlowGraph(IOperation root)
+            static void start(Stopwatch stopWatch)
+            {
+                if (!System.Diagnostics.Debugger.IsAttached)
+                {
+                    stopWatch.Start();
+                }
+            }
+
+            void checkControlFlowGraph(IOperation root, ISymbol associatedSymbol)
             {
                 switch (root)
                 {
@@ -340,7 +370,7 @@ namespace Microsoft.CodeAnalysis.Test.Utilities
                         // https://github.com/dotnet/roslyn/issues/27593 tracks adding ControlFlowGraph support in script code.
                         if (blockOperation.Syntax.SyntaxTree.Options.Kind != SourceCodeKind.Script)
                         {
-                            ControlFlowGraphVerifier.GetFlowGraph(compilation, ControlFlowGraphBuilder.Create(blockOperation));
+                            ControlFlowGraphVerifier.GetFlowGraph(compilation, ControlFlowGraphBuilder.Create(blockOperation), associatedSymbol);
                         }
 
                         break;
@@ -349,18 +379,143 @@ namespace Microsoft.CodeAnalysis.Test.Utilities
                     case IConstructorBodyOperation constructorBody:
                     case IFieldInitializerOperation fieldInitializerOperation:
                     case IPropertyInitializerOperation propertyInitializerOperation:
-                        ControlFlowGraphVerifier.GetFlowGraph(compilation, ControlFlowGraphBuilder.Create(root));
+                        ControlFlowGraphVerifier.GetFlowGraph(compilation, ControlFlowGraphBuilder.Create(root), associatedSymbol);
                         break;
 
                     case IParameterInitializerOperation parameterInitializerOperation:
-                        // https://github.com/dotnet/roslyn/issues/27594 tracks adding support for getting ControlFlowGraph for parameter initializers for local functions.
-                        if ((parameterInitializerOperation.Parameter.ContainingSymbol as IMethodSymbol)?.MethodKind != MethodKind.LocalFunction)
+                        // https://github.com/dotnet/roslyn/issues/27594 tracks adding support for getting ControlFlowGraph for parameter initializers for local and anonymous functions.
+                        if ((parameterInitializerOperation.Parameter.ContainingSymbol as IMethodSymbol)?.MethodKind is not (MethodKind.LocalFunction or MethodKind.AnonymousFunction))
                         {
-                            ControlFlowGraphVerifier.GetFlowGraph(compilation, ControlFlowGraphBuilder.Create(root));
+                            ControlFlowGraphVerifier.GetFlowGraph(compilation, ControlFlowGraphBuilder.Create(root), associatedSymbol);
                         }
                         break;
                 }
             }
+        }
+
+        internal static void VerifyChildNodePositions(this SyntaxTree tree)
+        {
+            var nodes = tree.GetRoot().DescendantNodesAndSelf();
+            foreach (var node in nodes)
+            {
+                var childNodesAndTokens = node.ChildNodesAndTokens();
+                if (childNodesAndTokens.Node is { } container)
+                {
+                    for (int i = 0; i < childNodesAndTokens.Count; i++)
+                    {
+                        if (container.GetNodeSlot(i) is SeparatedWithManyChildren separatedList)
+                        {
+                            verifyPositions(separatedList);
+                        }
+                    }
+                }
+            }
+
+            static void verifyPositions(SeparatedWithManyChildren separatedList)
+            {
+                var green = (Microsoft.CodeAnalysis.Syntax.InternalSyntax.SyntaxList)separatedList.Green;
+
+                // Calculate positions from start, using existing cache.
+                int[] positions = getPositionsFromStart(separatedList);
+
+                // Calculate positions from end, using existing cache.
+                AssertEx.Equal(positions, getPositionsFromEnd(separatedList));
+
+                // Avoid testing without caches if the number of children is large.
+                if (separatedList.SlotCount > 100)
+                {
+                    return;
+                }
+
+                // Calculate positions from start, with empty cache.
+                AssertEx.Equal(positions, getPositionsFromStart(new SeparatedWithManyChildren(green, null, separatedList.Position)));
+
+                // Calculate positions from end, with empty cache.
+                AssertEx.Equal(positions, getPositionsFromEnd(new SeparatedWithManyChildren(green, null, separatedList.Position)));
+            }
+
+            // Calculate positions from start, using any existing cache of red nodes on separated list.
+            static int[] getPositionsFromStart(SeparatedWithManyChildren separatedList)
+            {
+                int n = separatedList.SlotCount;
+                var positions = new int[n];
+                for (int i = 0; i < n; i++)
+                {
+                    positions[i] = separatedList.GetChildPosition(i);
+                }
+                return positions;
+            }
+
+            // Calculate positions from end, using any existing cache of red nodes on separated list.
+            static int[] getPositionsFromEnd(SeparatedWithManyChildren separatedList)
+            {
+                int n = separatedList.SlotCount;
+                var positions = new int[n];
+                for (int i = n - 1; i >= 0; i--)
+                {
+                    positions[i] = separatedList.GetChildPositionFromEnd(i);
+                }
+                return positions;
+            }
+        }
+
+        /// <summary>
+        /// The reference assembly System.Runtime.InteropServices.WindowsRuntime was removed in net5.0. This builds
+        /// up <see cref="CompilationReference"/> which contains all of the well known types that were used from that
+        /// reference by the compiler.
+        /// </summary>
+        public static PortableExecutableReference CreateWindowsRuntimeMetadataReference(TargetFramework targetFramework = TargetFramework.NetCoreApp)
+        {
+            var source = @"
+namespace System.Runtime.InteropServices.WindowsRuntime
+{
+    public struct EventRegistrationToken { }
+
+    public sealed class EventRegistrationTokenTable<T> where T : class
+    {
+        public T InvocationList { get; set; }
+
+        public static EventRegistrationTokenTable<T> GetOrCreateEventRegistrationTokenTable(ref EventRegistrationTokenTable<T> refEventTable)
+        {
+            throw null;
+        }
+
+        public void RemoveEventHandler(EventRegistrationToken token)
+        {
+        }
+
+        public void RemoveEventHandler(T handler)
+        {
+        }
+    }
+
+    public static class WindowsRuntimeMarshal
+    {
+        public static void AddEventHandler<T>(Func<T, EventRegistrationToken> addMethod, Action<EventRegistrationToken> removeMethod, T handler)
+        {
+        }
+
+        public static void RemoveAllEventHandlers(Action<EventRegistrationToken> removeMethod)
+        {
+        }
+
+        public static void RemoveEventHandler<T>(Action<EventRegistrationToken> removeMethod, T handler)
+        {
+        }
+    }
+}
+";
+
+            // The actual System.Runtime.InteropServices.WindowsRuntime DLL has a public key of
+            // b03f5f7f11d50a3a and version 4.0.4.0. The compiler just looks at these via 
+            // WellKnownTypes and WellKnownMembers so it can be safely skipped here. 
+            var compilation = CSharpCompilation.Create(
+                "System.Runtime.InteropServices.WindowsRuntime",
+                new[] { CSharpSyntaxTree.ParseText(SourceText.From(source, encoding: null, SourceHashAlgorithms.Default)) },
+                references: TargetFrameworkUtil.GetReferences(targetFramework),
+                options: new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
+            compilation.VerifyEmitDiagnostics();
+            return compilation.EmitToPortableExecutableReference();
         }
     }
 }

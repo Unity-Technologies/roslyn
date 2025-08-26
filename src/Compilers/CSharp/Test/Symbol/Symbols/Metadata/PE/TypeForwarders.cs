@@ -18,7 +18,7 @@ using Microsoft.CodeAnalysis.Test.Utilities;
 using Roslyn.Test.Utilities;
 using Roslyn.Utilities;
 using Xunit;
-using static Roslyn.Test.Utilities.TestMetadata;
+using Basic.Reference.Assemblies;
 
 namespace Microsoft.CodeAnalysis.CSharp.UnitTests.Symbols.Metadata.PE
 {
@@ -32,7 +32,7 @@ namespace Microsoft.CodeAnalysis.CSharp.UnitTests.Symbols.Metadata.PE
                                         TestReferences.SymbolsTests.TypeForwarders.TypeForwarder.dll,
                                         TestReferences.SymbolsTests.TypeForwarders.TypeForwarderLib.dll,
                                         TestReferences.SymbolsTests.TypeForwarders.TypeForwarderBase.dll,
-                                        Net40.mscorlib
+                                        Net40.References.mscorlib
                                     });
 
             TestTypeForwarderHelper(assemblies);
@@ -93,9 +93,9 @@ namespace Microsoft.CodeAnalysis.CSharp.UnitTests.Symbols.Metadata.PE
         {
             var compilation = CreateCompilationWithMscorlib40AndSystemCore(new SyntaxTree[0]);
 
-            var corlibAssembly = compilation.GetReferencedAssemblySymbol(Net40.mscorlib);
+            var corlibAssembly = compilation.GetReferencedAssemblySymbol(Net40.References.mscorlib);
             Assert.NotNull(corlibAssembly);
-            var systemCoreAssembly = compilation.GetReferencedAssemblySymbol(Net40.SystemCore);
+            var systemCoreAssembly = compilation.GetReferencedAssemblySymbol(Net40.References.SystemCore);
             Assert.NotNull(systemCoreAssembly);
 
             const string funcTypeMetadataName = "System.Func`1";
@@ -1092,7 +1092,9 @@ class Test
                 !ns.StartsWith("System", StringComparison.Ordinal) &&
                 !ns.StartsWith("Windows", StringComparison.Ordinal) &&
                 !ns.StartsWith("FxResources", StringComparison.Ordinal) &&
-                !ns.StartsWith("Microsoft", StringComparison.Ordinal));
+                !ns.StartsWith("Microsoft", StringComparison.Ordinal) &&
+                !ns.StartsWith("<CppImplementationDetails>", StringComparison.Ordinal) &&
+                !ns.StartsWith("<CrtImplementationDetails>", StringComparison.Ordinal));
             var expectedNamespaces = new[] { "Ns", "Ns.Ms" };
             Assert.True(actualNamespaces.SetEquals(expectedNamespaces, EqualityComparer<string>.Default));
         }
@@ -1154,7 +1156,9 @@ namespace N1
                 !ns.StartsWith("System", StringComparison.Ordinal) &&
                 !ns.StartsWith("Windows", StringComparison.Ordinal) &&
                 !ns.StartsWith("FxResources", StringComparison.Ordinal) &&
-                !ns.StartsWith("Microsoft", StringComparison.Ordinal));
+                !ns.StartsWith("Microsoft", StringComparison.Ordinal) &&
+                !ns.StartsWith("<CppImplementationDetails>", StringComparison.Ordinal) &&
+                !ns.StartsWith("<CrtImplementationDetails>", StringComparison.Ordinal));
             var expectedNamespaces = new[] { "N1", "N1.N2", "N1.N2.N3" };
             Assert.True(actualNamespaces.SetEquals(expectedNamespaces, EqualityComparer<string>.Default));
         }
@@ -1216,7 +1220,9 @@ namespace N1
                 !ns.StartsWith("System", StringComparison.Ordinal) &&
                 !ns.StartsWith("Windows", StringComparison.Ordinal) &&
                 !ns.StartsWith("FxResources", StringComparison.Ordinal) &&
-                !ns.StartsWith("Microsoft", StringComparison.Ordinal));
+                !ns.StartsWith("Microsoft", StringComparison.Ordinal) &&
+                !ns.StartsWith("<CppImplementationDetails>", StringComparison.Ordinal) &&
+                !ns.StartsWith("<CrtImplementationDetails>", StringComparison.Ordinal));
             var expectedNamespaces = new[] { "N1", "N1.N2", "N1.N2.N3" };
             Assert.True(actualNamespaces.SetEquals(expectedNamespaces, EqualityComparer<string>.Default));
         }
@@ -1345,6 +1351,29 @@ namespace NS
 ";
 
             CheckForwarderEmit(source1, source2, "NS.Forwarded", "NS.Forwarded+Inner");
+        }
+
+        [ClrOnlyFact]
+        [WorkItem("https://github.com/dotnet/roslyn/issues/79894")]
+        [WorkItem("https://github.com/dotnet/roslyn/issues/78963")]
+        public void Extensions_01()
+        {
+            var source1 = @"
+public static class Extensions
+{
+    extension(int)
+    {
+    }
+}";
+
+            var source2 = @"
+[assembly: System.Runtime.CompilerServices.TypeForwardedTo(typeof(Extensions))]
+";
+
+            // https://github.com/dotnet/roslyn/issues/78963 - The grouping and marker types should be among the forwarded types since they are public.
+            //                                                 They also should be among exported types for library built from source1. Type symbols
+            //                                                 representing extensions from the language perspective should not be in either set.
+            CheckForwarderEmit(source1, source2, "Extensions");
         }
 
         [ClrOnlyFact]
@@ -1696,7 +1725,6 @@ public class CF1
                     // Attributes should not actually be emitted.
                     Assert.Equal(0, m.ContainingAssembly.GetAttributes(AttributeDescription.TypeForwardedToAttribute).Count());
                 }).VerifyDiagnostics();
-
 
             appCompilation = CreateCompilation(app, references: new[] { modRef1, new CSharpCompilationReference(forwardedTypesCompilation) }, options: TestOptions.ReleaseModule);
             var appModule = ModuleMetadata.CreateFromImage(appCompilation.EmitToArray()).Module;

@@ -9,73 +9,71 @@ using Microsoft.CodeAnalysis.CSharp.Extensions;
 using Microsoft.CodeAnalysis.CSharp.Precedence;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Diagnostics;
-using Roslyn.Utilities;
 
-namespace Microsoft.CodeAnalysis.CSharp.AddRequiredParentheses
+namespace Microsoft.CodeAnalysis.CSharp.AddRequiredParentheses;
+
+[DiagnosticAnalyzer(LanguageNames.CSharp)]
+internal sealed class CSharpAddRequiredExpressionParenthesesDiagnosticAnalyzer() :
+    AbstractAddRequiredParenthesesDiagnosticAnalyzer<
+        ExpressionSyntax, ExpressionSyntax, SyntaxKind>(CSharpExpressionPrecedenceService.Instance)
 {
-    [DiagnosticAnalyzer(LanguageNames.CSharp)]
-    internal class CSharpAddRequiredExpressionParenthesesDiagnosticAnalyzer :
-        AbstractAddRequiredParenthesesDiagnosticAnalyzer<
-            ExpressionSyntax, ExpressionSyntax, SyntaxKind>
+    private static readonly ImmutableArray<SyntaxKind> s_kinds =
+    [
+        SyntaxKind.AddExpression,
+        SyntaxKind.SubtractExpression,
+        SyntaxKind.MultiplyExpression,
+        SyntaxKind.DivideExpression,
+        SyntaxKind.ModuloExpression,
+        SyntaxKind.LeftShiftExpression,
+        SyntaxKind.RightShiftExpression,
+        SyntaxKind.LogicalOrExpression,
+        SyntaxKind.LogicalAndExpression,
+        SyntaxKind.BitwiseOrExpression,
+        SyntaxKind.BitwiseAndExpression,
+        SyntaxKind.ExclusiveOrExpression,
+        SyntaxKind.EqualsExpression,
+        SyntaxKind.NotEqualsExpression,
+        SyntaxKind.LessThanExpression,
+        SyntaxKind.LessThanOrEqualExpression,
+        SyntaxKind.GreaterThanExpression,
+        SyntaxKind.GreaterThanOrEqualExpression,
+        SyntaxKind.IsExpression,
+        SyntaxKind.AsExpression,
+        SyntaxKind.CoalesceExpression,
+        SyntaxKind.IsPatternExpression,
+    ];
+
+    protected override ImmutableArray<SyntaxKind> GetSyntaxNodeKinds()
+        => s_kinds;
+
+    protected override int GetPrecedence(ExpressionSyntax binaryLike)
+        => (int)binaryLike.GetOperatorPrecedence();
+
+    protected override bool IsBinaryLike(ExpressionSyntax node)
+        => node is BinaryExpressionSyntax ||
+           node is IsPatternExpressionSyntax { Pattern: ConstantPatternSyntax };
+
+    protected override (ExpressionSyntax, SyntaxToken, ExpressionSyntax) GetPartsOfBinaryLike(ExpressionSyntax binaryLike)
     {
-        public CSharpAddRequiredExpressionParenthesesDiagnosticAnalyzer()
-            : base(CSharpExpressionPrecedenceService.Instance)
+        Debug.Assert(IsBinaryLike(binaryLike));
+        switch (binaryLike)
         {
+            case BinaryExpressionSyntax binaryExpression:
+                return (binaryExpression.Left, binaryExpression.OperatorToken, binaryExpression.Right);
+
+            case IsPatternExpressionSyntax { Pattern: ConstantPatternSyntax constantPattern } isPatternExpression:
+                return (isPatternExpression.Expression, isPatternExpression.IsKeyword, constantPattern.Expression);
+
+            default:
+                throw ExceptionUtilities.UnexpectedValue(binaryLike);
         }
-
-        private static readonly ImmutableArray<SyntaxKind> s_kinds = ImmutableArray.Create(
-            SyntaxKind.AddExpression,
-            SyntaxKind.SubtractExpression,
-            SyntaxKind.MultiplyExpression,
-            SyntaxKind.DivideExpression,
-            SyntaxKind.ModuloExpression,
-            SyntaxKind.LeftShiftExpression,
-            SyntaxKind.RightShiftExpression,
-            SyntaxKind.LogicalOrExpression,
-            SyntaxKind.LogicalAndExpression,
-            SyntaxKind.BitwiseOrExpression,
-            SyntaxKind.BitwiseAndExpression,
-            SyntaxKind.ExclusiveOrExpression,
-            SyntaxKind.EqualsExpression,
-            SyntaxKind.NotEqualsExpression,
-            SyntaxKind.LessThanExpression,
-            SyntaxKind.LessThanOrEqualExpression,
-            SyntaxKind.GreaterThanExpression,
-            SyntaxKind.GreaterThanOrEqualExpression,
-            SyntaxKind.IsExpression,
-            SyntaxKind.AsExpression,
-            SyntaxKind.CoalesceExpression,
-            SyntaxKind.IsPatternExpression);
-
-        protected override ImmutableArray<SyntaxKind> GetSyntaxNodeKinds()
-            => s_kinds;
-
-        protected override int GetPrecedence(ExpressionSyntax binaryLike)
-            => (int)binaryLike.GetOperatorPrecedence();
-
-        protected override bool IsBinaryLike(ExpressionSyntax node)
-            => node is BinaryExpressionSyntax ||
-               node is IsPatternExpressionSyntax isPattern && isPattern.Pattern is ConstantPatternSyntax;
-
-        protected override (ExpressionSyntax, SyntaxToken, ExpressionSyntax) GetPartsOfBinaryLike(ExpressionSyntax binaryLike)
-        {
-            Debug.Assert(IsBinaryLike(binaryLike));
-            switch (binaryLike)
-            {
-                case BinaryExpressionSyntax binaryExpression:
-                    return (binaryExpression.Left, binaryExpression.OperatorToken, binaryExpression.Right);
-
-                case IsPatternExpressionSyntax isPatternExpression:
-                    return (isPatternExpression.Expression, isPatternExpression.IsKeyword, ((ConstantPatternSyntax)isPatternExpression.Pattern).Expression);
-
-                default:
-                    throw ExceptionUtilities.UnexpectedValue(binaryLike);
-            }
-        }
-
-        protected override ExpressionSyntax? TryGetAppropriateParent(ExpressionSyntax binaryLike)
-            => binaryLike.Parent is ConstantPatternSyntax
-                ? binaryLike.Parent.Parent as ExpressionSyntax
-                : binaryLike.Parent as ExpressionSyntax;
     }
+
+    protected override ExpressionSyntax? TryGetAppropriateParent(ExpressionSyntax binaryLike)
+        => binaryLike.Parent is ConstantPatternSyntax
+            ? binaryLike.Parent.Parent as ExpressionSyntax
+            : binaryLike.Parent as ExpressionSyntax;
+
+    protected override bool IsAsExpression(ExpressionSyntax node)
+        => node.Kind() == SyntaxKind.AsExpression;
 }

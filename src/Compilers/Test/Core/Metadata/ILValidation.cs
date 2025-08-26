@@ -12,13 +12,16 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Reflection.Metadata;
+using System.Reflection.Metadata.Ecma335;
 using System.Reflection.PortableExecutable;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading;
-using System.Xml;
+using System.Xml.Linq;
 using Microsoft.Cci;
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.Text;
+using Microsoft.DiaSymReader.Tools;
 using Microsoft.Metadata.Tools;
 
 namespace Roslyn.Test.Utilities
@@ -105,6 +108,7 @@ namespace Roslyn.Test.Utilities
                         // signing implementation.
                         Array.Reverse(reversedSignature);
 
+                        // CodeQL [SM02196] ECMA-335 requires us to support SHA-1 and this is testing that support
                         if (!rsa.VerifyHash(hash, reversedSignature, HashAlgorithmName.SHA1, RSASignaturePadding.Pkcs1))
                         {
                             return false;
@@ -144,6 +148,7 @@ namespace Roslyn.Test.Utilities
                 buffer[authenticodeOffset + i] = 0;
             }
 
+            // CodeQL [SM02196] ECMA-335 requires us to support SHA-1 and this is testing that support
             using (var hash = IncrementalHash.CreateHash(HashAlgorithmName.SHA1))
             {
                 // First hash the DOS header and PE headers
@@ -181,10 +186,10 @@ namespace Roslyn.Test.Utilities
                 + sizeof(int)                                  // Checksum
                 + sizeof(short)                                // Subsystem
                 + sizeof(short)                                // DllCharacteristics
-                + 4 * (is32bit ? sizeof(int) : sizeof(long)) + // SizeOfStackReserve, SizeOfStackCommit, SizeOfHeapReserve, SizeOfHeapCommit
-                +sizeof(int) +                                // LoaderFlags
-                +sizeof(int) +                                // NumberOfRvaAndSizes
-                +4 * sizeof(long);                            // directory entries before Authenticode
+                + 4 * (is32bit ? sizeof(int) : sizeof(long))   // SizeOfStackReserve, SizeOfStackCommit, SizeOfHeapReserve, SizeOfHeapCommit
+                + sizeof(int)                                  // LoaderFlags
+                + sizeof(int)                                  // NumberOfRvaAndSizes
+                + 4 * sizeof(long);                            // directory entries before Authenticode
         }
 
         private static MethodInfo s_peheaderSizeMethod;
@@ -260,45 +265,95 @@ namespace Roslyn.Test.Utilities
             });
         }
 
-        public static unsafe string GetMethodIL(this ImmutableArray<byte> ilArray)
+        public static unsafe string DumpEncDeltaMethodBodies(ImmutableArray<byte> il, ImmutableArray<MetadataReader> readers)
         {
+            var reader = readers[^1];
+
+            var rvasAndNames = from handle in reader.MethodDefinitions
+                               let method = reader.GetMethodDefinition(handle)
+                               // filter out runtime-implemented methods that do not have IL:
+                               where (method.ImplAttributes & MethodImplAttributes.CodeTypeMask) == MethodImplAttributes.IL
+                               orderby method.RelativeVirtualAddress
+                               group method.Name by method.RelativeVirtualAddress into g
+                               // Legacy test support: name can only be resolved when readers for all generations are given.
+                               select (g.Key, readers.Length > 1 ? string.Join(", ", g.Select(readers.GetString)) : null);
+
             var result = new StringBuilder();
-            fixed (byte* ilPtr = ilArray.ToArray())
+
+            fixed (byte* ilPtr = il.ToArray())
             {
-                int offset = 0;
-                while (true)
+                var bodyReader = new BlobReader(ilPtr, il.Length);
+
+                foreach (var (rva, name) in rvasAndNames)
                 {
-                    // skip padding:
-                    while (offset < ilArray.Length && ilArray[offset] == 0)
+                    if (name != null)
                     {
-                        offset++;
+                        result.AppendLine(name);
                     }
 
-                    if (offset == ilArray.Length)
+                    bodyReader.Offset = rva;
+
+                    MethodBodyBlock body;
+                    try
                     {
-                        break;
+                        body = MethodBodyBlock.Create(bodyReader);
+                    }
+                    catch (BadImageFormatException)
+                    {
+                        result.AppendFormat("<invalid byte 0x{0:X2} at offset {1}>", il[rva], rva);
+                        continue;
                     }
 
-                    var reader = new BlobReader(ilPtr + offset, ilArray.Length - offset);
-                    var methodIL = MethodBodyBlock.Create(reader);
-
-                    if (methodIL == null)
-                    {
-                        result.AppendFormat("<invalid byte 0x{0:X2} at offset {1}>", ilArray[offset], offset);
-                        offset++;
-                    }
-                    else
-                    {
-                        ILVisualizer.Default.DumpMethod(
-                            result,
-                            methodIL.MaxStack,
-                            methodIL.GetILContent(),
-                            ImmutableArray.Create<ILVisualizer.LocalInfo>(),
-                            ImmutableArray.Create<ILVisualizer.HandlerSpan>());
-
-                        offset += methodIL.Size;
-                    }
+                    ILVisualizer.Default.DumpMethod(
+                        result,
+                        body.MaxStack,
+                        body.GetILContent(),
+                        locals: [],
+                        exceptionHandlers: []);
                 }
+            }
+
+            return result.ToString();
+        }
+
+        public static unsafe string DumpEncDeltaFieldData(ImmutableArray<byte> il, ImmutableArray<MetadataReader> readers)
+        {
+            var reader = readers[^1];
+            var aggregator = new MetadataAggregator(readers[0], readers[1..]);
+
+            var fieldRvaTablePtr = reader.MetadataPointer + reader.GetTableMetadataOffset(TableIndex.FieldRva);
+            var rowCount = reader.GetTableRowCount(TableIndex.FieldRva);
+            var rowSize = reader.GetTableRowSize(TableIndex.FieldRva);
+            var tableReader = new BlobReader(fieldRvaTablePtr, rowCount * rowSize);
+
+            var rvasAndNames = new List<(int rva, string name)>();
+            for (var i = 0; i < rowCount; i++)
+            {
+                var rva = tableReader.ReadInt32();
+
+                // RowIds are 4 bytes in EnC deltas 
+                var fieldRowId = tableReader.ReadInt32();
+
+                if (rva > 0)
+                {
+                    var fieldHandle = MetadataTokens.FieldDefinitionHandle(fieldRowId);
+                    var genFieldHandle = (FieldDefinitionHandle)aggregator.GetGenerationHandle(fieldHandle, out var fieldGen);
+                    var fieldDef = readers[fieldGen].GetFieldDefinition(genFieldHandle);
+                    var genNameHandle = (StringHandle)aggregator.GetGenerationHandle(fieldDef.Name, out var nameGen);
+                    var fieldName = readers[nameGen].GetString(genNameHandle);
+
+                    rvasAndNames.Add((rva, fieldName));
+                }
+            }
+
+            var result = new StringBuilder();
+
+            for (var i = 0; i < rvasAndNames.Count; i++)
+            {
+                var (startRva, name) = rvasAndNames[i];
+                var endRva = i + 1 < rvasAndNames.Count ? rvasAndNames[i + 1].rva : il.Length;
+
+                result.AppendLine($"{name}: {BitConverter.ToString(il[startRva..endRva].ToArray())}");
             }
 
             return result.ToString();
@@ -320,106 +375,118 @@ namespace Roslyn.Test.Utilities
             }
         }
 
-        public static Dictionary<int, string> GetSequencePointMarkers(string pdbXml, string source = null)
-        {
-            var doc = new XmlDocument() { XmlResolver = null };
-            using (var reader = new XmlTextReader(new StringReader(pdbXml)) { DtdProcessing = DtdProcessing.Prohibit })
-            {
-                doc.Load(reader);
-            }
+        /// <summary>
+        /// Returns "method" element with a specified token.
+        /// <see cref="PdbToXmlOptions.IncludeTokens"/> must be set to include "token" attributes in "method" elements.
+        /// </summary>
+        public static XElement GetMethodElement(XElement document, int methodToken)
+            => (from e in document.DescendantsAndSelf()
+                where e.Name == "method"
+                let xmlTokenValue = e.Attribute("token")?.Value
+                where xmlTokenValue != null &&
+                      xmlTokenValue.StartsWith("0x") &&
+                      Convert.ToInt32(xmlTokenValue[2..], 16) == methodToken
+                select e).SingleOrDefault();
 
+        public static ImmutableDictionary<string, string> GetDocumentIdToPathMap(XElement document)
+            => document
+                .Descendants().Where(e => e.Name == "files").Single()
+                .Descendants().ToImmutableDictionary(e => e.Attribute("id").Value, e => e.Attribute("name").Value);
+
+        public static Dictionary<int, string> GetSequencePointMarkers(XElement methodXml)
+        {
             var result = new Dictionary<int, string>();
 
-            if (source == null)
+            void add(int key, string value)
+                => result[key] = result.TryGetValue(key, out var existing) ? existing + value : value;
+
+            foreach (var e in methodXml.Descendants())
             {
-                static void Add(Dictionary<int, string> dict, int key, string value)
-                    => dict[key] = dict.TryGetValue(key, out var found) ? found + value : value;
-
-                foreach (XmlNode entry in doc.GetElementsByTagName("sequencePoints"))
+                if (e.Name == "entry" && e.Parent.Name == "sequencePoints")
                 {
-                    foreach (XmlElement item in entry.ChildNodes)
-                    {
-                        Add(result,
-                            Convert.ToInt32(item.GetAttribute("offset"), 16),
-                            (item.GetAttribute("hidden") == "true") ? "~" : "-");
-                    }
-                }
-
-                foreach (XmlNode entry in doc.GetElementsByTagName("asyncInfo"))
-                {
-                    foreach (XmlElement item in entry.ChildNodes)
-                    {
-                        if (item.Name == "await")
-                        {
-                            Add(result, Convert.ToInt32(item.GetAttribute("yield"), 16), "<");
-                            Add(result, Convert.ToInt32(item.GetAttribute("resume"), 16), ">");
-                        }
-                        else if (item.Name == "catchHandler")
-                        {
-                            Add(result, Convert.ToInt32(item.GetAttribute("offset"), 16), "$");
-                        }
-                    }
+                    add(Convert.ToInt32(e.Attribute("offset").Value, 16), (e.Attribute("hidden")?.Value == "true") ? "~" : "-");
                 }
             }
-            else
+
+            foreach (var e in methodXml.Descendants())
             {
-                static void AddTextual(Dictionary<int, string> dict, int key, string value)
-                    => dict[key] = dict.TryGetValue(key, out var found) ? found + ", " + value : "// " + value;
-
-                foreach (XmlNode entry in doc.GetElementsByTagName("asyncInfo"))
+                if (e.Name == "await" && e.Parent.Name == "asyncInfo")
                 {
-                    foreach (XmlElement item in entry.ChildNodes)
-                    {
-                        if (item.Name == "await")
-                        {
-                            AddTextual(result, Convert.ToInt32(item.GetAttribute("yield"), 16), "async: yield");
-                            AddTextual(result, Convert.ToInt32(item.GetAttribute("resume"), 16), "async: resume");
-                        }
-                        else if (item.Name == "catchHandler")
-                        {
-                            AddTextual(result, Convert.ToInt32(item.GetAttribute("offset"), 16), "async: catch handler");
-                        }
-                    }
+                    add(Convert.ToInt32(e.Attribute("yield").Value, 16), "<");
+                    add(Convert.ToInt32(e.Attribute("resume").Value, 16), ">");
                 }
-
-                var sourceLines = source.Split(new[] { "\r\n", "\n", "\r" }, StringSplitOptions.None);
-
-                foreach (XmlNode entry in doc.GetElementsByTagName("sequencePoints"))
+                else if (e.Name == "catchHandler" && e.Parent.Name == "asyncInfo")
                 {
-                    foreach (XmlElement item in entry.ChildNodes)
-                    {
-                        AddTextual(result, Convert.ToInt32(item.GetAttribute("offset"), 16), "sequence point: " + SnippetFromSpan(sourceLines, item));
-                    }
+                    add(Convert.ToInt32(e.Attribute("offset").Value, 16), "$");
                 }
             }
 
             return result;
         }
 
-        private static string SnippetFromSpan(string[] lines, XmlElement span)
+        public static Dictionary<int, string> GetSequencePointMarkers(XElement methodXml, Func<string, SourceText> getSource)
         {
-            if (span.GetAttribute("hidden") == "true")
+            var result = new Dictionary<int, string>();
+
+            void add(int key, string value)
+                => result[key] = result.TryGetValue(key, out var existing) ? existing + ", " + value : "// " + value;
+
+            foreach (var e in methodXml.Descendants())
+            {
+                if (e.Name == "await" && e.Parent.Name == "asyncInfo")
+                {
+                    add(Convert.ToInt32(e.Attribute("yield").Value, 16), "async: yield");
+                    add(Convert.ToInt32(e.Attribute("resume").Value, 16), "async: resume");
+                }
+                else if (e.Name == "catchHandler" && e.Parent.Name == "asyncInfo")
+                {
+                    add(Convert.ToInt32(e.Attribute("offset").Value, 16), "async: catch handler");
+                }
+            }
+
+            foreach (var e in methodXml.Descendants())
+            {
+                if (e.Name == "entry" && e.Parent.Name == "sequencePoints")
+                {
+                    var documentId = e.Attribute("document").Value;
+                    var source = getSource(documentId);
+
+                    add(Convert.ToInt32(e.Attribute("offset").Value, 16), "sequence point: " + SnippetFromSpan(source, e));
+                }
+            }
+
+            return result;
+        }
+
+        private static string SnippetFromSpan(SourceText text, XElement sequencePointXml)
+        {
+            if (sequencePointXml.Attribute("hidden")?.Value == "true")
             {
                 return "<hidden>";
             }
 
-            var startLine = Convert.ToInt32(span.GetAttribute("startLine"));
-            var startColumn = Convert.ToInt32(span.GetAttribute("startColumn"));
-            var endLine = Convert.ToInt32(span.GetAttribute("endLine"));
-            var endColumn = Convert.ToInt32(span.GetAttribute("endColumn"));
+            var startLine = Convert.ToInt32(sequencePointXml.Attribute("startLine").Value) - 1;
+            var startColumn = Convert.ToInt32(sequencePointXml.Attribute("startColumn").Value) - 1;
+            var endLine = Convert.ToInt32(sequencePointXml.Attribute("endLine").Value) - 1;
+            var endColumn = Convert.ToInt32(sequencePointXml.Attribute("endColumn").Value) - 1;
+
+            var lineSpan = new LinePositionSpan(new LinePosition(startLine, startColumn), new LinePosition(endLine, endColumn));
+            var span = text.Lines.GetTextSpan(lineSpan);
+            var subtext = text.GetSubText(span);
+
             if (startLine == endLine)
             {
-                return lines[startLine - 1].Substring(startColumn - 1, endColumn - startColumn);
+                return subtext.ToString();
             }
 
             static string TruncateStart(string text, int maxLength)
-                => (text.Length < maxLength) ? text : text.Substring(0, maxLength);
+                => (text.Length < maxLength) ? text : text[..maxLength];
 
             static string TruncateEnd(string text, int maxLength)
                 => (text.Length < maxLength) ? text : text.Substring(text.Length - maxLength - 1, maxLength);
 
-            var start = lines[startLine - 1].Substring(startColumn - 1);
-            var end = lines[endLine - 1].Substring(0, endColumn - 1);
+            var start = subtext.Lines[0].ToString();
+            var end = subtext.Lines[^1].ToString();
             return TruncateStart(start, 12) + " ... " + TruncateEnd(end, 12);
         }
     }

@@ -2,8 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
-#nullable disable
-
 namespace Microsoft.CodeAnalysis.Operations
 {
     /// <summary>
@@ -136,6 +134,11 @@ namespace Microsoft.CodeAnalysis.Operations
         /// <summary>
         /// Represents the VB 'Like' operator.
         /// </summary>
-        Like = 0x18
+        Like = 0x18,
+
+        /// <summary>
+        /// Represents the <![CDATA['>>>']]> operator.
+        /// </summary>
+        UnsignedRightShift = 0x19,
     }
 }

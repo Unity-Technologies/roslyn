@@ -2,18 +2,11 @@
 ' The .NET Foundation licenses this file to you under the MIT license.
 ' See the LICENSE file in the project root for more information.
 
-Imports System.IO
 Imports Microsoft.CodeAnalysis
-Imports Microsoft.CodeAnalysis.SpecialType
-Imports Microsoft.CodeAnalysis.Test.Extensions
 Imports Microsoft.CodeAnalysis.Test.Utilities
-Imports Microsoft.CodeAnalysis.Text
 Imports Microsoft.CodeAnalysis.VisualBasic
-Imports Microsoft.CodeAnalysis.VisualBasic.OverloadResolution
 Imports Microsoft.CodeAnalysis.VisualBasic.Symbols
 Imports Microsoft.CodeAnalysis.VisualBasic.Syntax
-Imports Microsoft.CodeAnalysis.VisualBasic.UnitTests.Emit
-
 Imports Roslyn.Test.Utilities
 
 Namespace Microsoft.CodeAnalysis.VisualBasic.UnitTests.Semantics
@@ -40,7 +33,6 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.UnitTests.Semantics
                 End Sub
             End Module
     </file>
-
     </compilation>, options)
 
             Dim expectedErrors =
@@ -74,7 +66,6 @@ BC42104: Variable 'i' is used before it has been assigned a value. A null refere
                 End Sub
             End Module
     </file>
-
     </compilation>, options)
 
             Dim expectedErrors =
@@ -104,7 +95,6 @@ BC32000: Local variable 'j' cannot be referred to before it is declared.
                 End Sub
             End Module
     </file>
-
     </compilation>, options)
 
             Dim expectedErrors =
@@ -137,7 +127,6 @@ BC30414: Value of type 'Integer()' cannot be converted to 'Object(*,*)' because 
                 End Sub
             End Module
     </file>
-
     </compilation>, options)
 
             Dim expectedErrors =
@@ -152,7 +141,6 @@ BC30333: Value of type 'Integer()' cannot be converted to 'Object()' because 'In
 
             CompilationUtils.AssertTheseDiagnostics(compilation, expectedErrors)
         End Sub
-
 
         <Fact>
         Public Sub TestNullableIdentifierWithArrayExpression()
@@ -171,7 +159,6 @@ BC30333: Value of type 'Integer()' cannot be converted to 'Object()' because 'In
                 End Sub
             End Module
     </file>
-
     </compilation>, options)
 
             Dim expectedErrors =
@@ -183,7 +170,6 @@ BC36628: A nullable type cannot be inferred for variable 'x'.
 
             CompilationUtils.AssertTheseDiagnostics(compilation, expectedErrors)
         End Sub
-
 
         <Fact>
         Public Sub TestArrayIdentifierWithScalarExpression()
@@ -202,7 +188,6 @@ BC36628: A nullable type cannot be inferred for variable 'x'.
                 End Sub
             End Module
     </file>
-
     </compilation>, options)
 
             Dim expectedErrors =
@@ -235,7 +220,6 @@ BC30311: Value of type 'Integer' cannot be converted to 'Object()'.
                 End Sub
             End Module
     </file>
-
     </compilation>, options)
 
             Dim expectedErrors =
@@ -270,7 +254,6 @@ BC36628: A nullable type cannot be inferred for variable 'x'.
             End Sub
         End Module
     </file>
-
     </compilation>, options)
 
             Dim expectedErrors =
@@ -307,7 +290,6 @@ BC36628: A nullable type cannot be inferred for variable 'x'.
             End Sub
         End Module
     </file>
-
     </compilation>, options)
 
             Dim expectedErrors =
@@ -340,7 +322,6 @@ BC36628: A nullable type cannot be inferred for variable 'x'.
             End Sub
         End Module
     </file>
-
     </compilation>, options)
 
             Dim expectedErrors =
@@ -370,7 +351,6 @@ BC36628: A nullable type cannot be inferred for variable 'x'.
             End Sub
         End Module
     </file>
-
     </compilation>, options)
 
             Dim expectedErrors =
@@ -405,7 +385,6 @@ BC36628: A nullable type cannot be inferred for variable 'x'.
             End Sub
         End Module
     </file>
-
     </compilation>, options)
 
             Dim expectedErrors =
@@ -591,7 +570,6 @@ BC30209: Option Strict On requires all variable declarations to have an 'As' cla
             CheckVariableType(tree, model, "Test:b", "System.Object")
 
         End Sub
-
 
         <WorkItem(542402, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/542402")>
         <Fact>

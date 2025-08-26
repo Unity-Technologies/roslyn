@@ -289,7 +289,7 @@ partial class C
             comp.VerifyDiagnostics(
                 // (5,28): error CS8797: Both partial method declarations must have equivalent accessibility modifiers.
                 //      internal partial void M1() { }
-                Diagnostic(ErrorCode.ERR_PartialMethodAccessibilityDifference, "M1").WithLocation(5, 28)
+                Diagnostic(ErrorCode.ERR_PartialMemberAccessibilityDifference, "M1").WithLocation(5, 28)
             );
         }
 
@@ -304,9 +304,9 @@ partial class C
 }";
             var comp = CreateCompilation(text, parseOptions: TestOptions.RegularWithExtendedPartialMethods);
             comp.VerifyDiagnostics(
-                // (5,19): error CS8797: Both partial method declarations must have identical accessibility modifiers.
+                // (5,19): error CS8797: Both partial member declarations must have identical accessibility modifiers.
                 //      partial void M1() { }
-                Diagnostic(ErrorCode.ERR_PartialMethodAccessibilityDifference, "M1").WithLocation(5, 19)
+                Diagnostic(ErrorCode.ERR_PartialMemberAccessibilityDifference, "M1").WithLocation(5, 19)
             );
         }
 
@@ -321,9 +321,9 @@ partial class C
 }";
             var comp = CreateCompilation(text, parseOptions: TestOptions.RegularWithExtendedPartialMethods);
             comp.VerifyDiagnostics(
-                // (5,27): error CS8797: Both partial method declarations must have identical accessibility modifiers.
+                // (5,27): error CS8797: Both partial member declarations must have identical accessibility modifiers.
                 //      private partial void M1() { }
-                Diagnostic(ErrorCode.ERR_PartialMethodAccessibilityDifference, "M1").WithLocation(5, 27)
+                Diagnostic(ErrorCode.ERR_PartialMemberAccessibilityDifference, "M1").WithLocation(5, 27)
             );
         }
 
@@ -440,7 +440,7 @@ partial class C
             comp.VerifyDiagnostics(
                 // (5,27): error CS8798: Both partial method declarations must have equal combinations of 'virtual', 'override', 'sealed', or 'new' modifiers.
                 //     internal partial void M1() { }
-                Diagnostic(ErrorCode.ERR_PartialMethodExtendedModDifference, "M1").WithLocation(5, 27)
+                Diagnostic(ErrorCode.ERR_PartialMemberExtendedModDifference, "M1").WithLocation(5, 27)
             );
         }
 
@@ -457,7 +457,7 @@ partial class C
             comp.VerifyDiagnostics(
                 // (5,35): error CS8798: Both partial method declarations must have equal combinations of 'virtual', 'override', 'sealed', or 'new' modifiers.
                 //     internal virtual partial void M1() { }
-                Diagnostic(ErrorCode.ERR_PartialMethodExtendedModDifference, "M1").WithLocation(5, 35)
+                Diagnostic(ErrorCode.ERR_PartialMemberExtendedModDifference, "M1").WithLocation(5, 35)
             );
         }
 
@@ -792,7 +792,7 @@ partial class D : C
             comp.VerifyDiagnostics(
                 // (9,27): error CS8798: Both partial method declarations must have equal combinations of 'virtual', 'override', 'sealed', or 'new' modifiers.
                 //     internal partial void M1() { }
-                Diagnostic(ErrorCode.ERR_PartialMethodExtendedModDifference, "M1").WithLocation(9, 27)
+                Diagnostic(ErrorCode.ERR_PartialMemberExtendedModDifference, "M1").WithLocation(9, 27)
             );
         }
 
@@ -816,7 +816,7 @@ partial class D : C
                 Diagnostic(ErrorCode.WRN_NewOrOverrideExpected, "M1").WithArguments("D.M1()", "C.M1()").WithLocation(8, 27),
                 // (9,36): error CS8798: Both partial method declarations must have equal combinations of 'virtual', 'override', 'sealed', or 'new' modifiers.
                 //     internal override partial void M1() { }
-                Diagnostic(ErrorCode.ERR_PartialMethodExtendedModDifference, "M1").WithLocation(9, 36)
+                Diagnostic(ErrorCode.ERR_PartialMemberExtendedModDifference, "M1").WithLocation(9, 36)
             );
         }
 
@@ -965,7 +965,7 @@ partial class D : C
             comp.VerifyDiagnostics(
                 // (9,36): error CS8798: Both partial method declarations must have equal combinations of 'virtual', 'override', 'sealed', or 'new' modifiers.
                 //     internal override partial void M1() { }
-                Diagnostic(ErrorCode.ERR_PartialMethodExtendedModDifference, "M1").WithLocation(9, 36)
+                Diagnostic(ErrorCode.ERR_PartialMemberExtendedModDifference, "M1").WithLocation(9, 36)
             );
         }
 
@@ -986,7 +986,7 @@ partial class D : C
             comp.VerifyDiagnostics(
                 // (9,43): error CS8798: Both partial method declarations must have equal combinations of 'virtual', 'override', 'sealed', or 'new' modifiers.
                 //     internal sealed override partial void M1() { }
-                Diagnostic(ErrorCode.ERR_PartialMethodExtendedModDifference, "M1").WithLocation(9, 43)
+                Diagnostic(ErrorCode.ERR_PartialMemberExtendedModDifference, "M1").WithLocation(9, 43)
             );
         }
 
@@ -1174,6 +1174,74 @@ public partial class C
                 Assert.Equal(CallingConvention.Winapi, importData.CallingConvention);
                 Assert.Null(importData.BestFitMapping);
                 Assert.Null(importData.ThrowOnUnmappableCharacter);
+            }
+        }
+
+        [Fact]
+        public void Extern_Symbols_NoDllImport()
+        {
+            const string text1 = @"
+public partial class C
+{
+    public static partial void M1();
+
+    public static extern partial void M1();
+
+    public static void M2() { M1(); }
+}";
+
+            const string text2 = @"
+public partial class C
+{
+    public static partial void M1();
+
+    public static extern partial void M1();
+
+    public static void M2() { M1(); }
+}";
+            const string expectedIL = @"
+{
+  // Code size        6 (0x6)
+  .maxstack  0
+  IL_0000:  call       ""void C.M1()""
+  IL_0005:  ret
+}";
+
+            var verifier = CompileAndVerify(
+                text1,
+                parseOptions: TestOptions.RegularWithExtendedPartialMethods,
+                sourceSymbolValidator: module => validator(module, isSource: true),
+                symbolValidator: module => validator(module, isSource: false),
+                // PEVerify fails when extern methods lack an implementation
+                verify: Verification.Skipped);
+            verifier.VerifyDiagnostics();
+            verifier.VerifyIL("C.M2", expectedIL);
+
+            verifier = CompileAndVerify(
+                text2,
+                parseOptions: TestOptions.RegularWithExtendedPartialMethods,
+                sourceSymbolValidator: module => validator(module, isSource: true),
+                symbolValidator: module => validator(module, isSource: false),
+                // PEVerify fails when extern methods lack an implementation
+                verify: Verification.Skipped);
+            verifier.VerifyDiagnostics();
+            verifier.VerifyIL("C.M2", expectedIL);
+
+            static void validator(ModuleSymbol module, bool isSource)
+            {
+                var type = module.ContainingAssembly.GetTypeByMetadataName("C");
+                var method = type.GetMember<MethodSymbol>("M1");
+
+                // 'IsExtern' is not round tripped when DllImport is missing
+                Assert.Equal(isSource, method.IsExtern);
+                if (method.PartialImplementationPart is MethodSymbol implementation)
+                {
+                    Assert.True(method.IsPartialDefinition());
+                    Assert.Equal(isSource, implementation.IsExtern);
+                }
+
+                var importData = method.GetDllImportData();
+                Assert.Null(importData);
             }
         }
 
@@ -1446,7 +1514,7 @@ partial class D : C
             comp.VerifyDiagnostics(
                 // (10,27): error CS8798: Both partial method declarations must have equal combinations of 'virtual', 'override', 'sealed', or 'new' modifiers.
                 //     internal partial void M1() { }
-                Diagnostic(ErrorCode.ERR_PartialMethodExtendedModDifference, "M1").WithLocation(10, 27)
+                Diagnostic(ErrorCode.ERR_PartialMemberExtendedModDifference, "M1").WithLocation(10, 27)
             );
         }
 
@@ -1471,7 +1539,7 @@ partial class D : C
                 Diagnostic(ErrorCode.WRN_NewRequired, "M1").WithArguments("D.M1()", "C.M1()").WithLocation(9, 27),
                 // (10,31): error CS8798: Both partial method declarations must have equal combinations of 'virtual', 'override', 'sealed', or 'new' modifiers.
                 //     internal new partial void M1() { }
-                Diagnostic(ErrorCode.ERR_PartialMethodExtendedModDifference, "M1").WithLocation(10, 31)
+                Diagnostic(ErrorCode.ERR_PartialMemberExtendedModDifference, "M1").WithLocation(10, 31)
             );
         }
 
@@ -1664,7 +1732,7 @@ partial interface I
     internal partial void M(string s1);
 }
 ";
-            var comp = CreateCompilation(text, parseOptions: TestOptions.RegularWithExtendedPartialMethods, targetFramework: TargetFramework.NetStandardLatest);
+            var comp = CreateCompilation(text, parseOptions: TestOptions.RegularWithExtendedPartialMethods, targetFramework: TargetFramework.NetCoreApp);
             comp.VerifyDiagnostics(
                 // (6,27): error CS8793: Partial method 'I.M(string)' must have an implementation part because it has accessibility modifiers.
                 //     internal partial void M(string s1);
@@ -1684,7 +1752,7 @@ partial interface I
     internal partial void M(string s1) { }
 }
 ";
-            var comp = CreateCompilation(text, parseOptions: TestOptions.RegularWithExtendedPartialMethods, targetFramework: TargetFramework.NetStandardLatest);
+            var comp = CreateCompilation(text, parseOptions: TestOptions.RegularWithExtendedPartialMethods, targetFramework: TargetFramework.NetCoreApp);
             comp.VerifyDiagnostics(
             );
         }
@@ -1711,7 +1779,7 @@ class C : I
 }
 ";
             // note that I.M is not virtual so C.M does not implement it
-            var comp = CreateCompilation(text, parseOptions: TestOptions.RegularWithExtendedPartialMethods, targetFramework: TargetFramework.NetStandardLatest);
+            var comp = CreateCompilation(text, parseOptions: TestOptions.RegularWithExtendedPartialMethods, targetFramework: TargetFramework.NetCoreApp);
             comp.VerifyDiagnostics(
                 // (10,13): warning CS8602: Dereference of a possibly null reference.
                 //         _ = s1.ToString();
@@ -1741,7 +1809,7 @@ class C : I
     void I.M(string s1, string s2) { } // 3, 4
 }
 ";
-            var comp = CreateCompilation(text, parseOptions: TestOptions.RegularWithExtendedPartialMethods, targetFramework: TargetFramework.NetStandardLatest);
+            var comp = CreateCompilation(text, parseOptions: TestOptions.RegularWithExtendedPartialMethods, targetFramework: TargetFramework.NetCoreApp);
             comp.VerifyDiagnostics(
                 // (10,13): warning CS8602: Dereference of a possibly null reference.
                 //         _ = s1.ToString(); // 1
@@ -1785,7 +1853,7 @@ partial class C : I
     }
 }
 ";
-            var comp = CreateCompilation(text, parseOptions: TestOptions.RegularWithExtendedPartialMethods, targetFramework: TargetFramework.NetStandardLatest);
+            var comp = CreateCompilation(text, parseOptions: TestOptions.RegularWithExtendedPartialMethods, targetFramework: TargetFramework.NetCoreApp);
             comp.VerifyDiagnostics(
                 // (10,13): warning CS8602: Dereference of a possibly null reference.
                 //         _ = s1.ToString(); // 1
@@ -1819,12 +1887,12 @@ partial class C : I
 ";
             var comp = CreateCompilation(text);
             comp.VerifyDiagnostics(
-                // (9,20): error CS0754: A partial method may not explicitly implement an interface method
+                // (9,20): error CS0754: A partial member may not explicitly implement an interface member
                 //     partial void I.M(); // 1
-                Diagnostic(ErrorCode.ERR_PartialMethodNotExplicit, "M").WithLocation(9, 20),
-                // (10,20): error CS0754: A partial method may not explicitly implement an interface method
+                Diagnostic(ErrorCode.ERR_PartialMemberNotExplicit, "M").WithLocation(9, 20),
+                // (10,20): error CS0754: A partial member may not explicitly implement an interface member
                 //     partial void I.M() { } // 2
-                Diagnostic(ErrorCode.ERR_PartialMethodNotExplicit, "M").WithLocation(10, 20));
+                Diagnostic(ErrorCode.ERR_PartialMemberNotExplicit, "M").WithLocation(10, 20));
         }
 
         [Fact]
@@ -1844,18 +1912,358 @@ partial class C : I
 ";
             var comp = CreateCompilation(text, parseOptions: TestOptions.RegularWithExtendedPartialMethods);
             comp.VerifyDiagnostics(
-                // (9,19): error CS0754: A partial method may not explicitly implement an interface method
+                // (9,19): error CS0754: A partial member may not explicitly implement an interface member
                 //     partial int I.M();
-                Diagnostic(ErrorCode.ERR_PartialMethodNotExplicit, "M").WithLocation(9, 19),
+                Diagnostic(ErrorCode.ERR_PartialMemberNotExplicit, "M").WithLocation(9, 19),
                 // (9,19): error CS8794: Partial method 'C.I.M()' must have accessibility modifiers because it has a non-void return type.
                 //     partial int I.M();
                 Diagnostic(ErrorCode.ERR_PartialMethodWithNonVoidReturnMustHaveAccessMods, "M").WithArguments("C.I.M()").WithLocation(9, 19),
-                // (10,19): error CS0754: A partial method may not explicitly implement an interface method
+                // (10,19): error CS0754: A partial member may not explicitly implement an interface member
                 //     partial int I.M() => 42;
-                Diagnostic(ErrorCode.ERR_PartialMethodNotExplicit, "M").WithLocation(10, 19),
+                Diagnostic(ErrorCode.ERR_PartialMemberNotExplicit, "M").WithLocation(10, 19),
                 // (10,19): error CS8794: Partial method 'C.I.M()' must have accessibility modifiers because it has a non-void return type.
                 //     partial int I.M() => 42;
                 Diagnostic(ErrorCode.ERR_PartialMethodWithNonVoidReturnMustHaveAccessMods, "M").WithArguments("C.I.M()").WithLocation(10, 19));
+        }
+
+        [Fact]
+        public void InInterface()
+        {
+            var source = """
+                partial interface I
+                {
+                    public partial int M();
+                    public partial int M() => 0;
+                }
+                """;
+            CreateCompilation(source).VerifyDiagnostics(
+                // (4,24): error CS8701: Target runtime doesn't support default interface implementation.
+                //     public partial int M() => 0;
+                Diagnostic(ErrorCode.ERR_RuntimeDoesNotSupportDefaultInterfaceImplementation, "M").WithLocation(4, 24));
+
+            CreateCompilation(source, targetFramework: TargetFramework.Net60).VerifyDiagnostics();
+
+            CreateCompilation(source, targetFramework: TargetFramework.Net60, parseOptions: TestOptions.Regular7).VerifyDiagnostics(
+                // (3,24): error CS8703: The modifier 'public' is not valid for this item in C# 7.0. Please use language version '8.0' or greater.
+                //     public partial int M();
+                Diagnostic(ErrorCode.ERR_InvalidModifierForLanguageVersion, "M").WithArguments("public", "7.0", "8.0").WithLocation(3, 24),
+                // (3,24): error CS8703: The modifier 'partial' is not valid for this item in C# 7.0. Please use language version '8.0' or greater.
+                //     public partial int M();
+                Diagnostic(ErrorCode.ERR_InvalidModifierForLanguageVersion, "M").WithArguments("partial", "7.0", "8.0").WithLocation(3, 24),
+                // (3,24): error CS8107: Feature 'extended partial methods' is not available in C# 7.0. Please use language version 9.0 or greater.
+                //     public partial int M();
+                Diagnostic(ErrorCode.ERR_FeatureNotAvailableInVersion7, "M").WithArguments("extended partial methods", "9.0").WithLocation(3, 24),
+                // (4,24): error CS8107: Feature 'default interface implementation' is not available in C# 7.0. Please use language version 8.0 or greater.
+                //     public partial int M() => 0;
+                Diagnostic(ErrorCode.ERR_FeatureNotAvailableInVersion7, "M").WithArguments("default interface implementation", "8.0").WithLocation(4, 24),
+                // (4,24): error CS8107: Feature 'extended partial methods' is not available in C# 7.0. Please use language version 9.0 or greater.
+                //     public partial int M() => 0;
+                Diagnostic(ErrorCode.ERR_FeatureNotAvailableInVersion7, "M").WithArguments("extended partial methods", "9.0").WithLocation(4, 24));
+        }
+
+        [Fact]
+        public void InInterface_DefinitionOnly()
+        {
+            var source = """
+                partial interface I
+                {
+                    public partial int M();
+                }
+                """;
+            CreateCompilation(source).VerifyDiagnostics(
+                // (3,24): error CS8795: Partial method 'I.M()' must have an implementation part because it has accessibility modifiers.
+                //     public partial int M();
+                Diagnostic(ErrorCode.ERR_PartialMethodWithAccessibilityModsMustHaveImplementation, "M").WithArguments("I.M()").WithLocation(3, 24));
+        }
+
+        [Theory, CombinatorialData, WorkItem("https://github.com/dotnet/roslyn/issues/77346")]
+        public void InInterface_Virtual(
+            [CombinatorialValues("", "public", "private", "protected", "internal", "protected internal", "private protected")] string access,
+            [CombinatorialValues("", "virtual", "sealed")] string virt,
+            [CombinatorialValues(LanguageVersion.CSharp13, LanguageVersion.Preview, LanguageVersion.CSharp14)] LanguageVersion langVersion)
+        {
+            var source1 = $$"""
+                using System;
+
+                partial interface I
+                {
+                    {{access}} {{virt}}
+                    partial void M();
+                    {{access}} {{virt}}
+                    partial void M() { Console.Write(1); }
+                }
+                """;
+
+            var source2 = """
+                using System;
+
+                partial interface I
+                {
+                    static void Main()
+                    {
+                        Helper(new C1());
+                        Helper(new C2());
+                    }
+
+                    static void Helper(I x)
+                    {
+                        x.M();
+                    }
+                }
+
+                class C1 : I;
+
+                class C2 : I
+                {
+                    void I.M() { Console.Write(2); }
+                }
+                """;
+
+            bool expectedPrivate = access is "" or "private";
+
+            var expectedAccessibility = access switch
+            {
+                _ when expectedPrivate => Accessibility.Private,
+                "public" => Accessibility.Public,
+                "protected" => Accessibility.Protected,
+                "internal" => Accessibility.Internal,
+                "protected internal" => Accessibility.ProtectedOrInternal,
+                "private protected" => Accessibility.ProtectedAndFriend,
+                _ => throw ExceptionUtilities.UnexpectedValue(access),
+            };
+
+            bool expectedVirtual = virt == "virtual";
+
+            bool expectedSealed = virt == "sealed";
+
+            bool executable = !expectedPrivate && virt == "virtual";
+
+            DiagnosticDescription[] expectedDiagnostics = [];
+
+            if (access == "" && virt != "")
+            {
+                expectedDiagnostics =
+                [
+                    // (6,18): error CS8798: Partial method 'I.M()' must have accessibility modifiers because it has a 'virtual', 'override', 'sealed', 'new', or 'extern' modifier.
+                    //     partial void M();
+                    Diagnostic(ErrorCode.ERR_PartialMethodWithExtendedModMustHaveAccessMods, "M").WithArguments("I.M()").WithLocation(6, 18),
+                    // (8,18): error CS8798: Partial method 'I.M()' must have accessibility modifiers because it has a 'virtual', 'override', 'sealed', 'new', or 'extern' modifier.
+                    //     partial void M() { Console.Write(1); }
+                    Diagnostic(ErrorCode.ERR_PartialMethodWithExtendedModMustHaveAccessMods, "M").WithArguments("I.M()").WithLocation(8, 18)
+                ];
+            }
+            else if (virt == "sealed")
+            {
+                expectedDiagnostics =
+                [
+                    // (6,18): error CS0238: 'I.M()' cannot be sealed because it is not an override
+                    //     partial void M();
+                    Diagnostic(ErrorCode.ERR_SealedNonOverride, "M").WithArguments("I.M()").WithLocation(6, 18),
+                    // (8,18): error CS0238: 'I.M()' cannot be sealed because it is not an override
+                    //     partial void M() { Console.Write(1); }
+                    Diagnostic(ErrorCode.ERR_SealedNonOverride, "M").WithArguments("I.M()").WithLocation(8, 18)
+                ];
+            }
+            else if (expectedPrivate && virt == "virtual")
+            {
+                expectedDiagnostics =
+                [
+                    // (6,18): error CS0621: 'I.M()': virtual or abstract members cannot be private
+                    //     partial void M();
+                    Diagnostic(ErrorCode.ERR_VirtualPrivate, "M").WithArguments("I.M()").WithLocation(6, 18),
+                    // (8,18): error CS0621: 'I.M()': virtual or abstract members cannot be private
+                    //     partial void M() { Console.Write(1); }
+                    Diagnostic(ErrorCode.ERR_VirtualPrivate, "M").WithArguments("I.M()").WithLocation(8, 18)
+                ];
+            }
+
+            var comp = CreateCompilation(executable ? [source1, source2] : source1,
+                options: TestOptions.DebugDll
+                    .WithOutputKind(executable ? OutputKind.ConsoleApplication : OutputKind.DynamicallyLinkedLibrary)
+                    .WithMetadataImportOptions(MetadataImportOptions.All),
+                parseOptions: TestOptions.Regular.WithLanguageVersion(langVersion),
+                targetFramework: TargetFramework.Net60).VerifyDiagnostics(expectedDiagnostics);
+
+            if (expectedDiagnostics.Length == 0)
+            {
+                CompileAndVerify(comp,
+                    sourceSymbolValidator: validate,
+                    symbolValidator: validate,
+                    expectedOutput: executable && ExecutionConditionUtil.IsMonoOrCoreClr ? "12" : null,
+                    verify: Verification.FailsPEVerify).VerifyDiagnostics();
+            }
+            else
+            {
+                validate(comp.SourceModule);
+            }
+
+            void validate(ModuleSymbol module)
+            {
+                var m = module.GlobalNamespace.GetMember<MethodSymbol>("I.M");
+                validateMethod(m);
+
+                if (module is SourceModuleSymbol)
+                {
+                    validateMethod((MethodSymbol)m.GetPartialImplementationPart()!);
+                }
+            }
+
+            void validateMethod(MethodSymbol m)
+            {
+                Assert.False(m.IsAbstract);
+                Assert.Equal(expectedVirtual, m.IsVirtual);
+                Assert.Equal(expectedVirtual, m.IsMetadataVirtual());
+                Assert.Equal(expectedVirtual, m.IsMetadataNewSlot());
+                Assert.Equal(expectedSealed, m.IsSealed);
+                Assert.False(m.IsStatic);
+                Assert.False(m.IsExtern);
+                Assert.False(m.IsOverride);
+                Assert.Equal(expectedAccessibility, m.DeclaredAccessibility);
+                Assert.True(m.ContainingModule is not SourceModuleSymbol || m.IsPartialMember());
+            }
+        }
+
+        [Theory, CombinatorialData, WorkItem("https://github.com/dotnet/roslyn/issues/77346")]
+        public void InInterface_StaticVirtual(
+            [CombinatorialValues("", "public", "private", "protected", "internal", "protected internal", "private protected")] string access,
+            [CombinatorialValues("", "virtual", "sealed")] string virt,
+            [CombinatorialValues(LanguageVersion.CSharp13, LanguageVersion.Preview, LanguageVersion.CSharp14)] LanguageVersion langVersion)
+        {
+            var source1 = $$"""
+                partial interface I
+                {
+                    {{access}} static {{virt}}
+                    partial void M();
+                    {{access}} static {{virt}}
+                    partial void M() { System.Console.Write(1); }
+                }
+                """;
+
+            var source2 = """
+                partial interface I
+                {
+                    static void Main()
+                    {
+                        Helper<C1>();
+                        Helper<C2>();
+                        Helper<C3>();
+                    }
+
+                    static void Helper<T>() where T : I
+                    {
+                        T.M();
+                    }
+                }
+
+                class C1 : I
+                {
+                    static void M() { System.Console.Write(2); }
+                }
+
+                class C2 : I
+                {
+                    public static void M() { System.Console.Write(3); }
+                }
+
+                class C3 : I
+                {
+                    static void I.M() { System.Console.Write(4); }
+                }
+                """;
+
+            bool expectedPrivate = access is "" or "private";
+
+            var expectedAccessibility = access switch
+            {
+                _ when expectedPrivate => Accessibility.Private,
+                "public" => Accessibility.Public,
+                "protected" => Accessibility.Protected,
+                "internal" => Accessibility.Internal,
+                "protected internal" => Accessibility.ProtectedOrInternal,
+                "private protected" => Accessibility.ProtectedAndFriend,
+                _ => throw ExceptionUtilities.UnexpectedValue(access),
+            };
+
+            bool expectedVirtual = virt == "virtual";
+
+            bool executable = virt == "virtual" && !expectedPrivate;
+
+            DiagnosticDescription[] expectedDiagnostics = [];
+
+            if (access == "" && virt == "virtual")
+            {
+                expectedDiagnostics =
+                [
+                    // (4,18): error CS8798: Partial method 'I.M()' must have accessibility modifiers because it has a 'virtual', 'override', 'sealed', 'new', or 'extern' modifier.
+                    //     partial void M();
+                    Diagnostic(ErrorCode.ERR_PartialMethodWithExtendedModMustHaveAccessMods, "M").WithArguments("I.M()").WithLocation(4, 18),
+                    // (6,18): error CS8798: Partial method 'I.M()' must have accessibility modifiers because it has a 'virtual', 'override', 'sealed', 'new', or 'extern' modifier.
+                    //     partial void M() { System.Console.Write(1); }
+                    Diagnostic(ErrorCode.ERR_PartialMethodWithExtendedModMustHaveAccessMods, "M").WithArguments("I.M()").WithLocation(6, 18)
+                ];
+            }
+            else if (access == "private" && virt == "virtual")
+            {
+                expectedDiagnostics =
+                [
+                    // (4,18): error CS0621: 'I.M()': virtual or abstract members cannot be private
+                    //     partial void M();
+                    Diagnostic(ErrorCode.ERR_VirtualPrivate, "M").WithArguments("I.M()").WithLocation(4, 18),
+                    // (6,18): error CS0621: 'I.M()': virtual or abstract members cannot be private
+                    //     partial void M() { System.Console.Write(1); }
+                    Diagnostic(ErrorCode.ERR_VirtualPrivate, "M").WithArguments("I.M()").WithLocation(6, 18)
+                ];
+            }
+
+            var comp = CreateCompilation(executable ? [source1, source2] : source1,
+                parseOptions: TestOptions.Regular.WithLanguageVersion(langVersion),
+                options: TestOptions.DebugDll
+                    .WithOutputKind(executable ? OutputKind.ConsoleApplication : OutputKind.DynamicallyLinkedLibrary)
+                    .WithMetadataImportOptions(MetadataImportOptions.All),
+                targetFramework: TargetFramework.Net60).VerifyDiagnostics(expectedDiagnostics);
+
+            if (expectedDiagnostics.Length == 0)
+            {
+                CompileAndVerify(comp,
+                    sourceSymbolValidator: validate,
+                    symbolValidator: validate,
+                    expectedOutput: executable && ExecutionConditionUtil.IsMonoOrCoreClr ? "134" : null,
+                    verify: virt != "virtual" ? Verification.FailsPEVerify : Verification.Fails with
+                    {
+                        ILVerifyMessage = """
+                            [Helper]: Missing callvirt following constrained prefix. { Offset = 0x7 }
+                            """,
+                    }).VerifyDiagnostics();
+            }
+            else
+            {
+                validate(comp.SourceModule);
+            }
+
+            void validate(ModuleSymbol module)
+            {
+                var m = module.GlobalNamespace.GetMember<MethodSymbol>("I.M");
+                validateMethod(m);
+
+                if (module is SourceModuleSymbol)
+                {
+                    validateMethod((MethodSymbol)m.GetPartialImplementationPart()!);
+                }
+            }
+
+            void validateMethod(MethodSymbol m)
+            {
+                Assert.False(m.IsAbstract);
+                Assert.Equal(expectedVirtual, m.IsVirtual);
+                Assert.Equal(expectedVirtual, m.IsMetadataVirtual());
+                Assert.False(m.IsMetadataNewSlot());
+                Assert.False(m.IsSealed);
+                Assert.True(m.IsStatic);
+                Assert.False(m.IsExtern);
+                Assert.False(m.IsOverride);
+                Assert.Equal(expectedAccessibility, m.DeclaredAccessibility);
+                Assert.True(m.ContainingModule is not SourceModuleSymbol || m.IsPartialMember());
+            }
         }
 
         [Fact]
@@ -2428,38 +2836,43 @@ public partial class D : C
                 var verifier = CompileAndVerify(source2, references: new[] { reference }, parseOptions: TestOptions.RegularWithExtendedPartialMethods);
                 verifier.VerifyTypeIL("D", @"
 .class public auto ansi beforefieldinit D
-        extends [C]C
+	extends [C]C
 {
-        // Methods
-        .method public hidebysig virtual
-                instance void M (
-                        [in] object& modreq([netstandard]System.Runtime.InteropServices.InAttribute) x
-                ) cil managed
-        {
-                .param [1]
-                        .custom instance void System.Runtime.CompilerServices.IsReadOnlyAttribute::.ctor() = (
-                                01 00 00 00
-                        )
-                // Method begins at RVA 0x2058
-                // Code size 9 (0x9)
-                .maxstack 8
-                IL_0000: ldarg.1
-                IL_0001: ldind.ref
-                IL_0002: callvirt instance string [netstandard]System.Object::ToString()
-                IL_0007: pop
-                IL_0008: ret
-        } // end of method D::M
-        .method public hidebysig specialname rtspecialname
-                instance void .ctor () cil managed
-        {
-                // Method begins at RVA 0x2062
-                // Code size 7 (0x7)
-                .maxstack 8
-                IL_0000: ldarg.0
-                IL_0001: call instance void [C]C::.ctor()
-                IL_0006: ret
-        } // end of method D::.ctor
-} // end of class D");
+	// Methods
+	.method public hidebysig virtual 
+		instance void M (
+			[in] object& modreq([netstandard]System.Runtime.InteropServices.InAttribute) x
+		) cil managed 
+	{
+		.param [1]
+			.custom instance void System.Runtime.CompilerServices.IsReadOnlyAttribute::.ctor() = (
+				01 00 00 00
+			)
+		// Method begins at RVA 0x2067
+		// Code size 9 (0x9)
+		.maxstack 8
+
+		IL_0000: ldarg.1
+		IL_0001: ldind.ref
+		IL_0002: callvirt instance string [netstandard]System.Object::ToString()
+		IL_0007: pop
+		IL_0008: ret
+	} // end of method D::M
+
+	.method public hidebysig specialname rtspecialname 
+		instance void .ctor () cil managed 
+	{
+		// Method begins at RVA 0x2071
+		// Code size 7 (0x7)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: call instance void [C]C::.ctor()
+		IL_0006: ret
+	} // end of method D::.ctor
+
+} // end of class D
+");
             }
         }
 
@@ -2650,7 +3063,13 @@ partial class C
     public partial int M();
     public partial long M() => 42; // 1
 }";
-            var comp = CreateCompilation(source, parseOptions: TestOptions.RegularWithExtendedPartialMethods);
+            var comp = CreateCompilation(source, options: TestOptions.ReleaseDll.WithWarningLevel(5), parseOptions: TestOptions.RegularWithExtendedPartialMethods);
+            comp.VerifyDiagnostics(
+                // (5,25): error CS8817: Both partial method declarations must have the same return type.
+                //     public partial long M() => 42; // 1
+                Diagnostic(ErrorCode.ERR_PartialMethodReturnTypeDifference, "M").WithLocation(5, 25));
+
+            comp = CreateCompilation(source, options: TestOptions.ReleaseDll.WithWarningLevel(6), parseOptions: TestOptions.RegularWithExtendedPartialMethods);
             comp.VerifyDiagnostics(
                 // (5,25): error CS8817: Both partial method declarations must have the same return type.
                 //     public partial long M() => 42; // 1
@@ -2688,8 +3107,17 @@ partial class C
     public partial IEnumerable<string?> M2();
     public partial IEnumerable<string> M2() => null!;
 }";
-            var comp = CreateCompilation(source, parseOptions: TestOptions.RegularWithExtendedPartialMethods);
+            var comp = CreateCompilation(source, options: TestOptions.ReleaseDll.WithWarningLevel(5), parseOptions: TestOptions.RegularWithExtendedPartialMethods);
             comp.VerifyDiagnostics();
+
+            comp = CreateCompilation(source, options: TestOptions.ReleaseDll.WithWarningLevel(6), parseOptions: TestOptions.RegularWithExtendedPartialMethods);
+            comp.VerifyDiagnostics(
+                // (8,27): warning CS8825: Partial method declarations 'string? C.M1()' and 'string C.M1()' must have identical nullability for parameter types and return types.
+                //     public partial string M1() => "hello";
+                Diagnostic(ErrorCode.WRN_PartialMethodTypeDifference, "M1").WithArguments("string? C.M1()", "string C.M1()").WithLocation(8, 27),
+                // (11,40): warning CS8825: Partial method declarations 'IEnumerable<string?> C.M2()' and 'IEnumerable<string> C.M2()' must have identical nullability for parameter types and return types.
+                //     public partial IEnumerable<string> M2() => null!;
+                Diagnostic(ErrorCode.WRN_PartialMethodTypeDifference, "M2").WithArguments("IEnumerable<string?> C.M2()", "IEnumerable<string> C.M2()").WithLocation(11, 40));
         }
 
         [Fact, WorkItem(44930, "https://github.com/dotnet/roslyn/issues/44930")]
@@ -2707,7 +3135,16 @@ partial class C
     public partial IEnumerable<string> M2();
     public partial IEnumerable<string?> M2() => null!; // 2
 }";
-            var comp = CreateCompilation(source, parseOptions: TestOptions.RegularWithExtendedPartialMethods);
+            var comp = CreateCompilation(source, options: TestOptions.ReleaseDll.WithWarningLevel(5), parseOptions: TestOptions.RegularWithExtendedPartialMethods);
+            comp.VerifyDiagnostics(
+                // (8,28): warning CS8819: Nullability of reference types in return type doesn't match partial method declaration.
+                //     public partial string? M1() => null; // 1
+                Diagnostic(ErrorCode.WRN_NullabilityMismatchInReturnTypeOnPartial, "M1").WithLocation(8, 28),
+                // (11,41): warning CS8819: Nullability of reference types in return type doesn't match partial method declaration.
+                //     public partial IEnumerable<string?> M2() => null!; // 2
+                Diagnostic(ErrorCode.WRN_NullabilityMismatchInReturnTypeOnPartial, "M2").WithLocation(11, 41));
+
+            comp = CreateCompilation(source, options: TestOptions.ReleaseDll.WithWarningLevel(6), parseOptions: TestOptions.RegularWithExtendedPartialMethods);
             comp.VerifyDiagnostics(
                 // (8,28): warning CS8819: Nullability of reference types in return type doesn't match partial method declaration.
                 //     public partial string? M1() => null; // 1
@@ -2792,7 +3229,17 @@ partial class C
     public partial IEnumerable<V> M4<V>() => default;
 }";
             var comp = CreateCompilation(source, parseOptions: TestOptions.RegularWithExtendedPartialMethods);
-            comp.VerifyDiagnostics();
+            comp.VerifyDiagnostics(
+                // (7,22): warning CS8826: Partial method declarations 'U C.M1<U>()' and 'V C.M1<V>()' have signature differences.
+                //     public partial V M1<V>() => default;
+                Diagnostic(ErrorCode.WRN_PartialMethodTypeDifference, "M1").WithArguments("U C.M1<U>()", "V C.M1<V>()").WithLocation(7, 22),
+                // (13,22): warning CS8826: Partial method declarations 'U C.M3<U>()' and 'V C.M3<V>()' have signature differences.
+                //     public partial V M3<V>() => default;
+                Diagnostic(ErrorCode.WRN_PartialMethodTypeDifference, "M3").WithArguments("U C.M3<U>()", "V C.M3<V>()").WithLocation(13, 22),
+                // (16,35): warning CS8826: Partial method declarations 'IEnumerable<U> C.M4<U>()' and 'IEnumerable<V> C.M4<V>()' have signature differences.
+                //     public partial IEnumerable<V> M4<V>() => default;
+                Diagnostic(ErrorCode.WRN_PartialMethodTypeDifference, "M4").WithArguments("IEnumerable<U> C.M4<U>()", "IEnumerable<V> C.M4<V>()").WithLocation(16, 35)
+            );
         }
 
         [Fact, WorkItem(44930, "https://github.com/dotnet/roslyn/issues/44930")]
@@ -2832,21 +3279,39 @@ partial class C
                 // (7,20): error CS0246: The type or namespace name 'ERROR' could not be found (are you missing a using directive or an assembly reference?)
                 //     public partial ERROR M1() => throw null!; // 1
                 Diagnostic(ErrorCode.ERR_SingleTypeNameNotFound, "ERROR").WithArguments("ERROR").WithLocation(7, 20),
+                // (7,26): error CS8817: Both partial method declarations must have the same return type.
+                //     public partial ERROR M1() => throw null!; // 1
+                Diagnostic(ErrorCode.ERR_PartialMethodReturnTypeDifference, "M1").WithLocation(7, 26),
                 // (10,32): error CS0246: The type or namespace name 'ERROR' could not be found (are you missing a using directive or an assembly reference?)
                 //     public partial IEnumerable<ERROR> M2() => throw null!; // 2
                 Diagnostic(ErrorCode.ERR_SingleTypeNameNotFound, "ERROR").WithArguments("ERROR").WithLocation(10, 32),
+                // (10,39): error CS8817: Both partial method declarations must have the same return type.
+                //     public partial IEnumerable<ERROR> M2() => throw null!; // 2
+                Diagnostic(ErrorCode.ERR_PartialMethodReturnTypeDifference, "M2").WithLocation(10, 39),
                 // (13,32): error CS0246: The type or namespace name 'ERROR' could not be found (are you missing a using directive or an assembly reference?)
                 //     public partial IEnumerable<ERROR> M3() => throw null!; // 3
                 Diagnostic(ErrorCode.ERR_SingleTypeNameNotFound, "ERROR").WithArguments("ERROR").WithLocation(13, 32),
+                // (13,39): error CS8817: Both partial method declarations must have the same return type.
+                //     public partial IEnumerable<ERROR> M3() => throw null!; // 3
+                Diagnostic(ErrorCode.ERR_PartialMethodReturnTypeDifference, "M3").WithLocation(13, 39),
                 // (15,20): error CS0246: The type or namespace name 'ERROR' could not be found (are you missing a using directive or an assembly reference?)
                 //     public partial ERROR M4(); // 4
                 Diagnostic(ErrorCode.ERR_SingleTypeNameNotFound, "ERROR").WithArguments("ERROR").WithLocation(15, 20),
+                // (16,24): error CS8817: Both partial method declarations must have the same return type.
+                //     public partial int M4() => throw null!;
+                Diagnostic(ErrorCode.ERR_PartialMethodReturnTypeDifference, "M4").WithLocation(16, 24),
                 // (18,32): error CS0246: The type or namespace name 'ERROR' could not be found (are you missing a using directive or an assembly reference?)
                 //     public partial IEnumerable<ERROR> M5(); // 5
                 Diagnostic(ErrorCode.ERR_SingleTypeNameNotFound, "ERROR").WithArguments("ERROR").WithLocation(18, 32),
+                // (19,37): error CS8817: Both partial method declarations must have the same return type.
+                //     public partial IEnumerable<int> M5() => throw null!;
+                Diagnostic(ErrorCode.ERR_PartialMethodReturnTypeDifference, "M5").WithLocation(19, 37),
                 // (21,32): error CS0246: The type or namespace name 'ERROR' could not be found (are you missing a using directive or an assembly reference?)
                 //     public partial IEnumerable<ERROR> M6(); // 6
                 Diagnostic(ErrorCode.ERR_SingleTypeNameNotFound, "ERROR").WithArguments("ERROR").WithLocation(21, 32),
+                // (22,24): error CS8817: Both partial method declarations must have the same return type.
+                //     public partial int M6() => throw null!;
+                Diagnostic(ErrorCode.ERR_PartialMethodReturnTypeDifference, "M6").WithLocation(22, 24),
                 // (24,20): error CS0246: The type or namespace name 'ERROR' could not be found (are you missing a using directive or an assembly reference?)
                 //     public partial ERROR M7(); // 7
                 Diagnostic(ErrorCode.ERR_SingleTypeNameNotFound, "ERROR").WithArguments("ERROR").WithLocation(24, 20),
@@ -2875,12 +3340,18 @@ partial class C
 }";
             var comp = CreateCompilation(source, parseOptions: TestOptions.RegularWithExtendedPartialMethods);
             comp.VerifyDiagnostics(
-                // (5,24): error CS8818: Partial method declarations must have matching ref return values.
+                // (5,24): error CS8818: Partial member declarations must have matching ref return values.
                 //     public partial int M1() => throw null!; // 1
-                Diagnostic(ErrorCode.ERR_PartialMethodRefReturnDifference, "M1").WithLocation(5, 24),
-                // (8,28): error CS8818: Partial method declarations must have matching ref return values.
+                Diagnostic(ErrorCode.ERR_PartialMemberRefReturnDifference, "M1").WithLocation(5, 24),
+                // (5,24): warning CS8826: Partial method declarations 'ref int C.M1()' and 'int C.M1()' have signature differences.
+                //     public partial int M1() => throw null!; // 1
+                Diagnostic(ErrorCode.WRN_PartialMethodTypeDifference, "M1").WithArguments("ref int C.M1()", "int C.M1()").WithLocation(5, 24),
+                // (8,28): error CS8818: Partial member declarations must have matching ref return values.
                 //     public partial ref int M2() => throw null!; // 2
-                Diagnostic(ErrorCode.ERR_PartialMethodRefReturnDifference, "M2").WithLocation(8, 28));
+                Diagnostic(ErrorCode.ERR_PartialMemberRefReturnDifference, "M2").WithLocation(8, 28),
+                // (8,28): warning CS8826: Partial method declarations 'int C.M2()' and 'ref int C.M2()' have signature differences.
+                //     public partial ref int M2() => throw null!; // 2
+                Diagnostic(ErrorCode.WRN_PartialMethodTypeDifference, "M2").WithArguments("int C.M2()", "ref int C.M2()").WithLocation(8, 28));
         }
 
         [Fact, WorkItem(44930, "https://github.com/dotnet/roslyn/issues/44930")]
@@ -2935,9 +3406,9 @@ partial class C
 }";
             var comp = CreateCompilation(source, parseOptions: TestOptions.RegularWithExtendedPartialMethods);
             comp.VerifyDiagnostics(
-                // (4,35): error CS8142: Both partial method declarations, 'C.M1()' and 'C.M1()', must use the same tuple element names.
-                //     public partial (int x, int y) M1();
-                Diagnostic(ErrorCode.ERR_PartialMethodInconsistentTupleNames, "M1").WithArguments("C.M1()", "C.M1()").WithLocation(4, 35));
+                // (5,37): error CS8142: Both partial member declarations, 'C.M1()' and 'C.M1()', must use the same tuple element names.
+                //     public partial (int x1, int y1) M1() => default; // 1
+                Diagnostic(ErrorCode.ERR_PartialMemberInconsistentTupleNames, "M1").WithArguments("C.M1()", "C.M1()").WithLocation(5, 37));
         }
 
         [Fact, WorkItem(44930, "https://github.com/dotnet/roslyn/issues/44930")]
@@ -2968,8 +3439,17 @@ partial class C
     public partial dynamic M2();
     public partial object M2() => null;
 }";
-            var comp = CreateCompilation(source, parseOptions: TestOptions.RegularWithExtendedPartialMethods);
+            var comp = CreateCompilation(source, options: TestOptions.ReleaseDll.WithWarningLevel(5), parseOptions: TestOptions.RegularWithExtendedPartialMethods);
             comp.VerifyDiagnostics();
+
+            comp = CreateCompilation(source, options: TestOptions.ReleaseDll.WithWarningLevel(6), parseOptions: TestOptions.RegularWithExtendedPartialMethods);
+            comp.VerifyDiagnostics(
+                // (5,28): warning CS8826: Partial method declarations 'object C.M1()' and 'dynamic C.M1()' have signature differences.
+                //     public partial dynamic M1() => null;
+                Diagnostic(ErrorCode.WRN_PartialMethodTypeDifference, "M1").WithArguments("object C.M1()", "dynamic C.M1()").WithLocation(5, 28),
+                // (8,27): warning CS8826: Partial method declarations 'dynamic C.M2()' and 'object C.M2()' have signature differences.
+                //     public partial object M2() => null;
+                Diagnostic(ErrorCode.WRN_PartialMethodTypeDifference, "M2").WithArguments("dynamic C.M2()", "object C.M2()").WithLocation(8, 27));
         }
 
         [Fact, WorkItem(44930, "https://github.com/dotnet/roslyn/issues/44930")]
@@ -2986,8 +3466,17 @@ partial class C
     public partial nint M2();
     public partial IntPtr M2() => default;
 }";
-            var comp = CreateCompilation(source, parseOptions: TestOptions.RegularWithExtendedPartialMethods);
+            var comp = CreateCompilation(source, options: TestOptions.ReleaseDll.WithWarningLevel(5), parseOptions: TestOptions.RegularWithExtendedPartialMethods);
             comp.VerifyDiagnostics();
+
+            comp = CreateCompilation(source, options: TestOptions.ReleaseDll.WithWarningLevel(6), parseOptions: TestOptions.RegularWithExtendedPartialMethods);
+            comp.VerifyDiagnostics(
+                // (7,25): warning CS8826: Partial method declarations 'IntPtr C.M1()' and 'nint C.M1()' have signature differences.
+                //     public partial nint M1() => 0;
+                Diagnostic(ErrorCode.WRN_PartialMethodTypeDifference, "M1").WithArguments("IntPtr C.M1()", "nint C.M1()").WithLocation(7, 25),
+                // (10,27): warning CS8826: Partial method declarations 'nint C.M2()' and 'IntPtr C.M2()' have signature differences.
+                //     public partial IntPtr M2() => default;
+                Diagnostic(ErrorCode.WRN_PartialMethodTypeDifference, "M2").WithArguments("nint C.M2()", "IntPtr C.M2()").WithLocation(10, 27));
         }
 
         [Fact, WorkItem(44930, "https://github.com/dotnet/roslyn/issues/44930")]
@@ -3004,12 +3493,18 @@ partial class C
 }";
             var comp = CreateCompilation(source, parseOptions: TestOptions.RegularWithExtendedPartialMethods);
             comp.VerifyDiagnostics(
-                // (5,37): error CS8818: Partial method declarations must have matching ref return values.
+                // (5,37): error CS8818: Partial member declarations must have matching ref return values.
                 //     public partial ref readonly int M1() => throw null!; // 1
-                Diagnostic(ErrorCode.ERR_PartialMethodRefReturnDifference, "M1").WithLocation(5, 37),
-                // (8,28): error CS8818: Partial method declarations must have matching ref return values.
+                Diagnostic(ErrorCode.ERR_PartialMemberRefReturnDifference, "M1").WithLocation(5, 37),
+                // (5,37): warning CS8826: Partial method declarations 'ref int C.M1()' and 'ref readonly int C.M1()' have signature differences.
+                //     public partial ref readonly int M1() => throw null!; // 1
+                Diagnostic(ErrorCode.WRN_PartialMethodTypeDifference, "M1").WithArguments("ref int C.M1()", "ref readonly int C.M1()").WithLocation(5, 37),
+                // (8,28): error CS8818: Partial member declarations must have matching ref return values.
                 //     public partial ref int M2() => throw null!; // 2
-                Diagnostic(ErrorCode.ERR_PartialMethodRefReturnDifference, "M2").WithLocation(8, 28));
+                Diagnostic(ErrorCode.ERR_PartialMemberRefReturnDifference, "M2").WithLocation(8, 28),
+                // (8,28): warning CS8826: Partial method declarations 'ref readonly int C.M2()' and 'ref int C.M2()' have signature differences.
+                //     public partial ref int M2() => throw null!; // 2
+                Diagnostic(ErrorCode.WRN_PartialMethodTypeDifference, "M2").WithArguments("ref readonly int C.M2()", "ref int C.M2()").WithLocation(8, 28));
         }
 
         [Fact, WorkItem(44930, "https://github.com/dotnet/roslyn/issues/44930")]
@@ -3023,20 +3518,20 @@ partial class C
     public partial string? M1() => null; // 1
     
     public partial string? M2();
-    public partial string M2() => ""hello"";
+    public partial string M2() => ""hello""; // 2
     
 #nullable disable
     public partial string M3();
-    public partial string? M3() => null; // 2
+    public partial string? M3() => null; // 3
     
-    public partial string? M4(); // 3
+    public partial string? M4(); // 4
     public partial string M4() => ""hello"";
 
 #nullable enable
     public partial string M5();
     public partial string M6() => null!;
     public partial string M7();
-    public partial string M8() => null!;
+    public partial string M8() => null!; // 5
     public partial string? M9();
     public partial string? M10() => null;
     public partial string? M11();
@@ -3045,35 +3540,65 @@ partial class C
 #nullable disable
     public partial string M5() => null;
     public partial string M6();
-    public partial string? M7() => null; // 4
-    public partial string? M8(); // 5
+    public partial string? M7() => null; // 6
+    public partial string? M8(); // 7
     public partial string M9() => null;
     public partial string M10();
-    public partial string? M11() => null; // 6
-    public partial string? M12(); // 7
+    public partial string? M11() => null; // 8
+    public partial string? M12(); // 9
 }";
-            var comp = CreateCompilation(source, parseOptions: TestOptions.RegularWithExtendedPartialMethods);
+            var comp = CreateCompilation(source, options: TestOptions.ReleaseDll.WithWarningLevel(5), parseOptions: TestOptions.RegularWithExtendedPartialMethods);
             comp.VerifyDiagnostics(
                 // (6,28): warning CS8819: Nullability of reference types in return type doesn't match partial method declaration.
                 //     public partial string? M1() => null; // 1
                 Diagnostic(ErrorCode.WRN_NullabilityMismatchInReturnTypeOnPartial, "M1").WithLocation(6, 28),
                 // (13,26): warning CS8632: The annotation for nullable reference types should only be used in code within a '#nullable' annotations context.
-                //     public partial string? M3() => null; // 2
+                //     public partial string? M3() => null; // 3
                 Diagnostic(ErrorCode.WRN_MissingNonNullTypesContextForAnnotation, "?").WithLocation(13, 26),
                 // (15,26): warning CS8632: The annotation for nullable reference types should only be used in code within a '#nullable' annotations context.
-                //     public partial string? M4(); // 3
+                //     public partial string? M4(); // 4
                 Diagnostic(ErrorCode.WRN_MissingNonNullTypesContextForAnnotation, "?").WithLocation(15, 26),
                 // (31,26): warning CS8632: The annotation for nullable reference types should only be used in code within a '#nullable' annotations context.
-                //     public partial string? M7() => null; // 4
+                //     public partial string? M7() => null; // 6
                 Diagnostic(ErrorCode.WRN_MissingNonNullTypesContextForAnnotation, "?").WithLocation(31, 26),
                 // (32,26): warning CS8632: The annotation for nullable reference types should only be used in code within a '#nullable' annotations context.
-                //     public partial string? M8(); // 5
+                //     public partial string? M8(); // 7
                 Diagnostic(ErrorCode.WRN_MissingNonNullTypesContextForAnnotation, "?").WithLocation(32, 26),
                 // (35,26): warning CS8632: The annotation for nullable reference types should only be used in code within a '#nullable' annotations context.
-                //     public partial string? M11() => null; // 6
+                //     public partial string? M11() => null; // 8
                 Diagnostic(ErrorCode.WRN_MissingNonNullTypesContextForAnnotation, "?").WithLocation(35, 26),
                 // (36,26): warning CS8632: The annotation for nullable reference types should only be used in code within a '#nullable' annotations context.
-                //     public partial string? M12(); // 7
+                //     public partial string? M12(); // 9
+                Diagnostic(ErrorCode.WRN_MissingNonNullTypesContextForAnnotation, "?").WithLocation(36, 26));
+
+            comp = CreateCompilation(source, options: TestOptions.ReleaseDll.WithWarningLevel(6), parseOptions: TestOptions.RegularWithExtendedPartialMethods);
+            comp.VerifyDiagnostics(
+                // (6,28): warning CS8819: Nullability of reference types in return type doesn't match partial method declaration.
+                //     public partial string? M1() => null; // 1
+                Diagnostic(ErrorCode.WRN_NullabilityMismatchInReturnTypeOnPartial, "M1").WithLocation(6, 28),
+                // (9,27): warning CS8826: Partial method declarations 'string? C.M2()' and 'string C.M2()' have signature differences.
+                //     public partial string M2() => "hello"; // 2
+                Diagnostic(ErrorCode.WRN_PartialMethodTypeDifference, "M2").WithArguments("string? C.M2()", "string C.M2()").WithLocation(9, 27),
+                // (13,26): warning CS8632: The annotation for nullable reference types should only be used in code within a '#nullable' annotations context.
+                //     public partial string? M3() => null; // 3
+                Diagnostic(ErrorCode.WRN_MissingNonNullTypesContextForAnnotation, "?").WithLocation(13, 26),
+                // (15,26): warning CS8632: The annotation for nullable reference types should only be used in code within a '#nullable' annotations context.
+                //     public partial string? M4(); // 4
+                Diagnostic(ErrorCode.WRN_MissingNonNullTypesContextForAnnotation, "?").WithLocation(15, 26),
+                // (22,27): warning CS8826: Partial method declarations 'string? C.M8()' and 'string C.M8()' have signature differences.
+                //     public partial string M8() => null!; // 5
+                Diagnostic(ErrorCode.WRN_PartialMethodTypeDifference, "M8").WithArguments("string? C.M8()", "string C.M8()").WithLocation(22, 27),
+                // (31,26): warning CS8632: The annotation for nullable reference types should only be used in code within a '#nullable' annotations context.
+                //     public partial string? M7() => null; // 6
+                Diagnostic(ErrorCode.WRN_MissingNonNullTypesContextForAnnotation, "?").WithLocation(31, 26),
+                // (32,26): warning CS8632: The annotation for nullable reference types should only be used in code within a '#nullable' annotations context.
+                //     public partial string? M8(); // 7
+                Diagnostic(ErrorCode.WRN_MissingNonNullTypesContextForAnnotation, "?").WithLocation(32, 26),
+                // (35,26): warning CS8632: The annotation for nullable reference types should only be used in code within a '#nullable' annotations context.
+                //     public partial string? M11() => null; // 8
+                Diagnostic(ErrorCode.WRN_MissingNonNullTypesContextForAnnotation, "?").WithLocation(35, 26),
+                // (36,26): warning CS8632: The annotation for nullable reference types should only be used in code within a '#nullable' annotations context.
+                //     public partial string? M12(); // 9
                 Diagnostic(ErrorCode.WRN_MissingNonNullTypesContextForAnnotation, "?").WithLocation(36, 26));
         }
 
@@ -3091,9 +3616,9 @@ partial class C
                 // (4,27): error CS8817: Both partial method declarations must have the same return type.
                 //     public partial string F1() => null;
                 Diagnostic(ErrorCode.ERR_PartialMethodReturnTypeDifference, "F1").WithLocation(4, 27),
-                // (4,27): error CS8818: Partial method declarations must have matching ref return values.
+                // (4,27): error CS8818: Partial member declarations must have matching ref return values.
                 //     public partial string F1() => null;
-                Diagnostic(ErrorCode.ERR_PartialMethodRefReturnDifference, "F1").WithLocation(4, 27));
+                Diagnostic(ErrorCode.ERR_PartialMemberRefReturnDifference, "F1").WithLocation(4, 27));
         }
 
         [Fact]
@@ -3107,9 +3632,185 @@ partial class C
 }";
             var comp = CreateCompilation(source, parseOptions: TestOptions.RegularWithExtendedPartialMethods);
             comp.VerifyDiagnostics(
-                // (4,31): error CS8818: Partial method declarations must have matching ref return values.
-                //     public partial (int, int) F1() => default;
-                Diagnostic(ErrorCode.ERR_PartialMethodRefReturnDifference, "F1").WithLocation(4, 31));
+                    // (4,31): error CS8818: Partial member declarations must have matching ref return values.
+                    //     public partial (int, int) F1() => default;
+                    Diagnostic(ErrorCode.ERR_PartialMemberRefReturnDifference, "F1").WithLocation(4, 31),
+                    // (4,31): warning CS8826: Partial method declarations 'ref (int x, int y) C.F1()' and '(int, int) C.F1()' have signature differences.
+                    //     public partial (int, int) F1() => default;
+                    Diagnostic(ErrorCode.WRN_PartialMethodTypeDifference, "F1").WithArguments("ref (int x, int y) C.F1()", "(int, int) C.F1()").WithLocation(4, 31));
+        }
+
+        [Fact]
+        [WorkItem(45519, "https://github.com/dotnet/roslyn/issues/45519")]
+        public void DifferentSignatures_Dynamic()
+        {
+            var source =
+@"partial class C
+{
+    partial void F1(object o);
+    partial void F1(dynamic o) { } // 1
+    internal partial void F2(object o);
+    internal partial void F2(dynamic o) { } // 2
+    internal partial dynamic F3();
+    internal partial object F3() => null; // 3
+}";
+            var comp = CreateCompilation(source, options: TestOptions.ReleaseDll.WithWarningLevel(5));
+            comp.VerifyDiagnostics();
+
+            comp = CreateCompilation(source, options: TestOptions.ReleaseDll.WithWarningLevel(6));
+            comp.VerifyDiagnostics(
+                // (4,18): warning CS8826: Partial method declarations 'void C.F1(object o)' and 'void C.F1(dynamic o)' have signature differences.
+                //     partial void F1(dynamic o) { } // 1
+                Diagnostic(ErrorCode.WRN_PartialMethodTypeDifference, "F1", isSuppressed: false).WithArguments("void C.F1(object o)", "void C.F1(dynamic o)").WithLocation(4, 18),
+                // (6,27): warning CS8826: Partial method declarations 'void C.F2(object o)' and 'void C.F2(dynamic o)' have signature differences.
+                //     internal partial void F2(dynamic o) { } // 2
+                Diagnostic(ErrorCode.WRN_PartialMethodTypeDifference, "F2", isSuppressed: false).WithArguments("void C.F2(object o)", "void C.F2(dynamic o)").WithLocation(6, 27),
+                // (8,29): warning CS8826: Partial method declarations 'dynamic C.F3()' and 'object C.F3()' have signature differences.
+                //     internal partial object F3() => null; // 3
+                Diagnostic(ErrorCode.WRN_PartialMethodTypeDifference, "F3", isSuppressed: false).WithArguments("dynamic C.F3()", "object C.F3()").WithLocation(8, 29));
+        }
+
+        [Fact]
+        [WorkItem(45519, "https://github.com/dotnet/roslyn/issues/45519")]
+        public void DifferentSignatures_Nullable()
+        {
+            var source =
+@"using System.Collections.Generic;
+#nullable enable
+partial class C
+{
+    partial void F1(string? s);
+    partial void F1(string s) { } // 1
+    partial void F2(IEnumerable<string?> s);
+    partial void F2(IEnumerable<string> s) { } // 2
+    internal partial void F3(string? s);
+    internal partial void F3(string s) { } // 3
+    internal partial void F4(IEnumerable<string?> s);
+    internal partial void F4(IEnumerable<string> s) { } // 4
+    internal partial string? F5();
+    internal partial string F5() => null!; // 5
+    internal partial IEnumerable<string> F6();
+    internal partial IEnumerable<string?> F6() => null!; // 6
+}";
+            var comp = CreateCompilation(source, options: TestOptions.ReleaseDll.WithWarningLevel(5));
+            comp.VerifyDiagnostics(
+                // (6,18): warning CS8611: Nullability of reference types in type of parameter 's' doesn't match partial method declaration.
+                //     partial void F1(string s) { } // 1
+                Diagnostic(ErrorCode.WRN_NullabilityMismatchInParameterTypeOnPartial, "F1").WithArguments("s").WithLocation(6, 18),
+                // (8,18): warning CS8611: Nullability of reference types in type of parameter 's' doesn't match partial method declaration.
+                //     partial void F2(IEnumerable<string> s) { } // 2
+                Diagnostic(ErrorCode.WRN_NullabilityMismatchInParameterTypeOnPartial, "F2").WithArguments("s").WithLocation(8, 18),
+                // (10,27): warning CS8611: Nullability of reference types in type of parameter 's' doesn't match partial method declaration.
+                //     internal partial void F3(string s) { } // 3
+                Diagnostic(ErrorCode.WRN_NullabilityMismatchInParameterTypeOnPartial, "F3").WithArguments("s").WithLocation(10, 27),
+                // (12,27): warning CS8611: Nullability of reference types in type of parameter 's' doesn't match partial method declaration.
+                //     internal partial void F4(IEnumerable<string> s) { } // 4
+                Diagnostic(ErrorCode.WRN_NullabilityMismatchInParameterTypeOnPartial, "F4").WithArguments("s").WithLocation(12, 27),
+                // (16,43): warning CS8819: Nullability of reference types in return type doesn't match partial method declaration.
+                //     internal partial IEnumerable<string?> F6() => null!; // 6
+                Diagnostic(ErrorCode.WRN_NullabilityMismatchInReturnTypeOnPartial, "F6").WithLocation(16, 43));
+
+            comp = CreateCompilation(source, options: TestOptions.ReleaseDll.WithWarningLevel(6));
+            comp.VerifyDiagnostics(
+                // (6,18): warning CS8611: Nullability of reference types in type of parameter 's' doesn't match partial method declaration.
+                //     partial void F1(string s) { } // 1
+                Diagnostic(ErrorCode.WRN_NullabilityMismatchInParameterTypeOnPartial, "F1").WithArguments("s").WithLocation(6, 18),
+                // (8,18): warning CS8611: Nullability of reference types in type of parameter 's' doesn't match partial method declaration.
+                //     partial void F2(IEnumerable<string> s) { } // 2
+                Diagnostic(ErrorCode.WRN_NullabilityMismatchInParameterTypeOnPartial, "F2").WithArguments("s").WithLocation(8, 18),
+                // (10,27): warning CS8611: Nullability of reference types in type of parameter 's' doesn't match partial method declaration.
+                //     internal partial void F3(string s) { } // 3
+                Diagnostic(ErrorCode.WRN_NullabilityMismatchInParameterTypeOnPartial, "F3").WithArguments("s").WithLocation(10, 27),
+                // (12,27): warning CS8611: Nullability of reference types in type of parameter 's' doesn't match partial method declaration.
+                //     internal partial void F4(IEnumerable<string> s) { } // 4
+                Diagnostic(ErrorCode.WRN_NullabilityMismatchInParameterTypeOnPartial, "F4").WithArguments("s").WithLocation(12, 27),
+                // (14,29): warning CS8826: Partial method declarations 'string? C.F5()' and 'string C.F5()' have signature differences.
+                //     internal partial string F5() => null!; // 5
+                Diagnostic(ErrorCode.WRN_PartialMethodTypeDifference, "F5").WithArguments("string? C.F5()", "string C.F5()").WithLocation(14, 29),
+                // (16,43): warning CS8819: Nullability of reference types in return type doesn't match partial method declaration.
+                //     internal partial IEnumerable<string?> F6() => null!; // 6
+                Diagnostic(ErrorCode.WRN_NullabilityMismatchInReturnTypeOnPartial, "F6").WithLocation(16, 43));
+        }
+
+        // Errors reported for all differences.
+        [Fact]
+        [WorkItem(45519, "https://github.com/dotnet/roslyn/issues/45519")]
+        public void DifferentSignatures_Tuples()
+        {
+            var source =
+@"partial class C
+{
+    partial void F1<T, U>((T x, U y) t) { }
+    partial void F1<T, U>((T x, U y) t);
+    partial void F2<T, U>((T x, U y) t) { } // 1
+    partial void F2<T, U>((T, U) t);
+    partial void F3((dynamic, object) t);
+    partial void F3((object x, dynamic y) t) { } // 2
+    internal partial void F4<T, U>((T x, U y) t);
+    internal partial void F4<T, U>((T, U) t) { } // 3
+    internal partial (T, U) F5<T, U>() => default;
+    internal partial (T, U) F5<T, U>();
+    internal partial (T, U) F6<T, U>() => default; // 4
+    internal partial (T x, U y) F6<T, U>();
+}";
+            var comp = CreateCompilation(source, options: TestOptions.ReleaseDll.WithWarningLevel(5));
+            verifyDiagnostics(comp);
+
+            comp = CreateCompilation(source, options: TestOptions.ReleaseDll.WithWarningLevel(6));
+            verifyDiagnostics(comp);
+
+            static void verifyDiagnostics(CSharpCompilation comp)
+            {
+                comp.VerifyDiagnostics(
+                    // (5,18): error CS8142: Both partial member declarations, 'C.F2<T, U>((T, U))' and 'C.F2<T, U>((T x, U y))', must use the same tuple element names.
+                    //     partial void F2<T, U>((T x, U y) t) { } // 1
+                    Diagnostic(ErrorCode.ERR_PartialMemberInconsistentTupleNames, "F2").WithArguments("C.F2<T, U>((T, U))", "C.F2<T, U>((T x, U y))").WithLocation(5, 18),
+                    // (8,18): error CS8142: Both partial member declarations, 'C.F3((dynamic, object))' and 'C.F3((object x, dynamic y))', must use the same tuple element names.
+                    //     partial void F3((object x, dynamic y) t) { } // 2
+                    Diagnostic(ErrorCode.ERR_PartialMemberInconsistentTupleNames, "F3").WithArguments("C.F3((dynamic, object))", "C.F3((object x, dynamic y))").WithLocation(8, 18),
+                    // (10,27): error CS8142: Both partial member declarations, 'C.F4<T, U>((T x, U y))' and 'C.F4<T, U>((T, U))', must use the same tuple element names.
+                    //     internal partial void F4<T, U>((T, U) t) { } // 3
+                    Diagnostic(ErrorCode.ERR_PartialMemberInconsistentTupleNames, "F4").WithArguments("C.F4<T, U>((T x, U y))", "C.F4<T, U>((T, U))").WithLocation(10, 27),
+                    // (13,29): error CS8142: Both partial member declarations, 'C.F6<T, U>()' and 'C.F6<T, U>()', must use the same tuple element names.
+                    //     internal partial (T, U) F6<T, U>() => default; // 4
+                    Diagnostic(ErrorCode.ERR_PartialMemberInconsistentTupleNames, "F6").WithArguments("C.F6<T, U>()", "C.F6<T, U>()").WithLocation(13, 29));
+            }
+        }
+
+        [Fact]
+        [WorkItem(45519, "https://github.com/dotnet/roslyn/issues/45519")]
+        public void DifferentSignatures_NativeIntegers()
+        {
+            var source =
+@"using System.Collections.Generic;
+partial class C
+{
+    partial void F1(nint i);
+    partial void F1(System.IntPtr i) { } // 1
+    partial void F2(dynamic x, nint y);
+    partial void F2(object x, System.IntPtr y) { } // 2
+    internal partial void F3(nint i);
+    internal partial void F3(System.IntPtr i) { } // 3
+    internal partial IEnumerable<System.IntPtr> F4();
+    internal partial IEnumerable<nint> F4() => null; // 4
+}";
+            var comp = CreateCompilation(source, options: TestOptions.ReleaseDll.WithWarningLevel(5));
+            comp.VerifyDiagnostics();
+
+            comp = CreateCompilation(source, options: TestOptions.ReleaseDll.WithWarningLevel(6));
+            comp.VerifyDiagnostics(
+                // (5,18): warning CS8826: Partial method declarations 'void C.F1(nint i)' and 'void C.F1(IntPtr i)' have signature differences.
+                //     partial void F1(System.IntPtr i) { } // 1
+                Diagnostic(ErrorCode.WRN_PartialMethodTypeDifference, "F1").WithArguments("void C.F1(nint i)", "void C.F1(IntPtr i)").WithLocation(5, 18),
+                // (7,18): warning CS8826: Partial method declarations 'void C.F2(dynamic x, nint y)' and 'void C.F2(object x, IntPtr y)' have signature differences.
+                //     partial void F2(object x, System.IntPtr y) { } // 2
+                Diagnostic(ErrorCode.WRN_PartialMethodTypeDifference, "F2").WithArguments("void C.F2(dynamic x, nint y)", "void C.F2(object x, IntPtr y)").WithLocation(7, 18),
+                // (9,27): warning CS8826: Partial method declarations 'void C.F3(nint i)' and 'void C.F3(IntPtr i)' have signature differences.
+                //     internal partial void F3(System.IntPtr i) { } // 3
+                Diagnostic(ErrorCode.WRN_PartialMethodTypeDifference, "F3").WithArguments("void C.F3(nint i)", "void C.F3(IntPtr i)").WithLocation(9, 27),
+                // (11,40): warning CS8826: Partial method declarations 'IEnumerable<IntPtr> C.F4()' and 'IEnumerable<nint> C.F4()' have signature differences.
+                //     internal partial IEnumerable<nint> F4() => null; // 4
+                Diagnostic(ErrorCode.WRN_PartialMethodTypeDifference, "F4").WithArguments("IEnumerable<IntPtr> C.F4()", "IEnumerable<nint> C.F4()").WithLocation(11, 40));
         }
 
         [Fact]

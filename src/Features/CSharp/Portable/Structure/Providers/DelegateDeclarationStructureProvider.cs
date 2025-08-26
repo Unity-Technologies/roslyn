@@ -2,24 +2,22 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
-#nullable disable
-
 using System.Threading;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.PooledObjects;
 using Microsoft.CodeAnalysis.Structure;
 
-namespace Microsoft.CodeAnalysis.CSharp.Structure
+namespace Microsoft.CodeAnalysis.CSharp.Structure;
+
+internal sealed class DelegateDeclarationStructureProvider : AbstractSyntaxNodeStructureProvider<DelegateDeclarationSyntax>
 {
-    internal class DelegateDeclarationStructureProvider : AbstractSyntaxNodeStructureProvider<DelegateDeclarationSyntax>
+    protected override void CollectBlockSpans(
+        SyntaxToken previousToken,
+        DelegateDeclarationSyntax delegateDeclaration,
+        ArrayBuilder<BlockSpan> spans,
+        BlockStructureOptions options,
+        CancellationToken cancellationToken)
     {
-        protected override void CollectBlockSpans(
-            DelegateDeclarationSyntax delegateDeclaration,
-            ArrayBuilder<BlockSpan> spans,
-            BlockStructureOptionProvider optionProvider,
-            CancellationToken cancellationToken)
-        {
-            CSharpStructureHelpers.CollectCommentBlockSpans(delegateDeclaration, spans, optionProvider);
-        }
+        CSharpStructureHelpers.CollectCommentBlockSpans(delegateDeclaration, spans, options);
     }
 }

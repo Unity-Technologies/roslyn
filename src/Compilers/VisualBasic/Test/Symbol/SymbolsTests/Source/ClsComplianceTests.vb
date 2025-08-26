@@ -3,7 +3,6 @@
 ' See the LICENSE file in the project root for more information.
 
 Imports Microsoft.CodeAnalysis.PooledObjects
-Imports Microsoft.CodeAnalysis.Test.Extensions
 Imports Microsoft.CodeAnalysis.Test.Utilities
 Imports Microsoft.CodeAnalysis.VisualBasic.Symbols
 Imports Roslyn.Test.Utilities
@@ -1960,7 +1959,6 @@ Imports System
 
             ' Nothing reported since the namespace inherits CLSCompliant(False) from the assembly.
             CreateCompilationWithMscorlib40(source1, options:=TestOptions.ReleaseDll.WithRootNamespace("_A")).AssertNoDiagnostics()
-
 
             Dim source2 =
                 <compilation>

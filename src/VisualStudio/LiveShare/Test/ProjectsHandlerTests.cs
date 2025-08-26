@@ -9,28 +9,32 @@ using System.Threading.Tasks;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.LanguageServer;
 using Xunit;
+using Xunit.Abstractions;
 
-namespace Microsoft.VisualStudio.LanguageServices.LiveShare.UnitTests
+namespace Microsoft.VisualStudio.LanguageServices.LiveShare.UnitTests;
+
+public sealed class ProjectsHandlerTests : AbstractLiveShareRequestHandlerTests
 {
-    public class ProjectsHandlerTests : AbstractLiveShareRequestHandlerTests
+    public ProjectsHandlerTests(ITestOutputHelper testOutputHelper) : base(testOutputHelper)
     {
-        [Fact]
-        public async Task TestProjectsAsync()
-        {
-            using var workspace = CreateTestWorkspace(string.Empty, out var _);
-            var solution = workspace.CurrentSolution;
-            var expected = solution.Projects.Select(p => CreateLspProject(p)).ToArray();
-
-            var results = (CustomProtocol.Project[])await TestHandleAsync<object, object[]>(solution, null, CustomProtocol.RoslynMethods.ProjectsName);
-            AssertJsonEquals(expected, results);
-        }
-
-        private static CustomProtocol.Project CreateLspProject(Project project)
-            => new CustomProtocol.Project()
-            {
-                Language = project.Language,
-                Name = project.Name,
-                SourceFiles = project.Documents.Select(document => document.GetURI()).ToArray()
-            };
     }
+
+    [Theory, CombinatorialData]
+    public async Task TestProjectsAsync(bool mutatingLspWorkspace)
+    {
+        await using var testLspServer = await CreateTestLspServerAsync(string.Empty, mutatingLspWorkspace);
+        var solution = testLspServer.GetCurrentSolution();
+        var expected = solution.Projects.Select(p => CreateLspProject(p)).ToArray();
+
+        var results = (CustomProtocol.Project[])await TestHandleAsync<object, object[]>(solution, null, CustomProtocol.RoslynMethods.ProjectsName);
+        AssertJsonEquals(expected, results);
+    }
+
+    private static CustomProtocol.Project CreateLspProject(Project project)
+        => new CustomProtocol.Project()
+        {
+            Language = project.Language,
+            Name = project.Name,
+            SourceFiles = [.. project.Documents.Select(document => document.GetURI().GetRequiredParsedUri())]
+        };
 }

@@ -3,109 +3,119 @@
 // See the LICENSE file in the project root for more information.
 
 using System;
-using System.Collections.Immutable;
-using System.Reflection;
+using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.CodeAnalysis.Host.Mef;
-using Microsoft.VisualStudio.Composition;
+using Microsoft.ServiceHub.Framework;
 using Roslyn.Utilities;
 
-namespace Microsoft.CodeAnalysis.Remote
+namespace Microsoft.CodeAnalysis.Remote;
+
+/// <summary>
+/// Manages remote workspaces. Currently supports only a single, primary workspace of kind <see
+/// cref="WorkspaceKind.RemoteWorkspace"/>. In future it should support workspaces of all kinds.
+/// </summary>
+internal class RemoteWorkspaceManager
 {
     /// <summary>
-    /// Manages remote workspaces. Currently supports only a single, primary workspace of kind <see cref="WorkspaceKind.RemoteWorkspace"/>. 
-    /// In future it should support workspaces of all kinds.
+    /// Default workspace manager used by the product. Tests may specify a custom <see
+    /// cref="RemoteWorkspaceManager"/> in order to override workspace services.
     /// </summary>
-    internal class RemoteWorkspaceManager
+    /// <remarks>
+    /// The general thinking behind these timings is that we don't want to be too aggressive constantly waking up
+    /// and cleaning purging items from the cache.  But we also don't want to wait an excessive amount of time,
+    /// allowing it to get too full.
+    /// <para>
+    /// Also note that the asset cache will not remove items associated with the <see
+    /// cref="Workspace.CurrentSolution"/> of the workspace it is created against (as well as any recent in-flight
+    /// solutions).  This ensures that the assets associated with the solution that most closely corresponds to what
+    /// the user is working with will stay pinned on the remote side and not get purged just because the user
+    /// stopped interactive for a while.  This ensures the next sync (which likely overlaps heavily with the current
+    /// solution) will not force the same assets to be resent.
+    /// </para>
+    /// <list type="bullet">
+    /// <item>CleanupInterval=30s gives what feels to be a reasonable non-aggressive amount of time to let the cache
+    /// do its job, while also making sure several times a minute it is scanned for things that can be
+    /// dropped.</item>
+    /// <item>PurgeAfter=1m effectively states that an item will be dumped from the cache if not used in the last
+    /// minute.  This seems reasonable for keeping around all the parts of the current solutions in use, while
+    /// allowing values from the past, or values removed from the solution to not persist too long.</item>
+    /// <item>GcAfter=1m means that we'll force some GCs to happen after that amount of time of *non-activity*.  In
+    /// other words, as long as OOP is being touched for operations, we will avoid doing the GCs.
+    /// </item>
+    /// </list>
+    /// </remarks>
+    private static readonly Lazy<RemoteWorkspaceManager> s_default = new(static () =>
     {
-        /// <summary>
-        /// Default workspace manager used by the product. Tests may specify a custom <see cref="RemoteWorkspaceManager"/>
-        /// in order to override workspace services.
-        /// </summary>
-        internal static readonly RemoteWorkspaceManager Default = new RemoteWorkspaceManager(
-            new SolutionAssetCache(cleanupInterval: TimeSpan.FromMinutes(1), purgeAfter: TimeSpan.FromMinutes(3), gcAfter: TimeSpan.FromMinutes(5)));
+        return new RemoteWorkspaceManager(CreateAssetCache);
 
-        internal static readonly ImmutableArray<Assembly> RemoteHostAssemblies =
-            MefHostServices.DefaultAssemblies
-                .Add(typeof(ServiceBase).Assembly)
-                .Add(typeof(RemoteWorkspacesResources).Assembly);
+        static SolutionAssetCache CreateAssetCache(RemoteWorkspace workspace)
+            => new SolutionAssetCache(workspace, cleanupInterval: TimeSpan.FromSeconds(30), purgeAfter: TimeSpan.FromMinutes(1));
+    });
 
-        private readonly Lazy<RemoteWorkspace> _lazyPrimaryWorkspace;
-        internal readonly SolutionAssetCache SolutionAssetCache;
+    internal static RemoteWorkspaceManager Default => s_default.Value;
 
-        // TODO: remove
-        private IAssetSource? _solutionAssetSource;
+    private readonly RemoteWorkspace _workspace;
+    internal readonly SolutionAssetCache SolutionAssetCache;
 
-        public RemoteWorkspaceManager(SolutionAssetCache assetCache)
-        {
-            _lazyPrimaryWorkspace = new Lazy<RemoteWorkspace>(CreatePrimaryWorkspace);
-            SolutionAssetCache = assetCache;
-        }
+    public RemoteWorkspaceManager(Func<RemoteWorkspace, SolutionAssetCache> createAssetCache)
+        : this(createAssetCache, CreatePrimaryWorkspace())
+    {
+    }
 
-        // TODO: remove
-        [Obsolete("Supports non-brokered services")]
-        internal IAssetSource GetAssetSource()
-        {
-            Contract.ThrowIfNull(_solutionAssetSource, "Storage not initialized");
-            return _solutionAssetSource;
-        }
+    public RemoteWorkspaceManager(
+        Func<RemoteWorkspace, SolutionAssetCache> createAssetCache,
+        RemoteWorkspace workspace)
+    {
+        _workspace = workspace;
+        SolutionAssetCache = createAssetCache(workspace);
+    }
 
-        // TODO: remove
-        [Obsolete("Supports non-brokered services")]
-        internal void InitializeAssetSource(IAssetSource assetSource)
-        {
-            Contract.ThrowIfFalse(_solutionAssetSource == null);
-            _solutionAssetSource = assetSource;
-        }
+    private static RemoteWorkspace CreatePrimaryWorkspace()
+    {
+        var exportProvider = RemoteExportProviderBuilder.ExportProvider;
+        return new RemoteWorkspace(VisualStudioMefHostServices.Create(exportProvider));
+    }
 
-        [Obsolete("To be removed: https://github.com/dotnet/roslyn/issues/43477")]
-        public IAssetSource? TryGetAssetSource()
-            => _solutionAssetSource;
+    public RemoteWorkspace GetWorkspace() => _workspace;
 
-        private static ComposableCatalog CreateCatalog(ImmutableArray<Assembly> assemblies)
-        {
-            var resolver = new Resolver(SimpleAssemblyLoader.Instance);
-            var discovery = new AttributedPartDiscovery(resolver, isNonPublicSupported: true);
-            var parts = Task.Run(async () => await discovery.CreatePartsAsync(assemblies).ConfigureAwait(false)).GetAwaiter().GetResult();
-            return ComposableCatalog.Create(resolver).AddParts(parts);
-        }
+    /// <summary>
+    /// Not ideal that we exposing the workspace solution, while not ensuring it stays alive for other calls using
+    /// the same <paramref name="solutionChecksum"/>). However, this is used by Pythia/Razor/UnitTesting which all
+    /// assume they can get that solution instance and use as desired by them.
+    /// </summary>
+    [Obsolete("Use RunServiceAsync (that is passed a Solution) instead", error: false)]
+    public async ValueTask<Solution> GetSolutionAsync(ServiceBrokerClient client, Checksum solutionChecksum, CancellationToken cancellationToken)
+    {
+        var assetSource = new SolutionAssetSource(client);
+        var workspace = GetWorkspace();
+        var assetProvider = workspace.CreateAssetProvider(solutionChecksum, SolutionAssetCache, assetSource);
 
-        private static IExportProviderFactory CreateExportProviderFactory(ComposableCatalog catalog)
-        {
-            var configuration = CompositionConfiguration.Create(catalog);
-            var runtimeComposition = RuntimeComposition.CreateRuntimeComposition(configuration);
-            return runtimeComposition.CreateExportProviderFactory();
-        }
+        var (solution, _) = await workspace.RunWithSolutionAsync(
+            assetProvider,
+            solutionChecksum,
+            static _ => ValueTask.FromResult(false),
+            cancellationToken).ConfigureAwait(false);
 
-        private static RemoteWorkspace CreatePrimaryWorkspace()
-        {
-            var catalog = CreateCatalog(RemoteHostAssemblies);
-            var exportProviderFactory = CreateExportProviderFactory(catalog);
-            var exportProvider = exportProviderFactory.CreateExportProvider();
+        return solution;
+    }
 
-            return new RemoteWorkspace(VisualStudioMefHostServices.Create(exportProvider), WorkspaceKind.RemoteWorkspace);
-        }
+    public async ValueTask<T> RunServiceAsync<T>(
+        ServiceBrokerClient client,
+        Checksum solutionChecksum,
+        Func<Solution, ValueTask<T>> implementation,
+        CancellationToken cancellationToken)
+    {
+        var assetSource = new SolutionAssetSource(client);
+        var workspace = GetWorkspace();
+        var assetProvider = workspace.CreateAssetProvider(solutionChecksum, SolutionAssetCache, assetSource);
 
-        public virtual RemoteWorkspace GetWorkspace()
-            => _lazyPrimaryWorkspace.Value;
+        var (_, result) = await workspace.RunWithSolutionAsync(
+            assetProvider,
+            solutionChecksum,
+            implementation,
+            cancellationToken).ConfigureAwait(false);
 
-        private sealed class SimpleAssemblyLoader : IAssemblyLoader
-        {
-            public static readonly IAssemblyLoader Instance = new SimpleAssemblyLoader();
-
-            public Assembly LoadAssembly(AssemblyName assemblyName)
-                => Assembly.Load(assemblyName);
-
-            public Assembly LoadAssembly(string assemblyFullName, string codeBasePath)
-            {
-                var assemblyName = new AssemblyName(assemblyFullName);
-                if (!string.IsNullOrEmpty(codeBasePath))
-                {
-                    assemblyName.CodeBase = codeBasePath;
-                }
-
-                return LoadAssembly(assemblyName);
-            }
-        }
+        return result;
     }
 }

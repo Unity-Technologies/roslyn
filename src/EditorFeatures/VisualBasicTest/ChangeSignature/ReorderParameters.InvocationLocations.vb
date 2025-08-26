@@ -2,13 +2,15 @@
 ' The .NET Foundation licenses this file to you under the MIT license.
 ' See the LICENSE file in the project root for more information.
 
+Imports Microsoft.CodeAnalysis.ChangeSignature
 Imports Microsoft.CodeAnalysis.Editor.UnitTests.Extensions
 
 Namespace Microsoft.CodeAnalysis.Editor.VisualBasic.UnitTests.ChangeSignature
+    <Trait(Traits.Feature, Traits.Features.ChangeSignature)>
     Partial Public Class ChangeSignatureTests
 
 #Region "Methods"
-        <WpfFact, Trait(Traits.Feature, Traits.Features.ChangeSignature)>
+        <Fact>
         Public Async Function TestReorderMethodParameters_InvokeBeforeMethodName() As Task
             Dim markup = <Text><![CDATA[
 Class C
@@ -25,7 +27,7 @@ End Class]]></Text>.NormalizedValue()
             Await TestChangeSignatureViaCommandAsync(LanguageNames.VisualBasic, markup, updatedSignature:=permutation, expectedUpdatedInvocationDocumentCode:=updatedCode)
         End Function
 
-        <WpfFact, Trait(Traits.Feature, Traits.Features.ChangeSignature)>
+        <Fact>
         Public Async Function TestReorderMethodParameters_InvokeInParameterList() As Task
             Dim markup = <Text><![CDATA[
 Class C
@@ -42,7 +44,7 @@ End Class]]></Text>.NormalizedValue()
             Await TestChangeSignatureViaCommandAsync(LanguageNames.VisualBasic, markup, updatedSignature:=permutation, expectedUpdatedInvocationDocumentCode:=updatedCode)
         End Function
 
-        <WpfFact, Trait(Traits.Feature, Traits.Features.ChangeSignature)>
+        <Fact>
         Public Async Function TestReorderMethodParameters_InvokeAfterParameterList() As Task
             Dim markup = <Text><![CDATA[
 Class C
@@ -59,7 +61,7 @@ End Class]]></Text>.NormalizedValue()
             Await TestChangeSignatureViaCommandAsync(LanguageNames.VisualBasic, markup, updatedSignature:=permutation, expectedUpdatedInvocationDocumentCode:=updatedCode)
         End Function
 
-        <WpfFact, Trait(Traits.Feature, Traits.Features.ChangeSignature)>
+        <Fact>
         Public Async Function TestReorderMethodParameters_InvokeBeforeMethodDeclaration() As Task
             Dim markup = <Text><![CDATA[
 Class C
@@ -76,7 +78,7 @@ End Class]]></Text>.NormalizedValue()
             Await TestChangeSignatureViaCommandAsync(LanguageNames.VisualBasic, markup, updatedSignature:=permutation, expectedUpdatedInvocationDocumentCode:=updatedCode)
         End Function
 
-        <WpfFact, Trait(Traits.Feature, Traits.Features.ChangeSignature)>
+        <Fact>
         Public Async Function TestReorderMethodParameters_InvokeOnMetadataReference_InIdentifier_ShouldFail() As Task
             Dim markup = <Text><![CDATA[
 Class C
@@ -85,10 +87,10 @@ Class C
     End Sub
 End Class]]></Text>.NormalizedValue()
 
-            Await TestChangeSignatureViaCommandAsync(LanguageNames.VisualBasic, markup, expectedSuccess:=False, expectedErrorText:=FeaturesResources.The_member_is_defined_in_metadata)
+            Await TestChangeSignatureViaCommandAsync(LanguageNames.VisualBasic, markup, expectedSuccess:=False, expectedFailureReason:=ChangeSignatureFailureKind.DefinedInMetadata)
         End Function
 
-        <WpfFact, Trait(Traits.Feature, Traits.Features.ChangeSignature)>
+        <Fact>
         Public Async Function TestReorderMethodParameters_InvokeOnMetadataReference_AtBeginningOfInvocation_ShouldFail() As Task
             Dim markup = <Text><![CDATA[
 Class C
@@ -97,10 +99,10 @@ Class C
     End Sub
 End Class]]></Text>.NormalizedValue()
 
-            Await TestChangeSignatureViaCommandAsync(LanguageNames.VisualBasic, markup, expectedSuccess:=False, expectedErrorText:=FeaturesResources.The_member_is_defined_in_metadata)
+            Await TestChangeSignatureViaCommandAsync(LanguageNames.VisualBasic, markup, expectedSuccess:=False, expectedFailureReason:=ChangeSignatureFailureKind.DefinedInMetadata)
         End Function
 
-        <WpfFact, Trait(Traits.Feature, Traits.Features.ChangeSignature)>
+        <Fact>
         Public Async Function TestReorderMethodParameters_InvokeOnMetadataReference_InArgumentsOfInvocation_ShouldFail() As Task
             Dim markup = <Text><![CDATA[
 Class C
@@ -109,10 +111,10 @@ Class C
     End Sub
 End Class]]></Text>.NormalizedValue()
 
-            Await TestChangeSignatureViaCommandAsync(LanguageNames.VisualBasic, markup, expectedSuccess:=False, expectedErrorText:=FeaturesResources.The_member_is_defined_in_metadata)
+            Await TestChangeSignatureViaCommandAsync(LanguageNames.VisualBasic, markup, expectedSuccess:=False, expectedFailureReason:=ChangeSignatureFailureKind.DefinedInMetadata)
         End Function
 
-        <WpfFact, Trait(Traits.Feature, Traits.Features.ChangeSignature)>
+        <Fact>
         Public Async Function TestReorderMethodParameters_InvokeOnMetadataReference_AfterInvocation_ShouldFail() As Task
             Dim markup = <Text><![CDATA[
 Class C
@@ -121,10 +123,10 @@ Class C
     End Sub
 End Class]]></Text>.NormalizedValue()
 
-            Await TestChangeSignatureViaCommandAsync(LanguageNames.VisualBasic, markup, expectedSuccess:=False, expectedErrorText:=FeaturesResources.The_member_is_defined_in_metadata)
+            Await TestChangeSignatureViaCommandAsync(LanguageNames.VisualBasic, markup, expectedSuccess:=False, expectedFailureReason:=ChangeSignatureFailureKind.DefinedInMetadata)
         End Function
 
-        <WpfFact, Trait(Traits.Feature, Traits.Features.ChangeSignature)>
+        <Fact>
         Public Async Function TestReorderMethodParameters_InvokeInMethodBody() As Task
             Dim markup = <Text><![CDATA[
 Class C
@@ -143,7 +145,7 @@ End Class]]></Text>.NormalizedValue()
             Await TestChangeSignatureViaCommandAsync(LanguageNames.VisualBasic, markup, updatedSignature:=permutation, expectedUpdatedInvocationDocumentCode:=updatedCode)
         End Function
 
-        <WpfFact, Trait(Traits.Feature, Traits.Features.ChangeSignature)>
+        <Fact>
         Public Async Function TestReorderMethodParameters_InvokeOnReference_BeginningOfIdentifier() As Task
             Dim markup = <Text><![CDATA[
 Class C
@@ -168,7 +170,7 @@ End Class]]></Text>.NormalizedValue()
             Await TestChangeSignatureViaCommandAsync(LanguageNames.VisualBasic, markup, updatedSignature:=permutation, expectedUpdatedInvocationDocumentCode:=updatedCode)
         End Function
 
-        <WpfFact, Trait(Traits.Feature, Traits.Features.ChangeSignature)>
+        <Fact>
         Public Async Function TestReorderMethodParameters_InvokeOnReference_ArgumentList() As Task
             Dim markup = <Text><![CDATA[
 Class C
@@ -193,7 +195,7 @@ End Class]]></Text>.NormalizedValue()
             Await TestChangeSignatureViaCommandAsync(LanguageNames.VisualBasic, markup, updatedSignature:=permutation, expectedUpdatedInvocationDocumentCode:=updatedCode)
         End Function
 
-        <WpfFact, Trait(Traits.Feature, Traits.Features.ChangeSignature)>
+        <Fact>
         Public Async Function TestReorderMethodParameters_InvokeOnReference_NestedCalls1() As Task
             Dim markup = <Text><![CDATA[
 Class C
@@ -226,7 +228,7 @@ End Class]]></Text>.NormalizedValue()
             Await TestChangeSignatureViaCommandAsync(LanguageNames.VisualBasic, markup, updatedSignature:=permutation, expectedUpdatedInvocationDocumentCode:=updatedCode)
         End Function
 
-        <WpfFact, Trait(Traits.Feature, Traits.Features.ChangeSignature)>
+        <Fact>
         Public Async Function TestReorderMethodParameters_InvokeOnReference_NestedCalls2() As Task
             Dim markup = <Text><![CDATA[
 Class C
@@ -259,7 +261,7 @@ End Class]]></Text>.NormalizedValue()
             Await TestChangeSignatureViaCommandAsync(LanguageNames.VisualBasic, markup, updatedSignature:=permutation, expectedUpdatedInvocationDocumentCode:=updatedCode)
         End Function
 
-        <WpfFact, Trait(Traits.Feature, Traits.Features.ChangeSignature)>
+        <Fact>
         Public Async Function TestReorderMethodParameters_InvokeOnReference_NestedCalls3() As Task
             Dim markup = <Text><![CDATA[
 Class C
@@ -292,7 +294,7 @@ End Class]]></Text>.NormalizedValue()
             Await TestChangeSignatureViaCommandAsync(LanguageNames.VisualBasic, markup, updatedSignature:=permutation, expectedUpdatedInvocationDocumentCode:=updatedCode)
         End Function
 
-        <WpfFact, Trait(Traits.Feature, Traits.Features.ChangeSignature)>
+        <Fact>
         Public Async Function TestReorderMethodParameters_InvokeOnReference_OnlyCandidateSymbols() As Task
             Dim markup = <Text><![CDATA[
 Class C
@@ -319,7 +321,7 @@ End Class]]></Text>.NormalizedValue()
             Await TestChangeSignatureViaCommandAsync(LanguageNames.VisualBasic, markup, updatedSignature:=permutation, expectedUpdatedInvocationDocumentCode:=updatedCode)
         End Function
 
-        <WpfFact, Trait(Traits.Feature, Traits.Features.ChangeSignature)>
+        <Fact>
         Public Async Function TestReorderMethodParameters_InvokeInConstructor() As Task
             Dim markup = <Text><![CDATA[
 Class C
@@ -342,7 +344,7 @@ End Class]]></Text>.NormalizedValue()
 #End Region
 
 #Region "Properties"
-        <WpfFact, Trait(Traits.Feature, Traits.Features.ChangeSignature)>
+        <Fact>
         Public Async Function TestReorderIndexerParameters_InvokeAtBeginningOfDeclaration() As Task
             Dim markup = <Text><![CDATA[
 Class C
@@ -369,7 +371,7 @@ End Class]]></Text>.NormalizedValue()
             Await TestChangeSignatureViaCommandAsync(LanguageNames.VisualBasic, markup, updatedSignature:=permutation, expectedUpdatedInvocationDocumentCode:=updatedCode)
         End Function
 
-        <WpfFact, Trait(Traits.Feature, Traits.Features.ChangeSignature)>
+        <Fact>
         Public Async Function TestReorderIndexerParameters_InParameters() As Task
             Dim markup = <Text><![CDATA[
 Class C
@@ -396,7 +398,7 @@ End Class]]></Text>.NormalizedValue()
             Await TestChangeSignatureViaCommandAsync(LanguageNames.VisualBasic, markup, updatedSignature:=permutation, expectedUpdatedInvocationDocumentCode:=updatedCode)
         End Function
 
-        <WpfFact, Trait(Traits.Feature, Traits.Features.ChangeSignature)>
+        <Fact>
         Public Async Function TestReorderIndexerParameters_InvokeAtEndOfDeclaration() As Task
             Dim markup = <Text><![CDATA[
 Class C
@@ -423,7 +425,7 @@ End Class]]></Text>.NormalizedValue()
             Await TestChangeSignatureViaCommandAsync(LanguageNames.VisualBasic, markup, updatedSignature:=permutation, expectedUpdatedInvocationDocumentCode:=updatedCode)
         End Function
 
-        <WpfFact, Trait(Traits.Feature, Traits.Features.ChangeSignature)>
+        <Fact>
         Public Async Function TestReorderIndexerParameters_InvokeInAccessor() As Task
             Dim markup = <Text><![CDATA[
 Class C
@@ -450,7 +452,7 @@ End Class]]></Text>.NormalizedValue()
             Await TestChangeSignatureViaCommandAsync(LanguageNames.VisualBasic, markup, updatedSignature:=permutation, expectedUpdatedInvocationDocumentCode:=updatedCode)
         End Function
 
-        <WpfFact, Trait(Traits.Feature, Traits.Features.ChangeSignature)>
+        <Fact>
         Public Async Function TestReorderIndexerParameters_InvokeOnReference_BeforeTarget() As Task
             Dim markup = <Text><![CDATA[
 Class C
@@ -487,7 +489,7 @@ End Class]]></Text>.NormalizedValue()
             Await TestChangeSignatureViaCommandAsync(LanguageNames.VisualBasic, markup, updatedSignature:=permutation, expectedUpdatedInvocationDocumentCode:=updatedCode)
         End Function
 
-        <WpfFact, Trait(Traits.Feature, Traits.Features.ChangeSignature)>
+        <Fact>
         Public Async Function TestReorderIndexerParameters_InvokeOnReference_InArgumentList() As Task
             Dim markup = <Text><![CDATA[
 Class C
@@ -526,7 +528,7 @@ End Class]]></Text>.NormalizedValue()
 #End Region
 
 #Region "Delegates"
-        <WpfFact(Skip:="860578"), Trait(Traits.Feature, Traits.Features.ChangeSignature)>
+        <Fact(Skip:="860578")>
         Public Async Function TestReorderDelegateParameters_ObjectCreation1() As Task
             Dim markup = <Text><![CDATA[
 Class C
@@ -551,7 +553,7 @@ End Class]]></Text>.NormalizedValue()
             Await TestChangeSignatureViaCommandAsync(LanguageNames.VisualBasic, markup, updatedSignature:=permutation, expectedUpdatedInvocationDocumentCode:=updatedCode)
         End Function
 
-        <WpfFact(Skip:="860578"), Trait(Traits.Feature, Traits.Features.ChangeSignature)>
+        <Fact(Skip:="860578")>
         Public Async Function TestReorderDelegateParameters_ObjectCreation2() As Task
             Dim markup = <Text><![CDATA[
 Class C(Of T)
@@ -582,8 +584,8 @@ End Class]]></Text>.NormalizedValue()
 #End Region
 
 #Region "Code Refactoring"
-        <WpfFact, Trait(Traits.Feature, Traits.Features.ChangeSignature)>
-        Public Async Function ReorderIndexerParameters_CodeRefactoring_InMethodDeclaration() As Threading.Tasks.Task
+        <Fact>
+        Public Async Function ReorderIndexerParameters_CodeRefactoring_InMethodDeclaration() As Task
             Dim markup = <Text><![CDATA[
 Class C
     Sub Goo(x As Integer[||], y As Integer)
@@ -599,8 +601,8 @@ End Class]]></Text>.NormalizedValue()
             Await TestChangeSignatureViaCodeActionAsync(markup, expectedCodeAction:=True, updatedSignature:=permutation, expectedCode:=updatedCode)
         End Function
 
-        <WpfFact, Trait(Traits.Feature, Traits.Features.ChangeSignature)>
-        Public Async Function ReorderIndexerParameters_CodeRefactoring_NotInMethodBody() As Threading.Tasks.Task
+        <Fact>
+        Public Async Function ReorderIndexerParameters_CodeRefactoring_NotInMethodBody() As Task
             Dim markup = <Text><![CDATA[
 Class C
     Sub Goo(x As Integer, y As Integer)
@@ -611,7 +613,7 @@ End Class]]></Text>.NormalizedValue()
             Await TestChangeSignatureViaCodeActionAsync(markup, expectedCodeAction:=False)
         End Function
 
-        <WpfFact, Trait(Traits.Feature, Traits.Features.ChangeSignature)>
+        <Fact>
         Public Async Function ReorderIndexerParameters_CodeRefactoring_InCallSite_ViaCommand() As Task
             Dim markup = <Text><![CDATA[
 Class C
@@ -632,8 +634,8 @@ End Class]]></Text>.NormalizedValue()
                 expectedUpdatedInvocationDocumentCode:=updatedCode)
         End Function
 
-        <WpfFact, Trait(Traits.Feature, Traits.Features.ChangeSignature)>
-        Public Async Function ReorderIndexerParameters_CodeRefactoring_InCallSite_ViaCodeAction() As Threading.Tasks.Task
+        <Fact>
+        Public Async Function ReorderIndexerParameters_CodeRefactoring_InCallSite_ViaCodeAction() As Task
             Dim markup = <Text><![CDATA[
 Class C
     Sub Goo(x As Integer, y As Integer)

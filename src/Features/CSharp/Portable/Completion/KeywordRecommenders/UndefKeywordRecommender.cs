@@ -2,28 +2,19 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
-#nullable disable
-
 using System.Threading;
-using System.Threading.Tasks;
 using Microsoft.CodeAnalysis.CSharp.Extensions.ContextQuery;
 using Microsoft.CodeAnalysis.Shared.Extensions;
 
-namespace Microsoft.CodeAnalysis.CSharp.Completion.KeywordRecommenders
-{
-    internal class UndefKeywordRecommender : AbstractSyntacticSingleKeywordRecommender
-    {
-        public UndefKeywordRecommender()
-            : base(SyntaxKind.UndefKeyword, isValidInPreprocessorContext: true)
-        {
-        }
+namespace Microsoft.CodeAnalysis.CSharp.Completion.KeywordRecommenders;
 
-        protected override async Task<bool> IsValidContextAsync(int position, CSharpSyntaxContext context, CancellationToken cancellationToken)
-        {
-            var syntaxTree = context.SyntaxTree;
-            return
-                context.IsPreProcessorKeywordContext &&
-                await syntaxTree.IsBeforeFirstTokenAsync(position, cancellationToken).ConfigureAwait(false);
-        }
+internal sealed class UndefKeywordRecommender() : AbstractSyntacticSingleKeywordRecommender(SyntaxKind.UndefKeyword, isValidInPreprocessorContext: true)
+{
+    protected override bool IsValidContext(int position, CSharpSyntaxContext context, CancellationToken cancellationToken)
+    {
+        var syntaxTree = context.SyntaxTree;
+        return
+            context.IsPreProcessorKeywordContext &&
+            syntaxTree.IsBeforeFirstToken(position, cancellationToken);
     }
 }

@@ -2,24 +2,23 @@
 ' The .NET Foundation licenses this file to you under the MIT license.
 ' See the LICENSE file in the project root for more information.
 
-Imports System.Xml.Linq
 Imports Microsoft.CodeAnalysis.Editor.UnitTests.AutomaticCompletion
 Imports Microsoft.CodeAnalysis.Editor.UnitTests.Extensions
-Imports Microsoft.CodeAnalysis.Editor.UnitTests.Workspaces
-Imports Microsoft.CodeAnalysis.Editor.Implementation.AutomaticCompletion
+Imports Microsoft.CodeAnalysis.BraceCompletion.AbstractBraceCompletionService
 
 Namespace Microsoft.CodeAnalysis.Editor.VisualBasic.UnitTests.AutomaticCompletion
+    <Trait(Traits.Feature, Traits.Features.AutomaticCompletion)>
     Public Class AutomaticLessAndGreaterThanCompletionTests
         Inherits AbstractAutomaticBraceCompletionTests
 
-        <WpfFact, Trait(Traits.Feature, Traits.Features.AutomaticCompletion)>
+        <WpfFact>
         Public Sub TestCreation()
             Using session = CreateSession("$$")
                 Assert.NotNull(session)
             End Using
         End Sub
 
-        <WpfFact, Trait(Traits.Feature, Traits.Features.AutomaticCompletion)>
+        <WpfFact>
         Public Sub TestAttribute_LessThan()
             Using session = CreateSession("$$")
                 Assert.NotNull(session)
@@ -27,7 +26,7 @@ Namespace Microsoft.CodeAnalysis.Editor.VisualBasic.UnitTests.AutomaticCompletio
             End Using
         End Sub
 
-        <WpfFact, Trait(Traits.Feature, Traits.Features.AutomaticCompletion)>
+        <WpfFact>
         Public Sub TestInvalidLocation_LessThan()
             Using session = CreateSession("Imports System$$")
                 Assert.NotNull(session)
@@ -35,7 +34,7 @@ Namespace Microsoft.CodeAnalysis.Editor.VisualBasic.UnitTests.AutomaticCompletio
             End Using
         End Sub
 
-        <WpfFact, Trait(Traits.Feature, Traits.Features.AutomaticCompletion)>
+        <WpfFact>
         Public Sub TestInvalidLocation_String()
             Dim code = <code>Class C
     Dim s As String = "$$
@@ -46,7 +45,7 @@ End Class</code>
             End Using
         End Sub
 
-        <WpfFact, Trait(Traits.Feature, Traits.Features.AutomaticCompletion)>
+        <WpfFact>
         Public Sub TestInvalidLocation_Comment()
             Dim code = <code>Class C
     ' $$
@@ -57,7 +56,7 @@ End Class</code>
             End Using
         End Sub
 
-        <WpfFact, Trait(Traits.Feature, Traits.Features.AutomaticCompletion)>
+        <WpfFact>
         Public Sub TestInvalidLocation_DocComment()
             Dim code = <code>Class C
     ''' $$
@@ -68,7 +67,7 @@ End Class</code>
             End Using
         End Sub
 
-        <WpfFact, Trait(Traits.Feature, Traits.Features.AutomaticCompletion)>
+        <WpfFact>
         Public Sub TestAttribute_LessThan_Method()
             Dim code = <code>Class C
     Sub Method($$
@@ -81,7 +80,7 @@ End Class</code>
             End Using
         End Sub
 
-        <WpfFact, Trait(Traits.Feature, Traits.Features.AutomaticCompletion)>
+        <WpfFact>
         Public Sub TestXmlNamespaceImport_LessThan()
             Dim code = <code>Imports $$</code>
 
@@ -92,7 +91,7 @@ End Class</code>
             End Using
         End Sub
 
-        <WpfFact, Trait(Traits.Feature, Traits.Features.AutomaticCompletion)>
+        <WpfFact>
         Public Sub TestBracketName_Member()
             Dim code = <code>Class C
     Sub Method()
@@ -113,8 +112,8 @@ End Class</code>
 
         Friend Overloads Shared Function CreateSession(code As String) As Holder
             Return AbstractAutomaticBraceCompletionTests.CreateSession(
-TestWorkspace.CreateVisualBasic(code),
-BraceCompletionSessionProvider.LessAndGreaterThan.OpenCharacter, BraceCompletionSessionProvider.LessAndGreaterThan.CloseCharacter)
+                EditorTestWorkspace.CreateVisualBasic(code),
+                LessAndGreaterThan.OpenCharacter, LessAndGreaterThan.CloseCharacter)
         End Function
     End Class
 End Namespace

@@ -2,8 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
-#nullable disable
-
 using System.Threading.Tasks;
 using Microsoft.CodeAnalysis.CSharp.Structure;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -11,69 +9,57 @@ using Microsoft.CodeAnalysis.Structure;
 using Microsoft.CodeAnalysis.Test.Utilities;
 using Xunit;
 
-namespace Microsoft.CodeAnalysis.Editor.CSharp.UnitTests.Structure.MetadataAsSource
+namespace Microsoft.CodeAnalysis.Editor.CSharp.UnitTests.Structure.MetadataAsSource;
+
+[Trait(Traits.Feature, Traits.Features.MetadataAsSource)]
+public sealed class EventFieldDeclarationStructureTests : AbstractCSharpSyntaxNodeStructureTests<EventFieldDeclarationSyntax>
 {
-    public class EventFieldDeclarationStructureTests : AbstractCSharpSyntaxNodeStructureTests<EventFieldDeclarationSyntax>
-    {
-        protected override string WorkspaceKind => CodeAnalysis.WorkspaceKind.MetadataAsSource;
-        internal override AbstractSyntaxStructureProvider CreateProvider() => new EventFieldDeclarationStructureProvider();
+    protected override string WorkspaceKind => CodeAnalysis.WorkspaceKind.MetadataAsSource;
+    internal override AbstractSyntaxStructureProvider CreateProvider() => new EventFieldDeclarationStructureProvider();
 
-        [Fact, Trait(Traits.Feature, Traits.Features.MetadataAsSource)]
-        public async Task NoCommentsOrAttributes()
-        {
-            const string code = @"
-class Goo
-{
-    public event EventArgs $$goo
-}";
+    [Fact]
+    public Task NoCommentsOrAttributes()
+        => VerifyNoBlockSpansAsync("""
+                class Goo
+                {
+                    public event EventArgs $$goo
+                }
+                """);
 
-            await VerifyNoBlockSpansAsync(code);
-        }
+    [Fact]
+    public Task WithAttributes()
+        => VerifyBlockSpansAsync("""
+                class Goo
+                {
+                    {|hint:{|textspan:[Goo]
+                    |}event EventArgs $$goo|}
+                }
+                """,
+            Region("textspan", "hint", CSharpStructureHelpers.Ellipsis, autoCollapse: true));
 
-        [Fact, Trait(Traits.Feature, Traits.Features.MetadataAsSource)]
-        public async Task WithAttributes()
-        {
-            const string code = @"
-class Goo
-{
-    {|hint:{|textspan:[Goo]
-    |}event EventArgs $$goo|}
-}";
+    [Fact]
+    public Task WithCommentsAndAttributes()
+        => VerifyBlockSpansAsync("""
+                class Goo
+                {
+                    {|hint:{|textspan:// Summary:
+                    //     This is a summary.
+                    [Goo]
+                    |}event EventArgs $$goo|}
+                }
+                """,
+            Region("textspan", "hint", CSharpStructureHelpers.Ellipsis, autoCollapse: true));
 
-            await VerifyBlockSpansAsync(code,
-                Region("textspan", "hint", CSharpStructureHelpers.Ellipsis, autoCollapse: true));
-        }
-
-        [Fact, Trait(Traits.Feature, Traits.Features.MetadataAsSource)]
-        public async Task WithCommentsAndAttributes()
-        {
-            const string code = @"
-class Goo
-{
-    {|hint:{|textspan:// Summary:
-    //     This is a summary.
-    [Goo]
-    |}event EventArgs $$goo|}
-}";
-
-            await VerifyBlockSpansAsync(code,
-                Region("textspan", "hint", CSharpStructureHelpers.Ellipsis, autoCollapse: true));
-        }
-
-        [Fact, Trait(Traits.Feature, Traits.Features.MetadataAsSource)]
-        public async Task WithCommentsAttributesAndModifiers()
-        {
-            const string code = @"
-class Goo
-{
-    {|hint:{|textspan:// Summary:
-    //     This is a summary.
-    [Goo]
-    |}public event EventArgs $$goo|}
-}";
-
-            await VerifyBlockSpansAsync(code,
-                Region("textspan", "hint", CSharpStructureHelpers.Ellipsis, autoCollapse: true));
-        }
-    }
+    [Fact]
+    public Task WithCommentsAttributesAndModifiers()
+        => VerifyBlockSpansAsync("""
+                class Goo
+                {
+                    {|hint:{|textspan:// Summary:
+                    //     This is a summary.
+                    [Goo]
+                    |}public event EventArgs $$goo|}
+                }
+                """,
+            Region("textspan", "hint", CSharpStructureHelpers.Ellipsis, autoCollapse: true));
 }

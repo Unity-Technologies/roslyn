@@ -16,8 +16,8 @@ namespace Microsoft.CodeAnalysis.CSharp
     {
         public override BoundNode VisitLiteral(BoundLiteral node)
         {
-            Debug.Assert(node.ConstantValue is { });
-            return MakeLiteral(node.Syntax, node.ConstantValue, node.Type, oldNodeOpt: node);
+            Debug.Assert(node.ConstantValueOpt is { });
+            return MakeLiteral(node.Syntax, node.ConstantValueOpt, node.Type, oldNodeOpt: node);
         }
 
         private BoundExpression MakeLiteral(SyntaxNode syntax, ConstantValue constantValue, TypeSymbol? type, BoundLiteral? oldNodeOpt = null)
@@ -134,8 +134,9 @@ namespace Microsoft.CodeAnalysis.CSharp
 
             return new BoundObjectCreationExpression(
                 syntax, ctor, arguments.ToImmutableAndFree(),
-                default(ImmutableArray<string>), default(ImmutableArray<RefKind>), false, default(ImmutableArray<int>), default(BitVector),
-                constantValue, null, null, ctor.ContainingType);
+                argumentNamesOpt: default(ImmutableArray<string?>), argumentRefKindsOpt: default(ImmutableArray<RefKind>), expanded: false,
+                argsToParamsOpt: default(ImmutableArray<int>), defaultArguments: default(BitVector),
+                constantValueOpt: constantValue, initializerExpressionOpt: null, type: ctor.ContainingType);
         }
 
         private BoundExpression MakeDateTimeLiteral(SyntaxNode syntax, ConstantValue constantValue)
@@ -153,8 +154,9 @@ namespace Microsoft.CodeAnalysis.CSharp
             // This is not a constant from C#'s perspective, so do not mark it as one.
             return new BoundObjectCreationExpression(
                 syntax, ctor, arguments.ToImmutableAndFree(),
-                default(ImmutableArray<string>), default(ImmutableArray<RefKind>), false, default(ImmutableArray<int>), default(BitVector),
-                ConstantValue.NotAvailable, null, null, ctor.ContainingType);
+                argumentNamesOpt: default(ImmutableArray<string?>), argumentRefKindsOpt: default(ImmutableArray<RefKind>), expanded: false,
+                argsToParamsOpt: default(ImmutableArray<int>), defaultArguments: default(BitVector),
+                constantValueOpt: ConstantValue.NotAvailable, initializerExpressionOpt: null, type: ctor.ContainingType);
         }
     }
 }

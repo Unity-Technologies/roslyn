@@ -13,7 +13,7 @@ using System.Threading.Tasks;
 using Microsoft.CodeAnalysis.CSharp.Symbols;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.CSharp.Test.Utilities;
-using Microsoft.CodeAnalysis.Test.Extensions;
+using Microsoft.CodeAnalysis.Test.Utilities;
 using Roslyn.Test.Utilities;
 using Roslyn.Utilities;
 using Xunit;
@@ -2479,7 +2479,7 @@ class Program
             var expr = GetExprSyntaxForBinding(GetExprSyntaxList(tree));
 
             var sym = model.GetSymbolInfo(expr);
-            Assert.Equal("System.Int32 System.Int32.op_Addition(System.Int32 left, System.Int32 right)", sym.Symbol.ToTestDisplayString());
+            Assert.Equal("System.Int32 System.Int32.op_CheckedAddition(System.Int32 left, System.Int32 right)", sym.Symbol.ToTestDisplayString());
 
             var info = model.GetTypeInfo(expr);
             var conv = model.GetConversion(expr);
@@ -5943,7 +5943,7 @@ class C
         public void GetSpecialType_ThrowsOnGreaterThanCount()
         {
             var source = "class C1 { }";
-            var comp = CreateCompilation(source);
+            var comp = (Compilation)CreateCompilation(source);
 
             var specialType = SpecialType.Count + 1;
 
@@ -6047,6 +6047,63 @@ class B<T, U, U>
             Assert.False(symbol.IsReferenceType);
             symbol = model.GetDeclaredSymbol(typeParameters[typeParameters.Length - 2]);
             Assert.True(symbol.IsReferenceType);
+        }
+
+        [Fact, WorkItem("https://github.com/dotnet/roslyn/issues/75570")]
+        public void GetConstructedReducedFrom_WithNullableInferredType()
+        {
+            var source = """
+                #nullable enable
+
+                using System.Collections.Generic;
+                using System.Diagnostics.CodeAnalysis;
+                using System.Linq;
+
+                class C1 { }
+
+                class C2 { }
+
+                class D
+                {
+                    public static void ConvertAll(IEnumerable<C1> values)
+                    {
+                        var v = values.Select(Convert);
+                    }
+
+                    [return: NotNullIfNotNull(nameof(value))]
+                    private static C2? Convert(C1? value) => value is null ? null : new C2();
+                }
+                """ + NotNullIfNotNullAttributeDefinition;
+
+            var comp = CreateCompilationWithMscorlib40AndSystemCore(source).VerifyDiagnostics();
+
+            var tree = comp.SyntaxTrees[0];
+            var model = comp.GetSemanticModel(tree);
+            var memberAccess = tree.GetRoot().DescendantNodes().OfType<MemberAccessExpressionSyntax>().First();
+            var constructedMethodSymbol = (IMethodSymbol)model.GetSymbolInfo(memberAccess).Symbol;
+
+            // Ensure that both the bound reduced method symbol, and the constructed method symbol 
+            // it was reduced from both have the right nullable annotations for the type parameters.
+            Assert.True(constructedMethodSymbol is
+            {
+                Name: nameof(Enumerable.Select),
+                TypeArguments: [
+                { Name: "C1", NullableAnnotation: Microsoft.CodeAnalysis.NullableAnnotation.NotAnnotated },
+                { Name: "C2", NullableAnnotation: Microsoft.CodeAnalysis.NullableAnnotation.Annotated }
+                ],
+                ReceiverType.Name: nameof(IEnumerable<>),
+            });
+
+            var constructedReducedFrom = constructedMethodSymbol.GetConstructedReducedFrom();
+            Assert.True(constructedReducedFrom is
+            {
+                Name: nameof(Enumerable.Select),
+                TypeArguments: [
+                { Name: "C1", NullableAnnotation: Microsoft.CodeAnalysis.NullableAnnotation.NotAnnotated },
+                { Name: "C2", NullableAnnotation: Microsoft.CodeAnalysis.NullableAnnotation.Annotated }
+                ],
+                ReceiverType.Name: nameof(Enumerable),
+            });
         }
     }
 }

@@ -3,15 +3,11 @@
 ' See the LICENSE file in the project root for more information.
 
 Imports System.IO
-Imports System.Runtime.CompilerServices
 Imports Microsoft.CodeAnalysis.Test.Utilities
-Imports Microsoft.CodeAnalysis.Text
 Imports Microsoft.CodeAnalysis.VisualBasic
-Imports Microsoft.CodeAnalysis.VisualBasic.Symbols.Metadata.PE
 Imports Microsoft.CodeAnalysis.VisualBasic.Symbols
+Imports Microsoft.CodeAnalysis.VisualBasic.Symbols.Metadata.PE
 Imports Microsoft.CodeAnalysis.VisualBasic.Syntax
-
-Imports Microsoft.CodeAnalysis.VisualBasic.UnitTests.Symbols
 Imports Roslyn.Test.Utilities
 
 Namespace Microsoft.CodeAnalysis.VisualBasic.UnitTests.ExtensionMethods
@@ -688,6 +684,11 @@ End Module
             Assert.Equal("$" & propName, field.Name)
             Assert.Equal("$" & propName, field.MetadataName)
             Assert.Equal(Accessibility.Private, field.DeclaredAccessibility)
+
+            Dim parameter = type.Constructors.Single().Parameters(0)
+            Assert.Equal(propType, parameter.Type)
+            Assert.Equal(propName, parameter.Name)
+            Assert.Equal(propName, parameter.MetadataName)
         End Sub
 
         Private Shared Sub CheckMethod(m As ModuleSymbol, method As MethodSymbol,
@@ -702,6 +703,7 @@ End Module
 
             Assert.NotNull(method)
             Assert.Equal(name, method.Name)
+            Assert.Equal(name, method.MetadataName)
             Assert.Equal(paramCount, method.ParameterCount)
 
             If isSub Then
@@ -819,5 +821,4 @@ End Class
     End Class
 
 End Namespace
-
 

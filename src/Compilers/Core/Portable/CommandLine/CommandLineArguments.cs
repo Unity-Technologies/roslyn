@@ -68,7 +68,7 @@ namespace Microsoft.CodeAnalysis
         public ImmutableArray<string> KeyFileSearchPaths { get; internal set; }
 
         /// <summary>
-        /// If true, use UTF8 for output.
+        /// If true, use UTF-8 for output.
         /// </summary>
         public bool Utf8Output { get; internal set; }
 
@@ -181,6 +181,11 @@ namespace Microsoft.CodeAnalysis
         /// </value>
         public bool ReportAnalyzer { get; internal set; }
 
+        /// <summary>
+        /// Report additional information related to InternalsVisibleToAttributes for all assemblies the compiler sees in this compilation.
+        /// </summary>
+        public bool ReportInternalsVisibleToAttributes { get; internal set; }
+
         /// <value>
         /// Skip execution of <see cref="DiagnosticAnalyzer"/>s.
         /// </value>
@@ -234,9 +239,9 @@ namespace Microsoft.CodeAnalysis
         public bool NoWin32Manifest { get; internal set; }
 
         /// <summary>
-        /// Resources specified as arguments to the compilation.
+        /// Manifest resource information parsed from <c>/resource</c> arguments.
         /// </summary>
-        public ImmutableArray<ResourceDescription> ManifestResources { get; internal set; }
+        public ImmutableArray<CommandLineResource> ManifestResourceArguments { get; internal set; }
 
         /// <summary>
         /// Encoding to be used for source files or 'null' for autodetect/default.
@@ -303,12 +308,23 @@ namespace Microsoft.CodeAnalysis
         /// </summary>
         public CultureInfo? PreferredUILang { get; internal set; }
 
+        // Cache the values so that underlying file streams are not created multiple times for the same files.
+        private readonly Lazy<ImmutableArray<ResourceDescription>> _lazyManifestResources;
+
         internal StrongNameProvider GetStrongNameProvider(StrongNameFileSystem fileSystem)
             => new DesktopStrongNameProvider(KeyFileSearchPaths, fileSystem);
 
         internal CommandLineArguments()
         {
+            _lazyManifestResources = new Lazy<ImmutableArray<ResourceDescription>>(
+                () => ManifestResourceArguments.SelectAsArray(static r => r.ToDescription()));
         }
+
+        /// <summary>
+        /// Resources specified as arguments to the compilation.
+        /// </summary>
+        public ImmutableArray<ResourceDescription> ManifestResources
+            => _lazyManifestResources.Value;
 
         /// <summary>
         /// Returns a full path of the file that the compiler will generate the assembly to if compilation succeeds.
@@ -467,6 +483,7 @@ namespace Microsoft.CodeAnalysis
             List<DiagnosticInfo> diagnostics,
             CommonMessageProvider messageProvider,
             IAnalyzerAssemblyLoader analyzerLoader,
+            CompilationOptions compilationOptions,
             bool skipAnalyzers,
             out ImmutableArray<DiagnosticAnalyzer> analyzers,
             out ImmutableArray<ISourceGenerator> generators)
@@ -482,10 +499,10 @@ namespace Microsoft.CodeAnalysis
                 switch (e.ErrorCode)
                 {
                     case AnalyzerLoadFailureEventArgs.FailureErrorCode.UnableToLoadAnalyzer:
-                        diagnostic = new DiagnosticInfo(messageProvider, messageProvider.WRN_UnableToLoadAnalyzer, analyzerReference.FullPath, e.Message);
+                        diagnostic = new DiagnosticInfo(messageProvider, messageProvider.WRN_UnableToLoadAnalyzer, analyzerReference.FullPath, e.Exception?.ToString() ?? e.Message);
                         break;
                     case AnalyzerLoadFailureEventArgs.FailureErrorCode.UnableToCreateAnalyzer:
-                        diagnostic = new DiagnosticInfo(messageProvider, messageProvider.WRN_AnalyzerCannotBeCreated, e.TypeName ?? "", analyzerReference.FullPath, e.Message);
+                        diagnostic = new DiagnosticInfo(messageProvider, messageProvider.WRN_AnalyzerCannotBeCreated, e.TypeName ?? "", analyzerReference.FullPath, e.Exception?.ToString() ?? e.Message);
                         break;
                     case AnalyzerLoadFailureEventArgs.FailureErrorCode.NoAnalyzers:
                         diagnostic = new DiagnosticInfo(messageProvider, messageProvider.WRN_NoAnalyzerInAssembly, analyzerReference.FullPath);
@@ -493,13 +510,16 @@ namespace Microsoft.CodeAnalysis
                     case AnalyzerLoadFailureEventArgs.FailureErrorCode.ReferencesFramework:
                         diagnostic = new DiagnosticInfo(messageProvider, messageProvider.WRN_AnalyzerReferencesFramework, analyzerReference.FullPath, e.TypeName!);
                         break;
+                    case AnalyzerLoadFailureEventArgs.FailureErrorCode.ReferencesNewerCompiler:
+                        diagnostic = new DiagnosticInfo(messageProvider, messageProvider.WRN_AnalyzerReferencesNewerCompiler, analyzerReference.FullPath, e.ReferencedCompilerVersion!.ToString(), typeof(AnalyzerFileReference).Assembly.GetName().Version!.ToString());
+                        break;
                     case AnalyzerLoadFailureEventArgs.FailureErrorCode.None:
                     default:
                         return;
                 }
 
                 // Filter this diagnostic based on the compilation options so that /nowarn and /warnaserror etc. take effect.
-                diagnostic = messageProvider.FilterDiagnosticInfo(diagnostic, this.CompilationOptions);
+                diagnostic = messageProvider.FilterDiagnosticInfo(diagnostic, compilationOptions);
 
                 if (diagnostic != null)
                 {
@@ -507,16 +527,26 @@ namespace Microsoft.CodeAnalysis
                 }
             };
 
-            var resolvedReferences = ArrayBuilder<AnalyzerFileReference>.GetInstance();
+            var resolvedReferencesSet = PooledHashSet<AnalyzerFileReference>.GetInstance();
+            var resolvedReferencesList = ArrayBuilder<AnalyzerFileReference>.GetInstance();
             foreach (var reference in AnalyzerReferences)
             {
                 var resolvedReference = ResolveAnalyzerReference(reference, analyzerLoader);
                 if (resolvedReference != null)
                 {
-                    resolvedReferences.Add(resolvedReference);
+                    var isAdded = resolvedReferencesSet.Add(resolvedReference);
+                    if (isAdded)
+                    {
+                        // register the reference to the analyzer loader:
+                        analyzerLoader.AddDependencyLocation(resolvedReference.FullPath);
 
-                    // register the reference to the analyzer loader:
-                    analyzerLoader.AddDependencyLocation(resolvedReference.FullPath);
+                        resolvedReferencesList.Add(resolvedReference);
+                    }
+                    else
+                    {
+                        // https://github.com/dotnet/roslyn/issues/63856
+                        //diagnostics.Add(new DiagnosticInfo(messageProvider, messageProvider.WRN_DuplicateAnalyzerReference, reference.FilePath));
+                    }
                 }
                 else
                 {
@@ -524,20 +554,23 @@ namespace Microsoft.CodeAnalysis
                 }
             }
 
-            // All analyzer references are registered now, we can start loading them:
-            foreach (var resolvedReference in resolvedReferences)
+            // All analyzer references are registered now, we can start loading them.
+            foreach (var resolvedReference in resolvedReferencesList)
             {
                 resolvedReference.AnalyzerLoadFailed += errorHandler;
-                if (!skipAnalyzers)
-                    resolvedReference.AddAnalyzers(analyzerBuilder, language);
+                resolvedReference.AddAnalyzers(analyzerBuilder, language, shouldIncludeAnalyzer);
                 resolvedReference.AddGenerators(generatorBuilder, language);
                 resolvedReference.AnalyzerLoadFailed -= errorHandler;
             }
 
-            resolvedReferences.Free();
+            resolvedReferencesList.Free();
+            resolvedReferencesSet.Free();
 
             generators = generatorBuilder.ToImmutable();
             analyzers = analyzerBuilder.ToImmutable();
+
+            // If we are skipping analyzers, ensure that we only add suppressors.
+            bool shouldIncludeAnalyzer(DiagnosticAnalyzer analyzer) => !skipAnalyzers || analyzer is DiagnosticSuppressor;
         }
 
         private AnalyzerFileReference? ResolveAnalyzerReference(CommandLineAnalyzerReference reference, IAnalyzerAssemblyLoader analyzerLoader)

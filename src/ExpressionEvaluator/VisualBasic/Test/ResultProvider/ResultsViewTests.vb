@@ -2,10 +2,10 @@
 ' The .NET Foundation licenses this file to you under the MIT license.
 ' See the LICENSE file in the project root for more information.
 
+Imports System.Reflection
 Imports Microsoft.CodeAnalysis.ExpressionEvaluator
 Imports Microsoft.VisualStudio.Debugger.Clr
 Imports Microsoft.VisualStudio.Debugger.Evaluation
-Imports System.Reflection
 Imports Roslyn.Test.Utilities
 Imports Xunit
 
@@ -112,8 +112,7 @@ End Class"
             End Using
         End Sub
 
-        <WorkItem(1043746, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/1043746")>
-        <Fact>
+        <Fact, WorkItem("http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/1043746")>
         Public Sub GetProxyPropertyValueError()
             Const source =
 "Imports System.Collections

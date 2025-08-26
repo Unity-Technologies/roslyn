@@ -1,12 +1,11 @@
-# Test on Windows Desktop
+# Test on Windows Desktop using Helix
 parameters:
+- name: helixQueueName
+  type: string
 - name: testRunName
   type: string
   default: ''
 - name: jobName
-  type: string
-  default: ''
-- name: buildJobName
   type: string
   default: ''
 - name: testArtifactName
@@ -18,42 +17,42 @@ parameters:
 - name: testArguments
   type: string
   default: ''
-- name: queueName
+- name: helixApiAccessToken
   type: string
-  default: 'BuildPool.Windows.10.Amd64.Open'
+  default: ''
+- name: poolParameters
+  type: object
 
 jobs:
 - job: ${{ parameters.jobName }}
-  dependsOn: ${{ parameters.buildJobName }}
-  pool:
-    name: NetCorePublic-Pool
-    queue: ${{ parameters.queueName }}
+  pool: ${{ parameters.poolParameters }}
   timeoutInMinutes: 120
   steps:
+    - checkout: none
+
     - task: DownloadPipelineArtifact@2
+      displayName: Download Test Payload
       inputs:
         artifact: ${{ parameters.testArtifactName }}
-        path: '$(Build.SourcesDirectory)\artifacts\bin' 
+        path: '$(Build.SourcesDirectory)'
 
-    - task: PowerShell@2 
-      displayName: Rehydrate Unit Tests Environment
+    - task: BatchScript@1
+      displayName: Rehydrate RunTests
       inputs:
-        filePath: eng/rehydrate-tests.ps1
+        filename: ./artifacts/bin/RunTests/${{ parameters.configuration }}/net9.0/rehydrate.cmd
+      env:
+        HELIX_CORRELATION_PAYLOAD: '$(Build.SourcesDirectory)\.duplicate'
 
-    - task: PowerShell@2 
+    - task: PowerShell@2
       displayName: Run Unit Tests
       inputs:
         filePath: eng/build.ps1
-        arguments: -ci -configuration ${{ parameters.configuration }} ${{ parameters.testArguments }} -collectDumps
-
-    - task: PublishTestResults@2
-      displayName: Publish xUnit Test Results
-      inputs:
-        testRunner: XUnit
-        testResultsFiles: '$(Build.SourcesDirectory)\artifacts\TestResults\${{ parameters.configuration }}\*.xml'
-        mergeTestResults: true
-        testRunTitle: '${{ parameters.testRunName }}'
-      condition: always()
+        ${{ if ne(variables['System.TeamProject'], 'public') }}:
+          arguments: -ci -helix -configuration ${{ parameters.configuration }} -helixQueueName ${{ parameters.helixQueueName }} -helixApiAccessToken ${{ parameters.helixApiAccessToken }} ${{ parameters.testArguments }} -collectDumps        
+        ${{ else }}:
+          arguments: -ci -helix -configuration ${{ parameters.configuration }} -helixQueueName ${{ parameters.helixQueueName }} ${{ parameters.testArguments }} -collectDumps
+      env:
+        SYSTEM_ACCESSTOKEN: $(System.AccessToken)
 
     - template: publish-logs.yml
       parameters:

@@ -6,188 +6,230 @@
 
 using System.Windows;
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.AddImportOnPaste;
+using Microsoft.CodeAnalysis.Classification;
+using Microsoft.CodeAnalysis.CodeStyle;
+using Microsoft.CodeAnalysis.ColorSchemes;
+using Microsoft.CodeAnalysis.Completion;
 using Microsoft.CodeAnalysis.Diagnostics;
 using Microsoft.CodeAnalysis.DocumentationComments;
+using Microsoft.CodeAnalysis.DocumentHighlighting;
 using Microsoft.CodeAnalysis.Editing;
+using Microsoft.CodeAnalysis.Editor.CSharp.BlockCommentEditing;
 using Microsoft.CodeAnalysis.Editor.CSharp.SplitStringLiteral;
-using Microsoft.CodeAnalysis.Editor.Options;
+using Microsoft.CodeAnalysis.Editor.Implementation.RenameTracking;
+using Microsoft.CodeAnalysis.Editor.Implementation.SplitComment;
+using Microsoft.CodeAnalysis.Editor.InlineDiagnostics;
+using Microsoft.CodeAnalysis.Editor.InlineHints;
 using Microsoft.CodeAnalysis.Editor.Shared.Options;
-using Microsoft.CodeAnalysis.EmbeddedLanguages.RegularExpressions;
-using Microsoft.CodeAnalysis.ExtractMethod;
-using Microsoft.CodeAnalysis.Fading;
+using Microsoft.CodeAnalysis.Features.EmbeddedLanguages.Json.LanguageServices;
+using Microsoft.CodeAnalysis.Features.EmbeddedLanguages.RegularExpressions.LanguageServices;
+using Microsoft.CodeAnalysis.Host;
 using Microsoft.CodeAnalysis.ImplementType;
+using Microsoft.CodeAnalysis.InheritanceMargin;
 using Microsoft.CodeAnalysis.InlineHints;
+using Microsoft.CodeAnalysis.KeywordHighlighting;
+using Microsoft.CodeAnalysis.LineSeparators;
+using Microsoft.CodeAnalysis.MetadataAsSource;
 using Microsoft.CodeAnalysis.QuickInfo;
-using Microsoft.CodeAnalysis.Remote;
+using Microsoft.CodeAnalysis.ReferenceHighlighting;
 using Microsoft.CodeAnalysis.SolutionCrawler;
+using Microsoft.CodeAnalysis.StackTraceExplorer;
+using Microsoft.CodeAnalysis.StringCopyPaste;
 using Microsoft.CodeAnalysis.Structure;
 using Microsoft.CodeAnalysis.SymbolSearch;
 using Microsoft.CodeAnalysis.ValidateFormatString;
-using Microsoft.VisualStudio.ComponentModelHost;
-using Microsoft.VisualStudio.LanguageServices.ColorSchemes;
 using Microsoft.VisualStudio.LanguageServices.Implementation.Options;
 
-namespace Microsoft.VisualStudio.LanguageServices.CSharp.Options
+namespace Microsoft.VisualStudio.LanguageServices.CSharp.Options;
+
+internal sealed partial class AdvancedOptionPageControl : AbstractOptionPageControl
 {
-    internal partial class AdvancedOptionPageControl : AbstractOptionPageControl
+    public AdvancedOptionPageControl(OptionStore optionStore) : base(optionStore)
     {
-        private readonly ColorSchemeApplier _colorSchemeApplier;
+        InitializeComponent();
 
-        public AdvancedOptionPageControl(OptionStore optionStore, IComponentModel componentModel) : base(optionStore)
-        {
-            _colorSchemeApplier = componentModel.GetService<ColorSchemeApplier>();
+        // Analysis
+        BindToOption(Run_background_code_analysis_for, SolutionCrawlerOptionsStorage.BackgroundAnalysisScopeOption, LanguageNames.CSharp, label: Run_background_code_analysis_for_label);
+        BindToOption(Show_compiler_errors_and_warnings_for, SolutionCrawlerOptionsStorage.CompilerDiagnosticsScopeOption, LanguageNames.CSharp, label: Show_compiler_errors_and_warnings_for_label);
+        BindToOption(DisplayDiagnosticsInline, InlineDiagnosticsOptionsStorage.EnableInlineDiagnostics, LanguageNames.CSharp);
+        BindToOption(at_the_end_of_the_line_of_code, InlineDiagnosticsOptionsStorage.Location, InlineDiagnosticsLocations.PlacedAtEndOfCode, LanguageNames.CSharp);
+        BindToOption(on_the_right_edge_of_the_editor_window, InlineDiagnosticsOptionsStorage.Location, InlineDiagnosticsLocations.PlacedAtEndOfEditor, LanguageNames.CSharp);
 
-            InitializeComponent();
+        BindToOption(Enable_file_logging_for_diagnostics, VisualStudioLoggingOptionsStorage.EnableFileLoggingForDiagnostics);
+        BindToOption(Skip_analyzers_for_implicitly_triggered_builds, FeatureOnOffOptions.SkipAnalyzersForImplicitlyTriggeredBuilds);
+        BindToOption(Show_Remove_Unused_References_command_in_Solution_Explorer, FeatureOnOffOptions.OfferRemoveUnusedReferences, () => true);
 
-            BindToOption(Background_analysis_scope_active_file, SolutionCrawlerOptions.BackgroundAnalysisScopeOption, BackgroundAnalysisScope.ActiveFile, LanguageNames.CSharp);
-            BindToOption(Background_analysis_scope_open_files, SolutionCrawlerOptions.BackgroundAnalysisScopeOption, BackgroundAnalysisScope.OpenFilesAndProjects, LanguageNames.CSharp);
-            BindToOption(Background_analysis_scope_full_solution, SolutionCrawlerOptions.BackgroundAnalysisScopeOption, BackgroundAnalysisScope.FullSolution, LanguageNames.CSharp);
-            BindToOption(Enable_navigation_to_decompiled_sources, FeatureOnOffOptions.NavigateToDecompiledSources);
-            BindToOption(Use_64bit_analysis_process, RemoteHostOptions.OOP64Bit);
+        // Source Generators
+        BindToOption(Automatic_Run_generators_after_any_change, WorkspaceConfigurationOptionsStorage.SourceGeneratorExecution, SourceGeneratorExecutionPreference.Automatic);
+        BindToOption(Balanced_Run_generators_after_saving_or_building, WorkspaceConfigurationOptionsStorage.SourceGeneratorExecution, SourceGeneratorExecutionPreference.Balanced);
 
-            BindToOption(PlaceSystemNamespaceFirst, GenerationOptions.PlaceSystemNamespaceFirst, LanguageNames.CSharp);
-            BindToOption(SeparateImportGroups, GenerationOptions.SeparateImportDirectiveGroups, LanguageNames.CSharp);
-            BindToOption(SuggestForTypesInReferenceAssemblies, SymbolSearchOptions.SuggestForTypesInReferenceAssemblies, LanguageNames.CSharp);
-            BindToOption(SuggestForTypesInNuGetPackages, SymbolSearchOptions.SuggestForTypesInNuGetPackages, LanguageNames.CSharp);
-            BindToOption(Split_string_literals_on_enter, SplitStringLiteralOptions.Enabled, LanguageNames.CSharp);
+        // Go To Definition
+        BindToOption(Enable_navigation_to_sourcelink_and_embedded_sources, MetadataAsSourceOptionsStorage.NavigateToSourceLinkAndEmbeddedSources);
+        BindToOption(Enable_navigation_to_decompiled_sources, MetadataAsSourceOptionsStorage.NavigateToDecompiledSources);
+        BindToOption(Always_use_default_symbol_servers_for_navigation, MetadataAsSourceOptionsStorage.AlwaysUseDefaultSymbolServers);
 
-            BindToOption(EnterOutliningMode, FeatureOnOffOptions.Outlining, LanguageNames.CSharp);
-            BindToOption(Show_outlining_for_declaration_level_constructs, BlockStructureOptions.ShowOutliningForDeclarationLevelConstructs, LanguageNames.CSharp);
-            BindToOption(Show_outlining_for_code_level_constructs, BlockStructureOptions.ShowOutliningForCodeLevelConstructs, LanguageNames.CSharp);
-            BindToOption(Show_outlining_for_comments_and_preprocessor_regions, BlockStructureOptions.ShowOutliningForCommentsAndPreprocessorRegions, LanguageNames.CSharp);
-            BindToOption(Collapse_regions_when_collapsing_to_definitions, BlockStructureOptions.CollapseRegionsWhenCollapsingToDefinitions, LanguageNames.CSharp);
+        // Using Directives
+        BindToOption(PlaceSystemNamespaceFirst, GenerationOptions.PlaceSystemNamespaceFirst, LanguageNames.CSharp);
+        BindToOption(SeparateImportGroups, GenerationOptions.SeparateImportDirectiveGroups, LanguageNames.CSharp);
+        BindToOption(SuggestForTypesInReferenceAssemblies, SymbolSearchOptionsStorage.SearchReferenceAssemblies, LanguageNames.CSharp);
+        BindToOption(SuggestForTypesInNuGetPackages, SymbolSearchOptionsStorage.SearchNuGetPackages, LanguageNames.CSharp);
+        BindToOption(AddUsingsOnPaste, AddImportOnPasteOptionsStorage.AddImportsOnPaste, LanguageNames.CSharp);
 
-            BindToOption(Fade_out_unused_usings, FadingOptions.FadeOutUnusedImports, LanguageNames.CSharp);
-            BindToOption(Fade_out_unreachable_code, FadingOptions.FadeOutUnreachableCode, LanguageNames.CSharp);
+        // Highlighting
+        BindToOption(EnableHighlightReferences, ReferenceHighlightingOptionsStorage.ReferenceHighlighting, LanguageNames.CSharp);
+        BindToOption(EnableHighlightKeywords, KeywordHighlightingOptionsStorage.KeywordHighlighting, LanguageNames.CSharp);
 
-            BindToOption(Show_guides_for_declaration_level_constructs, BlockStructureOptions.ShowBlockStructureGuidesForDeclarationLevelConstructs, LanguageNames.CSharp);
-            BindToOption(Show_guides_for_code_level_constructs, BlockStructureOptions.ShowBlockStructureGuidesForCodeLevelConstructs, LanguageNames.CSharp);
+        // Outlining
+        BindToOption(EnterOutliningMode, OutliningOptionsStorage.Outlining, LanguageNames.CSharp);
+        BindToOption(Collapse_regions_on_file_open, BlockStructureOptionsStorage.CollapseRegionsWhenFirstOpened, LanguageNames.CSharp);
+        BindToOption(Collapse_usings_on_file_open, BlockStructureOptionsStorage.CollapseImportsWhenFirstOpened, LanguageNames.CSharp);
+        BindToOption(Collapse_sourcelink_embedded_decompiled_files_on_open, BlockStructureOptionsStorage.CollapseSourceLinkEmbeddedDecompiledFilesWhenFirstOpened, LanguageNames.CSharp);
+        BindToOption(Collapse_metadata_signature_files_on_open, BlockStructureOptionsStorage.CollapseMetadataSignatureFilesWhenFirstOpened, LanguageNames.CSharp);
+        BindToOption(DisplayLineSeparators, LineSeparatorsOptionsStorage.LineSeparator, LanguageNames.CSharp);
+        BindToOption(Show_outlining_for_declaration_level_constructs, BlockStructureOptionsStorage.ShowOutliningForDeclarationLevelConstructs, LanguageNames.CSharp);
+        BindToOption(Show_outlining_for_code_level_constructs, BlockStructureOptionsStorage.ShowOutliningForCodeLevelConstructs, LanguageNames.CSharp);
+        BindToOption(Show_outlining_for_comments_and_preprocessor_regions, BlockStructureOptionsStorage.ShowOutliningForCommentsAndPreprocessorRegions, LanguageNames.CSharp);
+        BindToOption(Collapse_regions_when_collapsing_to_definitions, BlockStructureOptionsStorage.CollapseRegionsWhenCollapsingToDefinitions, LanguageNames.CSharp);
+        BindToOption(Collapse_local_functions_when_collapsing_to_definitions, BlockStructureOptionsStorage.CollapseLocalFunctionsWhenCollapsingToDefinitions, LanguageNames.CSharp);
 
-            BindToOption(GenerateXmlDocCommentsForTripleSlash, DocumentationCommentOptions.AutoXmlDocCommentGeneration, LanguageNames.CSharp);
-            BindToOption(InsertSlashSlashAtTheStartOfNewLinesWhenWritingSingleLineComments, SplitStringLiteralOptions.Enabled, LanguageNames.CSharp);
-            BindToOption(InsertAsteriskAtTheStartOfNewLinesWhenWritingBlockComments, FeatureOnOffOptions.AutoInsertBlockCommentStartString, LanguageNames.CSharp);
+        // Fading
+        BindToOption(Fade_out_unused_usings, FadingOptions.FadeOutUnusedImports, LanguageNames.CSharp);
+        BindToOption(Fade_out_unused_members, FadingOptions.FadeOutUnusedMembers, LanguageNames.CSharp);
+        BindToOption(Fade_out_unreachable_code, FadingOptions.FadeOutUnreachableCode, LanguageNames.CSharp);
 
-            BindToOption(ShowRemarksInQuickInfo, QuickInfoOptions.ShowRemarksInQuickInfo, LanguageNames.CSharp);
-            BindToOption(DisplayLineSeparators, FeatureOnOffOptions.LineSeparator, LanguageNames.CSharp);
-            BindToOption(EnableHighlightReferences, FeatureOnOffOptions.ReferenceHighlighting, LanguageNames.CSharp);
-            BindToOption(EnableHighlightKeywords, FeatureOnOffOptions.KeywordHighlighting, LanguageNames.CSharp);
-            BindToOption(RenameTrackingPreview, FeatureOnOffOptions.RenameTrackingPreview, LanguageNames.CSharp);
+        // Block Structure Guides
+        BindToOption(Show_guides_for_declaration_level_constructs, BlockStructureOptionsStorage.ShowBlockStructureGuidesForDeclarationLevelConstructs, LanguageNames.CSharp);
+        BindToOption(Show_guides_for_code_level_constructs, BlockStructureOptionsStorage.ShowBlockStructureGuidesForCodeLevelConstructs, LanguageNames.CSharp);
+        BindToOption(Show_guides_for_comments_and_preprocessor_regions, BlockStructureOptionsStorage.ShowBlockStructureGuidesForCommentsAndPreprocessorRegions, LanguageNames.CSharp);
 
-            BindToOption(DontPutOutOrRefOnStruct, ExtractMethodOptions.DontPutOutOrRefOnStruct, LanguageNames.CSharp);
+        // Comments
+        BindToOption(GenerateXmlDocCommentsForTripleSlash, DocumentationCommentOptionsStorage.AutoXmlDocCommentGeneration, LanguageNames.CSharp);
+        BindToOption(InsertSlashSlashAtTheStartOfNewLinesWhenWritingSingleLineComments, SplitCommentOptionsStorage.Enabled, LanguageNames.CSharp);
+        BindToOption(InsertAsteriskAtTheStartOfNewLinesWhenWritingBlockComments, BlockCommentEditingOptionsStorage.AutoInsertBlockCommentStartString, LanguageNames.CSharp);
 
-            BindToOption(with_other_members_of_the_same_kind, ImplementTypeOptions.InsertionBehavior, ImplementTypeInsertionBehavior.WithOtherMembersOfTheSameKind, LanguageNames.CSharp);
-            BindToOption(at_the_end, ImplementTypeOptions.InsertionBehavior, ImplementTypeInsertionBehavior.AtTheEnd, LanguageNames.CSharp);
+        // Editor Help
+        BindToOption(ShowRemarksInQuickInfo, QuickInfoOptionsStorage.ShowRemarksInQuickInfo, LanguageNames.CSharp);
+        BindToOption(RenameTrackingPreview, RenameTrackingOptionsStorage.RenameTrackingPreview, LanguageNames.CSharp);
+        BindToOption(Split_string_literals_on_enter, SplitStringLiteralOptionsStorage.Enabled);
+        BindToOption(Fix_text_pasted_into_string_literals_experimental, StringCopyPasteOptionsStorage.AutomaticallyFixStringContentsOnPaste, LanguageNames.CSharp);
+        BindToOption(Report_invalid_placeholders_in_string_dot_format_calls, FormatStringValidationOptionStorage.ReportInvalidPlaceholdersInStringDotFormatCalls, LanguageNames.CSharp);
+        BindToOption(Underline_reassigned_variables, ClassificationOptionsStorage.ClassifyReassignedVariables, LanguageNames.CSharp);
+        BindToOption(Strike_out_obsolete_symbols, ClassificationOptionsStorage.ClassifyObsoleteSymbols, LanguageNames.CSharp);
 
-            BindToOption(prefer_throwing_properties, ImplementTypeOptions.PropertyGenerationBehavior, ImplementTypePropertyGenerationBehavior.PreferThrowingProperties, LanguageNames.CSharp);
-            BindToOption(prefer_auto_properties, ImplementTypeOptions.PropertyGenerationBehavior, ImplementTypePropertyGenerationBehavior.PreferAutoProperties, LanguageNames.CSharp);
+        // Regular Expressions
+        BindToOption(Colorize_regular_expressions, ClassificationOptionsStorage.ColorizeRegexPatterns, LanguageNames.CSharp);
+        BindToOption(Report_invalid_regular_expressions, RegexOptionsStorage.ReportInvalidRegexPatterns, LanguageNames.CSharp);
+        BindToOption(Highlight_related_regular_expression_components_under_cursor, HighlightingOptionsStorage.HighlightRelatedRegexComponentsUnderCursor, LanguageNames.CSharp);
+        BindToOption(Show_completion_list, CompletionOptionsStorage.ProvideRegexCompletions, LanguageNames.CSharp);
 
-            BindToOption(Report_invalid_placeholders_in_string_dot_format_calls, ValidateFormatStringOption.ReportInvalidPlaceholdersInStringDotFormatCalls, LanguageNames.CSharp);
+        // Json
+        BindToOption(Colorize_JSON_strings, ClassificationOptionsStorage.ColorizeJsonPatterns, LanguageNames.CSharp);
+        BindToOption(Report_invalid_JSON_strings, JsonDetectionOptionsStorage.ReportInvalidJsonPatterns, LanguageNames.CSharp);
+        BindToOption(Highlight_related_JSON_components_under_cursor, HighlightingOptionsStorage.HighlightRelatedJsonComponentsUnderCursor, LanguageNames.CSharp);
 
-            BindToOption(Colorize_regular_expressions, RegularExpressionsOptions.ColorizeRegexPatterns, LanguageNames.CSharp);
-            BindToOption(Report_invalid_regular_expressions, RegularExpressionsOptions.ReportInvalidRegexPatterns, LanguageNames.CSharp);
-            BindToOption(Highlight_related_components_under_cursor, RegularExpressionsOptions.HighlightRelatedRegexComponentsUnderCursor, LanguageNames.CSharp);
-            BindToOption(Show_completion_list, RegularExpressionsOptions.ProvideRegexCompletions, LanguageNames.CSharp);
+        // Classifications
+        BindToOption(Editor_color_scheme, ColorSchemeOptionsStorage.ColorScheme);
 
-            BindToOption(Editor_color_scheme, ColorSchemeOptions.ColorScheme);
+        // Implement Interface or Abstract Class
+        BindToOption(with_other_members_of_the_same_kind, ImplementTypeOptionsStorage.InsertionBehavior, ImplementTypeInsertionBehavior.WithOtherMembersOfTheSameKind, LanguageNames.CSharp);
+        BindToOption(at_the_end, ImplementTypeOptionsStorage.InsertionBehavior, ImplementTypeInsertionBehavior.AtTheEnd, LanguageNames.CSharp);
+        BindToOption(prefer_throwing_properties, ImplementTypeOptionsStorage.PropertyGenerationBehavior, ImplementTypePropertyGenerationBehavior.PreferThrowingProperties, LanguageNames.CSharp);
+        BindToOption(prefer_auto_properties, ImplementTypeOptionsStorage.PropertyGenerationBehavior, ImplementTypePropertyGenerationBehavior.PreferAutoProperties, LanguageNames.CSharp);
 
-            BindToOption(DisplayAllHintsWhilePressingAltF1, InlineHintsOptions.DisplayAllHintsWhilePressingAltF1);
-            BindToOption(ColorHints, InlineHintsOptions.ColorHints, LanguageNames.CSharp);
+        // Inline Hints
+        BindToOption(DisplayAllHintsWhilePressingAltF1, InlineHintsViewOptionsStorage.DisplayAllHintsWhilePressingAltF1);
+        BindToOption(ColorHints, InlineHintsViewOptionsStorage.ColorHints, LanguageNames.CSharp);
 
-            BindToOption(DisplayInlineParameterNameHints, InlineHintsOptions.EnabledForParameters, LanguageNames.CSharp);
-            BindToOption(ShowHintsForLiterals, InlineHintsOptions.ForLiteralParameters, LanguageNames.CSharp);
-            BindToOption(ShowHintsForNewExpressions, InlineHintsOptions.ForObjectCreationParameters, LanguageNames.CSharp);
-            BindToOption(ShowHintsForEverythingElse, InlineHintsOptions.ForOtherParameters, LanguageNames.CSharp);
-            BindToOption(SuppressHintsWhenParameterNameMatchesTheMethodsIntent, InlineHintsOptions.SuppressForParametersThatMatchMethodIntent, LanguageNames.CSharp);
-            BindToOption(SuppressHintsWhenParameterNamesDifferOnlyBySuffix, InlineHintsOptions.SuppressForParametersThatDifferOnlyBySuffix, LanguageNames.CSharp);
+        BindToOption(DisplayInlineParameterNameHints, InlineHintsOptionsStorage.EnabledForParameters, LanguageNames.CSharp);
+        BindToOption(ShowHintsForLiterals, InlineHintsOptionsStorage.ForLiteralParameters, LanguageNames.CSharp);
+        BindToOption(ShowHintsForNewExpressions, InlineHintsOptionsStorage.ForObjectCreationParameters, LanguageNames.CSharp);
+        BindToOption(ShowHintsForEverythingElse, InlineHintsOptionsStorage.ForOtherParameters, LanguageNames.CSharp);
+        BindToOption(ShowHintsForIndexers, InlineHintsOptionsStorage.ForIndexerParameters, LanguageNames.CSharp);
+        BindToOption(SuppressHintsWhenParameterNameMatchesTheMethodsIntent, InlineHintsOptionsStorage.SuppressForParametersThatMatchMethodIntent, LanguageNames.CSharp);
+        BindToOption(SuppressHintsWhenParameterNamesDifferOnlyBySuffix, InlineHintsOptionsStorage.SuppressForParametersThatDifferOnlyBySuffix, LanguageNames.CSharp);
+        BindToOption(SuppressHintsWhenParameterNamesMatchArgumentNames, InlineHintsOptionsStorage.SuppressForParametersThatMatchArgumentName, LanguageNames.CSharp);
 
-            BindToOption(DisplayInlineTypeHints, InlineHintsOptions.EnabledForTypes, LanguageNames.CSharp);
-            BindToOption(ShowHintsForVariablesWithInferredTypes, InlineHintsOptions.ForImplicitVariableTypes, LanguageNames.CSharp);
-            BindToOption(ShowHintsForLambdaParameterTypes, InlineHintsOptions.ForLambdaParameterTypes, LanguageNames.CSharp);
-        }
+        BindToOption(DisplayInlineTypeHints, InlineHintsOptionsStorage.EnabledForTypes, LanguageNames.CSharp);
+        BindToOption(ShowHintsForVariablesWithInferredTypes, InlineHintsOptionsStorage.ForImplicitVariableTypes, LanguageNames.CSharp);
+        BindToOption(ShowHintsForLambdaParameterTypes, InlineHintsOptionsStorage.ForLambdaParameterTypes, LanguageNames.CSharp);
+        BindToOption(ShowHintsForImplicitObjectCreation, InlineHintsOptionsStorage.ForImplicitObjectCreation, LanguageNames.CSharp);
+        BindToOption(ShowHintsForCollectionExpressions, InlineHintsOptionsStorage.ForCollectionExpressions, LanguageNames.CSharp);
 
-        // Since this dialog is constructed once for the lifetime of the application and VS Theme can be changed after the application has started,
-        // we need to update the visibility of our combobox and warnings based on the current VS theme before being rendered.
-        internal override void OnLoad()
-        {
-            var isSupportedTheme = _colorSchemeApplier.IsSupportedTheme();
-            var isThemeCustomized = _colorSchemeApplier.IsThemeCustomized();
+        // Inheritance Margin
+        // Leave the null converter here to make sure if the option value is get from the storage (if it is null), the feature will be enabled
+        BindToOption(ShowInheritanceMargin, InheritanceMarginOptionsStorage.ShowInheritanceMargin, LanguageNames.CSharp, () => true);
+        BindToOption(InheritanceMarginCombinedWithIndicatorMargin, InheritanceMarginOptionsStorage.InheritanceMarginCombinedWithIndicatorMargin);
+        BindToOption(IncludeGlobalImports, InheritanceMarginOptionsStorage.InheritanceMarginIncludeGlobalImports, LanguageNames.CSharp);
 
-            Editor_color_scheme.Visibility = isSupportedTheme ? Visibility.Visible : Visibility.Collapsed;
-            Customized_Theme_Warning.Visibility = isSupportedTheme && isThemeCustomized ? Visibility.Visible : Visibility.Collapsed;
-            Custom_VS_Theme_Warning.Visibility = isSupportedTheme ? Visibility.Collapsed : Visibility.Visible;
+        // Stack Trace Explorer
+        BindToOption(AutomaticallyOpenStackTraceExplorer, StackTraceExplorerOptionsStorage.OpenOnFocus);
+    }
 
-            UpdatePullDiagnosticsOptions();
-            UpdateInlineHintsOptions();
+    // Since this dialog is constructed once for the lifetime of the application and VS Theme can be changed after the application has started,
+    // we need to update the visibility of our combobox and warnings based on the current VS theme before being rendered.
+    internal override void OnLoad()
+    {
+        UpdateInlineHintsOptions();
 
-            base.OnLoad();
-        }
+        base.OnLoad();
+    }
 
-        private void UpdatePullDiagnosticsOptions()
-        {
-            Enable_pull_diagnostics_experimental_requires_restart.IsChecked = OptionStore.GetOption(InternalDiagnosticsOptions.NormalDiagnosticMode) == DiagnosticMode.Pull;
-            Enable_Razor_pull_diagnostics_experimental_requires_restart.IsChecked = OptionStore.GetOption(InternalDiagnosticsOptions.RazorDiagnosticMode) == DiagnosticMode.Pull;
-        }
+    private void UpdateInlineHintsOptions()
+    {
+        var enabledForParameters = this.OptionStore.GetOption(InlineHintsOptionsStorage.EnabledForParameters, LanguageNames.CSharp);
+        ShowHintsForLiterals.IsEnabled = enabledForParameters;
+        ShowHintsForNewExpressions.IsEnabled = enabledForParameters;
+        ShowHintsForEverythingElse.IsEnabled = enabledForParameters;
+        ShowHintsForIndexers.IsEnabled = enabledForParameters;
+        SuppressHintsWhenParameterNameMatchesTheMethodsIntent.IsEnabled = enabledForParameters;
+        SuppressHintsWhenParameterNamesDifferOnlyBySuffix.IsEnabled = enabledForParameters;
+        SuppressHintsWhenParameterNamesMatchArgumentNames.IsEnabled = enabledForParameters;
 
-        private void Enable_pull_diagnostics_experimental_requires_restart_Checked(object sender, RoutedEventArgs e)
-        {
-            this.OptionStore.SetOption(InternalDiagnosticsOptions.NormalDiagnosticMode, DiagnosticMode.Pull);
-            UpdatePullDiagnosticsOptions();
-        }
+        var enabledForTypes = this.OptionStore.GetOption(InlineHintsOptionsStorage.EnabledForTypes, LanguageNames.CSharp);
+        ShowHintsForVariablesWithInferredTypes.IsEnabled = enabledForTypes;
+        ShowHintsForLambdaParameterTypes.IsEnabled = enabledForTypes;
+        ShowHintsForImplicitObjectCreation.IsEnabled = enabledForTypes;
+        ShowHintsForCollectionExpressions.IsEnabled = enabledForTypes;
+    }
 
-        private void Enable_pull_diagnostics_experimental_requires_restart_Unchecked(object sender, RoutedEventArgs e)
-        {
-            this.OptionStore.SetOption(InternalDiagnosticsOptions.NormalDiagnosticMode, DiagnosticMode.Push);
-            UpdatePullDiagnosticsOptions();
-        }
+    private void DisplayInlineParameterNameHints_Checked(object sender, RoutedEventArgs e)
+    {
+        this.OptionStore.SetOption(InlineHintsOptionsStorage.EnabledForParameters, LanguageNames.CSharp, true);
+        UpdateInlineHintsOptions();
+    }
 
-        private void Enable_Razor_pull_diagnostics_experimental_requires_restart_Checked(object sender, RoutedEventArgs e)
-        {
-            this.OptionStore.SetOption(InternalDiagnosticsOptions.RazorDiagnosticMode, DiagnosticMode.Pull);
-            UpdatePullDiagnosticsOptions();
-        }
+    private void DisplayInlineParameterNameHints_Unchecked(object sender, RoutedEventArgs e)
+    {
+        this.OptionStore.SetOption(InlineHintsOptionsStorage.EnabledForParameters, LanguageNames.CSharp, false);
+        UpdateInlineHintsOptions();
+    }
 
-        private void Enable_Razor_pull_diagnostics_experimental_requires_restart_Unchecked(object sender, RoutedEventArgs e)
-        {
-            this.OptionStore.SetOption(InternalDiagnosticsOptions.RazorDiagnosticMode, DiagnosticMode.Push);
-            UpdatePullDiagnosticsOptions();
-        }
+    private void DisplayInlineTypeHints_Checked(object sender, RoutedEventArgs e)
+    {
+        this.OptionStore.SetOption(InlineHintsOptionsStorage.EnabledForTypes, LanguageNames.CSharp, true);
+        UpdateInlineHintsOptions();
+    }
 
-        private void UpdateInlineHintsOptions()
-        {
-            var enabledForParameters = this.OptionStore.GetOption(InlineHintsOptions.EnabledForParameters, LanguageNames.CSharp);
-            ShowHintsForLiterals.IsEnabled = enabledForParameters;
-            ShowHintsForNewExpressions.IsEnabled = enabledForParameters;
-            ShowHintsForEverythingElse.IsEnabled = enabledForParameters;
-            SuppressHintsWhenParameterNameMatchesTheMethodsIntent.IsEnabled = enabledForParameters;
-            SuppressHintsWhenParameterNamesDifferOnlyBySuffix.IsEnabled = enabledForParameters;
+    private void DisplayInlineTypeHints_Unchecked(object sender, RoutedEventArgs e)
+    {
+        this.OptionStore.SetOption(InlineHintsOptionsStorage.EnabledForTypes, LanguageNames.CSharp, false);
+        UpdateInlineHintsOptions();
+    }
 
-            var enabledForTypes = this.OptionStore.GetOption(InlineHintsOptions.EnabledForTypes, LanguageNames.CSharp);
-            ShowHintsForVariablesWithInferredTypes.IsEnabled = enabledForTypes;
-            ShowHintsForLambdaParameterTypes.IsEnabled = enabledForTypes;
-        }
+    private void EnterOutliningMode_Checked(object sender, RoutedEventArgs e)
+    {
+        Collapse_regions_on_file_open.IsEnabled = true;
+        Collapse_usings_on_file_open.IsEnabled = true;
+        Collapse_metadata_signature_files_on_open.IsEnabled = true;
+        Collapse_sourcelink_embedded_decompiled_files_on_open.IsEnabled = true;
+    }
 
-        private void DisplayInlineParameterNameHints_Checked(object sender, RoutedEventArgs e)
-        {
-            this.OptionStore.SetOption(InlineHintsOptions.EnabledForParameters, LanguageNames.CSharp, true);
-            UpdateInlineHintsOptions();
-        }
-
-        private void DisplayInlineParameterNameHints_Unchecked(object sender, RoutedEventArgs e)
-        {
-            this.OptionStore.SetOption(InlineHintsOptions.EnabledForParameters, LanguageNames.CSharp, false);
-            UpdateInlineHintsOptions();
-        }
-
-        private void DisplayInlineTypeHints_Checked(object sender, RoutedEventArgs e)
-        {
-            this.OptionStore.SetOption(InlineHintsOptions.EnabledForTypes, LanguageNames.CSharp, true);
-            UpdateInlineHintsOptions();
-        }
-
-        private void DisplayInlineTypeHints_Unchecked(object sender, RoutedEventArgs e)
-        {
-            this.OptionStore.SetOption(InlineHintsOptions.EnabledForTypes, LanguageNames.CSharp, false);
-            UpdateInlineHintsOptions();
-        }
+    private void EnterOutliningMode_Unchecked(object sender, RoutedEventArgs e)
+    {
+        Collapse_regions_on_file_open.IsEnabled = false;
+        Collapse_usings_on_file_open.IsEnabled = false;
+        Collapse_metadata_signature_files_on_open.IsEnabled = false;
+        Collapse_sourcelink_embedded_decompiled_files_on_open.IsEnabled = false;
     }
 }

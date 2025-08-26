@@ -161,17 +161,12 @@ namespace Microsoft.CodeAnalysis
         /// Used for time-based version generation when <see cref="System.Reflection.AssemblyVersionAttribute"/> contains a wildcard.
         /// If equal to default(<see cref="DateTime"/>) the actual current local time will be used.
         /// </summary>
-        internal DateTime CurrentLocalTime { get; private set; }
-
-        internal DateTime CurrentLocalTime_internal_protected_set { set { CurrentLocalTime = value; } }
+        internal DateTime CurrentLocalTime { get; private protected set; }
 
         /// <summary>
         /// Emit mode that favors debuggability. 
         /// </summary>
-        internal bool DebugPlusMode { get; private set; }
-
-        // TODO: change visibility of the DebugPlusMode setter to internal & protected
-        internal bool DebugPlusMode_internal_protected_set { set { DebugPlusMode = value; } }
+        internal bool DebugPlusMode { get; set; }
 
         /// <summary>
         /// Specifies whether to import members with accessibility other than public or protected by default. 
@@ -185,10 +180,7 @@ namespace Microsoft.CodeAnalysis
         /// <summary>
         /// Apply additional disambiguation rules during resolution of referenced assemblies.
         /// </summary>
-        internal bool ReferencesSupersedeLowerVersions { get; private set; }
-
-        // TODO: change visibility of the ReferencesSupersedeLowerVersions setter to internal & protected
-        internal bool ReferencesSupersedeLowerVersions_internal_protected_set { set { ReferencesSupersedeLowerVersions = value; } }
+        internal bool ReferencesSupersedeLowerVersions { get; private protected set; }
 
         /// <summary>
         /// Modifies the incoming diagnostic, for example escalating its severity, or discarding it (returning null) based on the compilation options.
@@ -268,6 +260,8 @@ namespace Microsoft.CodeAnalysis
         }
 
         private readonly Lazy<ImmutableArray<Diagnostic>> _lazyErrors;
+
+        private int _hashCode;
 
         // Expects correct arguments.
         internal CompilationOptions(
@@ -560,6 +554,8 @@ namespace Microsoft.CodeAnalysis
         [Obsolete]
         protected abstract CompilationOptions CommonWithFeatures(ImmutableArray<string> features);
 
+        internal abstract DeterministicKeyBuilder CreateDeterministicKeyBuilder();
+
         /// <summary>
         /// Performs validation of options compatibilities and generates diagnostics if needed
         /// </summary>
@@ -657,7 +653,18 @@ namespace Microsoft.CodeAnalysis
             return equal;
         }
 
-        public abstract override int GetHashCode();
+        public sealed override int GetHashCode()
+        {
+            if (_hashCode == 0)
+            {
+                var hashCode = ComputeHashCode();
+                _hashCode = hashCode == 0 ? 1 : hashCode;
+            }
+
+            return _hashCode;
+        }
+
+        protected abstract int ComputeHashCode();
 
         protected int GetHashCodeHelper()
         {

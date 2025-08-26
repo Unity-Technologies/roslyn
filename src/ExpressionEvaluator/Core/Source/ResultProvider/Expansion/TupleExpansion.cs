@@ -4,15 +4,14 @@
 
 #nullable disable
 
+using System;
+using System.Collections.ObjectModel;
+using System.Diagnostics;
 using Microsoft.VisualStudio.Debugger.Clr;
 using Microsoft.VisualStudio.Debugger.ComponentInterfaces;
 using Microsoft.VisualStudio.Debugger.Evaluation;
 using Microsoft.VisualStudio.Debugger.Evaluation.ClrCompilation;
-using System;
-using System.Collections.ObjectModel;
-using System.Diagnostics;
 using FieldInfo = Microsoft.VisualStudio.Debugger.Metadata.FieldInfo;
-using Type = Microsoft.VisualStudio.Debugger.Metadata.Type;
 
 namespace Microsoft.CodeAnalysis.ExpressionEvaluator
 {
@@ -77,7 +76,7 @@ namespace Microsoft.CodeAnalysis.ExpressionEvaluator
             {
                 if (InRange(startIndex, count, index))
                 {
-                    rows.Add(this.CreateRawViewRow(resultProvider, inspectionContext, parent, value));
+                    rows.Add(this.CreateRawViewRow(inspectionContext, parent, value));
                 }
 
                 index++;
@@ -199,9 +198,9 @@ namespace Microsoft.CodeAnalysis.ExpressionEvaluator
                     out parentFullName);
             }
             var fieldName = field.FieldInfo.Name;
-            fullName = (parentFullName == null) ?
-                null :
-                fullNameProvider.GetClrMemberName(
+            fullName = (parentFullName == null)
+                ? null
+                : fullNameProvider.GetClrMemberName(
                     inspectionContext,
                     parentFullName,
                     clrType: field.DeclaringTypeAndInfo.ClrType,
@@ -260,10 +259,7 @@ namespace Microsoft.CodeAnalysis.ExpressionEvaluator
 
         private Fields GetFields()
         {
-            if (_lazyFields == null)
-            {
-                _lazyFields = GetFields(_typeAndInfo, _cardinality, _useRawView);
-            }
+            _lazyFields ??= GetFields(_typeAndInfo, _cardinality, _useRawView);
             return _lazyFields;
         }
 
@@ -359,7 +355,6 @@ namespace Microsoft.CodeAnalysis.ExpressionEvaluator
         }
 
         private EvalResult CreateRawViewRow(
-            ResultProvider resultProvider,
             DkmInspectionContext inspectionContext,
             EvalResultDataItem parent,
             DkmClrValue value)

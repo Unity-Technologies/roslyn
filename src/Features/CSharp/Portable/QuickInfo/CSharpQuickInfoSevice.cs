@@ -8,27 +8,15 @@ using Microsoft.CodeAnalysis.Host;
 using Microsoft.CodeAnalysis.Host.Mef;
 using Microsoft.CodeAnalysis.QuickInfo;
 
-namespace Microsoft.CodeAnalysis.CSharp.QuickInfo
+namespace Microsoft.CodeAnalysis.CSharp.QuickInfo;
+
+[ExportLanguageServiceFactory(typeof(QuickInfoService), LanguageNames.CSharp), Shared]
+[method: ImportingConstructor]
+[method: Obsolete(MefConstruction.ImportingConstructorMessage, error: true)]
+internal sealed class CSharpQuickInfoServiceFactory() : ILanguageServiceFactory
 {
-    [ExportLanguageServiceFactory(typeof(QuickInfoService), LanguageNames.CSharp), Shared]
-    internal class CSharpQuickInfoServiceFactory : ILanguageServiceFactory
-    {
-        [ImportingConstructor]
-        [Obsolete(MefConstruction.ImportingConstructorMessage, error: true)]
-        public CSharpQuickInfoServiceFactory()
-        {
-        }
+    public ILanguageService CreateLanguageService(HostLanguageServices languageServices)
+        => new CSharpQuickInfoService(languageServices.LanguageServices);
 
-        public ILanguageService CreateLanguageService(HostLanguageServices languageServices)
-            => new CSharpQuickInfoService(languageServices.WorkspaceServices.Workspace);
-    }
-
-    internal class CSharpQuickInfoService : QuickInfoServiceWithProviders
-    {
-        internal CSharpQuickInfoService(Workspace workspace)
-            : base(workspace, LanguageNames.CSharp)
-        {
-        }
-    }
+    private sealed class CSharpQuickInfoService(LanguageServices services) : QuickInfoServiceWithProviders(services);
 }
-

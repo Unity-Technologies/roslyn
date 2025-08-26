@@ -24,7 +24,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
 
         private readonly NamedTypeSymbol _containingType;
 
-        internal static SynthesizedEntryPointSymbol Create(SynthesizedInteractiveInitializerMethod initializerMethod, DiagnosticBag diagnostics)
+        internal static SynthesizedEntryPointSymbol Create(SynthesizedInteractiveInitializerMethod initializerMethod, BindingDiagnosticBag diagnostics)
         {
             var containingType = initializerMethod.ContainingType;
             var compilation = containingType.DeclaringCompilation;
@@ -32,7 +32,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
             {
                 var systemObject = Binder.GetSpecialType(compilation, SpecialType.System_Object, DummySyntax(), diagnostics);
                 var submissionArrayType = compilation.CreateArrayTypeSymbol(systemObject);
-                ReportUseSiteDiagnostics(submissionArrayType, diagnostics);
+                diagnostics.ReportUseSite(submissionArrayType, NoLocation.Singleton);
                 return new SubmissionEntryPoint(
                     containingType,
                     initializerMethod.ReturnTypeWithAnnotations,
@@ -57,7 +57,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
             get { return false; }
         }
 
-        internal abstract BoundBlock CreateBody(DiagnosticBag diagnostics);
+        internal abstract BoundBlock CreateBody(BindingDiagnosticBag diagnostics);
 
         public override Symbol ContainingSymbol
         {
@@ -205,6 +205,8 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
 
         internal sealed override UnmanagedCallersOnlyAttributeData GetUnmanagedCallersOnlyAttributeData(bool forceComplete) => null;
 
+        internal sealed override bool HasSpecialNameAttribute => throw ExceptionUtilities.Unreachable();
+
         internal override Cci.CallingConvention CallingConvention
         {
             get { return 0; }
@@ -229,7 +231,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
             return false;
         }
 
-        internal sealed override bool IsMetadataVirtual(bool ignoreInterfaceImplementationChanges = false)
+        internal sealed override bool IsMetadataVirtual(IsMetadataVirtualOption option = IsMetadataVirtualOption.None)
         {
             return false;
         }
@@ -269,7 +271,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
 
         internal override IEnumerable<Cci.SecurityAttribute> GetSecurityInformation()
         {
-            throw ExceptionUtilities.Unreachable;
+            throw ExceptionUtilities.Unreachable();
         }
 
         internal sealed override ImmutableArray<string> GetAppliedConditionalSymbols()
@@ -279,7 +281,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
 
         internal override int CalculateLocalSyntaxOffset(int localPosition, SyntaxTree localTree)
         {
-            throw ExceptionUtilities.Unreachable;
+            throw ExceptionUtilities.Unreachable();
         }
 
         private static CSharpSyntaxNode DummySyntax()
@@ -288,20 +290,12 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
             return (CSharpSyntaxNode)syntaxTree.GetRoot();
         }
 
-        private static void ReportUseSiteDiagnostics(Symbol symbol, DiagnosticBag diagnostics)
-        {
-            var useSiteDiagnostic = symbol.GetUseSiteDiagnostic();
-            if (useSiteDiagnostic != null)
-            {
-                ReportUseSiteDiagnostic(useSiteDiagnostic, diagnostics, NoLocation.Singleton);
-            }
-        }
-
-        private static BoundCall CreateParameterlessCall(CSharpSyntaxNode syntax, BoundExpression receiver, MethodSymbol method)
+        private static BoundCall CreateParameterlessCall(CSharpSyntaxNode syntax, BoundExpression receiver, ThreeState receiverIsSubjectToCloning, MethodSymbol method)
         {
             return new BoundCall(
                 syntax,
                 receiver,
+                initialBindingReceiverIsSubjectToCloning: receiverIsSubjectToCloning,
                 method,
                 ImmutableArray<BoundExpression>.Empty,
                 default(ImmutableArray<string>),
@@ -312,9 +306,25 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
                 argsToParamsOpt: default(ImmutableArray<int>),
                 defaultArguments: default(BitVector),
                 resultKind: LookupResultKind.Viable,
-                binderOpt: null,
                 type: method.ReturnType)
             { WasCompilerGenerated = true };
+        }
+
+        protected sealed override bool HasSetsRequiredMembersImpl => throw ExceptionUtilities.Unreachable();
+
+        internal sealed override bool HasUnscopedRefAttribute => false;
+
+        internal sealed override bool UseUpdatedEscapeRules => ContainingModule.UseUpdatedEscapeRules;
+
+        internal sealed override bool HasAsyncMethodBuilderAttribute(out TypeSymbol builderArgument)
+        {
+            builderArgument = null;
+            return false;
+        }
+
+        internal override int TryGetOverloadResolutionPriority()
+        {
+            return 0;
         }
 
         /// <summary> A synthesized entrypoint that forwards all calls to an async Main Method </summary>
@@ -348,6 +358,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
                 BoundCall userMainInvocation = new BoundCall(
                         syntax: _userMainReturnTypeSyntax,
                         receiverOpt: null,
+                        initialBindingReceiverIsSubjectToCloning: ThreeState.Unknown,
                         method: userMain,
                         arguments: arguments,
                         argumentNamesOpt: default(ImmutableArray<string>),
@@ -358,21 +369,19 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
                         argsToParamsOpt: default(ImmutableArray<int>),
                         defaultArguments: default(BitVector),
                         resultKind: LookupResultKind.Viable,
-                        binderOpt: binder,
                         type: userMain.ReturnType)
                 { WasCompilerGenerated = true };
 
                 // The diagnostics that would be produced here will already have been captured and returned.
-                var droppedBag = DiagnosticBag.GetInstance();
-                var success = binder.GetAwaitableExpressionInfo(userMainInvocation, out _getAwaiterGetResultCall!, _userMainReturnTypeSyntax, droppedBag);
-                droppedBag.Free();
+                var success = binder.GetAwaitableExpressionInfo(userMainInvocation, out _getAwaiterGetResultCall!, runtimeAsyncAwaitCall: out _, _userMainReturnTypeSyntax, BindingDiagnosticBag.Discarded);
 
                 Debug.Assert(
                     ReturnType.IsVoidType() ||
                     ReturnType.SpecialType == SpecialType.System_Int32);
+                Debug.Assert(!compilation.IsRuntimeAsyncEnabledIn(this));
             }
 
-            internal override void AddSynthesizedAttributes(PEModuleBuilder moduleBuilder, ref ArrayBuilder<SynthesizedAttributeData> attributes)
+            internal override void AddSynthesizedAttributes(PEModuleBuilder moduleBuilder, ref ArrayBuilder<CSharpAttributeData> attributes)
             {
                 base.AddSynthesizedAttributes(moduleBuilder, ref attributes);
 
@@ -385,7 +394,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
 
             public override TypeWithAnnotations ReturnTypeWithAnnotations => TypeWithAnnotations.Create(_getAwaiterGetResultCall.Type);
 
-            internal override BoundBlock CreateBody(DiagnosticBag diagnostics)
+            internal override BoundBlock CreateBody(BindingDiagnosticBag diagnostics)
             {
                 var syntax = _userMainReturnTypeSyntax;
 
@@ -403,7 +412,8 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
                             new BoundReturnStatement(
                                 syntax: syntax,
                                 refKind: RefKind.None,
-                                expressionOpt: null
+                                expressionOpt: null,
+                                @checked: false
                             )
                             { WasCompilerGenerated = true }
                         )
@@ -420,7 +430,8 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
                             new BoundReturnStatement(
                                 syntax: syntax,
                                 refKind: RefKind.None,
-                                expressionOpt: _getAwaiterGetResultCall
+                                expressionOpt: _getAwaiterGetResultCall,
+                                @checked: false
                             )
                         )
                     )
@@ -428,6 +439,8 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
                 }
             }
         }
+
+        internal sealed override bool IsNullableAnalysisEnabled() => false;
 
         private sealed class ScriptEntryPoint : SynthesizedEntryPointSymbol
         {
@@ -452,7 +465,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
             //     var script = new Script();
             //     script.<Initialize>().GetAwaiter().GetResult();
             // }
-            internal override BoundBlock CreateBody(DiagnosticBag diagnostics)
+            internal override BoundBlock CreateBody(BindingDiagnosticBag diagnostics)
             {
                 var syntax = DummySyntax();
                 var compilation = _containingType.DeclaringCompilation;
@@ -460,10 +473,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
                 // Creates a new top-level binder that just contains the global imports for the compilation.
                 // The imports are required if a consumer of the scripting API is using a Task implementation 
                 // that uses extension methods.
-                var binder = new InContainerBinder(
-                    container: null,
-                    next: new BuckStopsHereBinder(compilation),
-                    imports: compilation.GlobalImports);
+                Binder binder = WithUsingNamespacesAndTypesBinder.Create(compilation.GlobalImports, next: new BuckStopsHereBinder(compilation, null), withImportChainEntry: true);
                 binder = new InContainerBinder(compilation.GlobalNamespace, binder);
 
                 var ctor = _containingType.GetScriptConstructor();
@@ -480,9 +490,10 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
                 { WasCompilerGenerated = true };
 
                 Debug.Assert(!initializer.ReturnType.IsDynamic());
-                var initializeCall = CreateParameterlessCall(syntax, scriptLocal, initializer);
+                var initializeCall = CreateParameterlessCall(syntax, scriptLocal, receiverIsSubjectToCloning: ThreeState.False, initializer);
                 BoundExpression getAwaiterGetResultCall;
-                if (!binder.GetAwaitableExpressionInfo(initializeCall, out getAwaiterGetResultCall, syntax, diagnostics))
+                Debug.Assert(!compilation.IsRuntimeAsyncEnabledIn(this));
+                if (!binder.GetAwaitableExpressionInfo(initializeCall, out getAwaiterGetResultCall, runtimeAsyncAwaitCall: out _, syntax, diagnostics))
                 {
                     return new BoundBlock(
                         syntax: syntax,
@@ -502,8 +513,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
                                 scriptLocal,
                                 new BoundObjectCreationExpression(
                                     syntax,
-                                    ctor,
-                                    null)
+                                    ctor)
                                 { WasCompilerGenerated = true },
                                 _containingType)
                             { WasCompilerGenerated = true })
@@ -514,7 +524,8 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
                         new BoundReturnStatement(
                             syntax,
                             RefKind.None,
-                            null)
+                            null,
+                            @checked: false)
                         { WasCompilerGenerated = true }))
                 { WasCompilerGenerated = true };
             }
@@ -553,7 +564,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
             //     var submission = new Submission#N(submissionArray);
             //     return submission.<Initialize>();
             // }
-            internal override BoundBlock CreateBody(DiagnosticBag diagnostics)
+            internal override BoundBlock CreateBody(BindingDiagnosticBag diagnostics)
             {
                 var syntax = DummySyntax();
 
@@ -581,15 +592,14 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
                             syntax,
                             ctor,
                             ImmutableArray.Create<BoundExpression>(submissionArrayParameter),
-                            default(ImmutableArray<string>),
-                            default(ImmutableArray<RefKind>),
-                            false,
-                            default(ImmutableArray<int>),
-                            default(BitVector),
-                            null,
-                            null,
-                            null,
-                            _containingType)
+                            argumentNamesOpt: default(ImmutableArray<string>),
+                            argumentRefKindsOpt: default(ImmutableArray<RefKind>),
+                            expanded: false,
+                            argsToParamsOpt: default(ImmutableArray<int>),
+                            defaultArguments: default(BitVector),
+                            constantValueOpt: null,
+                            initializerExpressionOpt: null,
+                            type: _containingType)
                         { WasCompilerGenerated = true },
                         _containingType)
                     { WasCompilerGenerated = true })
@@ -599,12 +609,14 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
                 var initializeResult = CreateParameterlessCall(
                     syntax,
                     submissionLocal,
+                    receiverIsSubjectToCloning: ThreeState.False,
                     initializer);
                 Debug.Assert(TypeSymbol.Equals(initializeResult.Type, _returnType.Type, TypeCompareKind.ConsiderEverything2));
                 var returnStatement = new BoundReturnStatement(
                     syntax,
                     RefKind.None,
-                    initializeResult)
+                    initializeResult,
+                    @checked: false)
                 { WasCompilerGenerated = true };
 
                 return new BoundBlock(syntax,

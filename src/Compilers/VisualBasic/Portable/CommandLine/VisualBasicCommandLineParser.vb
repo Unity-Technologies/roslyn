@@ -8,6 +8,8 @@ Imports System.IO
 Imports System.Runtime.InteropServices
 Imports System.Security.Cryptography
 Imports System.Text
+Imports System.Threading
+Imports Microsoft.CodeAnalysis.Collections
 Imports Microsoft.CodeAnalysis.Emit
 Imports Microsoft.CodeAnalysis.PooledObjects
 Imports Microsoft.CodeAnalysis.Text
@@ -80,7 +82,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             Const GenerateFileNameForDocComment As String = "USE-OUTPUT-NAME"
 
             Dim diagnostics As List(Of Diagnostic) = New List(Of Diagnostic)()
-            Dim flattenedArgs As List(Of String) = New List(Of String)()
+            Dim flattenedArgs = ArrayBuilder(Of String).GetInstance()
             Dim scriptArgs As List(Of String) = If(IsScriptCommandLineParser, New List(Of String)(), Nothing)
 
             ' normalized paths to directories containing response files:
@@ -115,7 +117,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             Dim win32ResourceFile As String = Nothing
             Dim win32IconFile As String = Nothing
             Dim noWin32Manifest As Boolean = False
-            Dim managedResources = New List(Of ResourceDescription)()
+            Dim managedResources = New List(Of CommandLineResource)()
             Dim sourceFiles = New List(Of CommandLineSourceFile)()
             Dim hasSourceFiles = False
             Dim additionalFiles = New List(Of CommandLineSourceFile)()
@@ -123,7 +125,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             Dim embeddedFiles = New List(Of CommandLineSourceFile)()
             Dim embedAllSourceFiles = False
             Dim codepage As Encoding = Nothing
-            Dim checksumAlgorithm = SourceHashAlgorithmUtils.DefaultContentHashAlgorithm
+            Dim checksumAlgorithm = SourceHashAlgorithms.Default
             Dim defines As IReadOnlyDictionary(Of String, Object) = Nothing
             Dim metadataReferences = New List(Of CommandLineReference)()
             Dim analyzers = New List(Of CommandLineAnalyzerReference)()
@@ -167,6 +169,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             Dim instrumentationKinds As ArrayBuilder(Of InstrumentationKind) = ArrayBuilder(Of InstrumentationKind).GetInstance()
             Dim sourceLink As String = Nothing
             Dim ruleSetPath As String = Nothing
+            Dim generatedFilesOutputDirectory As String = Nothing
+            Dim reportIvts As Boolean = False
 
             ' Process ruleset files first so that diagnostic severity settings specified on the command line via
             ' /nowarn and /warnaserror can override diagnostic severity settings specified in the ruleset file.
@@ -193,9 +197,12 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 Dim name As String = Nothing
                 Dim value As String = Nothing
                 If Not TryParseOption(arg, name, value) Then
-                    For Each path In ParseFileArgument(arg, baseDirectory, diagnostics)
+                    Dim builder = ArrayBuilder(Of String).GetInstance()
+                    ParseFileArgument(arg.AsMemory(), baseDirectory, builder, diagnostics)
+                    For Each path In builder
                         sourceFiles.Add(ToCommandLineSourceFile(path))
                     Next
+                    builder.Free()
                     hasSourceFiles = True
                     Continue For
                 End If
@@ -420,9 +427,44 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                         libPaths.AddRange(ParseSeparatedPaths(value))
                         Continue For
 
+                    Case "reportivts", "reportivts+"
+                        If value IsNot Nothing Then
+                            AddDiagnostic(diagnostics, ERRID.ERR_SwitchNeedsBool, "reportivts")
+                            Continue For
+                        End If
+
+                        reportIvts = True
+                        Continue For
+
+                    Case "reportivts-"
+                        If value IsNot Nothing Then
+                            AddDiagnostic(diagnostics, ERRID.ERR_SwitchNeedsBool, "reportivts")
+                            Continue For
+                        End If
+
+                        reportIvts = False
+                        Continue For
+
 #If DEBUG Then
                     Case "attachdebugger"
-                        Debugger.Launch()
+                        If RuntimeInformation.IsOSPlatform(OSPlatform.Windows) Then
+                            ' Debugger.Launch() only works on Windows
+                            Debugger.Launch()
+                        Else
+                            Dim timeout = TimeSpan.FromMinutes(2)
+#If NET Then
+                            Dim processId = Environment.ProcessId
+#Else
+                            Dim processId = System.Diagnostics.Process.GetCurrentProcess().Id
+#End If
+                            Console.WriteLine($"Compiler started with process ID {processId}")
+                            Console.WriteLine($"Waiting {timeout:g} for a debugger to attach")
+                            Using timeoutSource = New CancellationTokenSource(timeout)
+                                While Not Debugger.IsAttached AndAlso Not timeoutSource.Token.IsCancellationRequested
+                                    Thread.Sleep(100)
+                                End While
+                            End Using
+                        End If
                         Continue For
 #End If
                 End Select
@@ -493,7 +535,6 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
 
                             refOnly = True
                             Continue For
-
 
                         Case "t", "target"
                             value = RemoveQuotesAndSlashes(value)
@@ -574,11 +615,21 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                                 AddDiagnostic(diagnostics, ERRID.ERR_ArgumentRequired, "errorlog", ErrorLogOptionFormat)
                             Else
                                 Dim diagnosticAlreadyReported As Boolean
-                                errorLogOptions = ParseErrorLogOptions(unquoted, diagnostics, baseDirectory, diagnosticAlreadyReported)
+                                errorLogOptions = ParseErrorLogOptions(unquoted.AsMemory(), diagnostics, baseDirectory, diagnosticAlreadyReported)
                                 If errorLogOptions Is Nothing And Not diagnosticAlreadyReported Then
                                     AddDiagnostic(diagnostics, ERRID.ERR_BadSwitchValue, unquoted, "errorlog", ErrorLogOptionFormat)
                                     Continue For
                                 End If
+                            End If
+
+                            Continue For
+
+                        Case "generatedfilesout"
+                            value = RemoveQuotesAndSlashes(value)
+                            If String.IsNullOrEmpty(value) Then
+                                AddDiagnostic(diagnostics, ERRID.ERR_ArgumentRequired, name, ":<dir>")
+                            Else
+                                generatedFilesOutputDirectory = ParseGenericPathToFile(value, diagnostics, baseDirectory)
                             End If
 
                             Continue For
@@ -671,15 +722,15 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                             Continue For
 
                         Case "res", "resource"
-                            Dim embeddedResource = ParseResourceDescription(name, value, baseDirectory, diagnostics, embedded:=True)
-                            If embeddedResource IsNot Nothing Then
+                            Dim embeddedResource As CommandLineResource
+                            If TryParseResourceDescription(name, value, baseDirectory, diagnostics, isEmbedded:=True, embeddedResource) Then
                                 managedResources.Add(embeddedResource)
                             End If
                             Continue For
 
                         Case "linkres", "linkresource"
-                            Dim linkedResource = ParseResourceDescription(name, value, baseDirectory, diagnostics, embedded:=False)
-                            If linkedResource IsNot Nothing Then
+                            Dim linkedResource As CommandLineResource
+                            If TryParseResourceDescription(name, value, baseDirectory, diagnostics, isEmbedded:=False, linkedResource) Then
                                 managedResources.Add(linkedResource)
                             End If
                             Continue For
@@ -1377,6 +1428,8 @@ lVbRuntimePlus:
                 AddDiagnostic(diagnostics, ERRID.ERR_NoSourcesOut)
             End If
 
+            flattenedArgs.Free()
+
             Dim parseOptions = New VisualBasicParseOptions(
                 languageVersion:=languageVersion,
                 documentationMode:=If(parseDocumentationComments, DocumentationMode.Diagnose, DocumentationMode.None),
@@ -1440,6 +1493,8 @@ lVbRuntimePlus:
             ' If the script is passed without the `\i` option simply execute the script (`vbi script.vbx`).
             interactiveMode = interactiveMode Or (IsScriptCommandLineParser AndAlso sourceFiles.Count = 0)
 
+            pathMap = SortPathMap(pathMap)
+
             Return New VisualBasicCommandLineArguments With
             {
                 .IsScriptRunner = IsScriptCommandLineParser,
@@ -1472,7 +1527,7 @@ lVbRuntimePlus:
                 .DisplayHelp = displayHelp,
                 .DisplayVersion = displayVersion,
                 .DisplayLangVersions = displayLangVersions,
-                .ManifestResources = managedResources.AsImmutable(),
+                .ManifestResourceArguments = managedResources.AsImmutable(),
                 .CompilationOptions = options,
                 .ParseOptions = parseOptions,
                 .EmitOptions = emitOptions,
@@ -1486,7 +1541,9 @@ lVbRuntimePlus:
                 .PreferredUILang = preferredUILang,
                 .ReportAnalyzer = reportAnalyzer,
                 .SkipAnalyzers = skipAnalyzers,
-                .EmbeddedFiles = embeddedFiles.AsImmutable()
+                .EmbeddedFiles = embeddedFiles.AsImmutable(),
+                .GeneratedFilesOutputDirectory = generatedFilesOutputDirectory,
+                .ReportInternalsVisibleToAttributes = reportIvts
             }
         End Function
 
@@ -1666,10 +1723,18 @@ lVbRuntimePlus:
         End Function
 
         ' See ParseCommandLine in vbc.cpp.
-        Friend Overloads Shared Function ParseResourceDescription(name As String, resourceDescriptor As String, baseDirectory As String, diagnostics As IList(Of Diagnostic), embedded As Boolean) As ResourceDescription
+        Friend Overloads Shared Function TryParseResourceDescription(
+            argName As String,
+            resourceDescriptor As String,
+            baseDirectory As String,
+            diagnostics As IList(Of Diagnostic),
+            isEmbedded As Boolean,
+            <Out> ByRef resource As CommandLineResource) As Boolean
+
             If String.IsNullOrEmpty(resourceDescriptor) Then
-                AddDiagnostic(diagnostics, ERRID.ERR_ArgumentRequired, name, ":<resinfo>")
-                Return Nothing
+                AddDiagnostic(diagnostics, ERRID.ERR_ArgumentRequired, argName, ":<resinfo>")
+                resource = Nothing
+                Return False
             End If
 
             ' NOTE: these are actually passed to out parameters of .ParseResourceDescription.
@@ -1677,52 +1742,41 @@ lVbRuntimePlus:
             Dim fullPath As String = Nothing
             Dim fileName As String = Nothing
             Dim resourceName As String = Nothing
-            Dim accessibility As String = Nothing
+            Dim isPublic As Boolean? = Nothing
+            Dim rawAccessibility As String = Nothing
 
-            ParseResourceDescription(
-                resourceDescriptor,
+            If Not TryParseResourceDescription(
+                resourceDescriptor.AsMemory(),
                 baseDirectory,
-                True,
+                skipLeadingSeparators:=True,
+                allowEmptyAccessibility:=True,
                 filePath,
                 fullPath,
                 fileName,
                 resourceName,
-                accessibility)
+                isPublic,
+                rawAccessibility) Then
 
-            If String.IsNullOrWhiteSpace(filePath) Then
-                AddInvalidSwitchValueDiagnostic(diagnostics, name, filePath)
-                Return Nothing
+                If isPublic Is Nothing Then
+                    AddInvalidSwitchValueDiagnostic(diagnostics, argName, rawAccessibility)
+                ElseIf RoslynString.IsNullOrWhiteSpace(filePath) Then
+                    AddInvalidSwitchValueDiagnostic(diagnostics, argName, filePath)
+                Else
+                    Debug.Assert(Not PathUtilities.IsValidFilePath(fullPath))
+                    AddDiagnostic(diagnostics, ERRID.FTL_InvalidInputFileName, filePath)
+                End If
+
+                resource = Nothing
+                Return False
             End If
 
-            If Not PathUtilities.IsValidFilePath(fullPath) Then
-                AddDiagnostic(diagnostics, ERRID.FTL_InvalidInputFileName, filePath)
-                Return Nothing
-            End If
+            resource = New CommandLineResource(
+                resourceName:=resourceName,
+                fullPath:=fullPath,
+                linkedResourceFileName:=If(isEmbedded, Nothing, fileName),
+                isPublic.Value)
 
-            Dim isPublic As Boolean
-            If String.IsNullOrEmpty(accessibility) Then
-                ' If no accessibility is given, we default to "public".
-                ' NOTE: Dev10 treats empty the same as null (the difference being that empty indicates a comma after the resource name).
-                ' NOTE: Dev10 distinguishes between empty and whitespace-only.
-                isPublic = True
-            ElseIf String.Equals(accessibility, "public", StringComparison.OrdinalIgnoreCase) Then
-                isPublic = True
-            ElseIf String.Equals(accessibility, "private", StringComparison.OrdinalIgnoreCase) Then
-                isPublic = False
-            Else
-                AddInvalidSwitchValueDiagnostic(diagnostics, name, accessibility)
-                Return Nothing
-            End If
-
-            Dim dataProvider As Func(Of Stream) = Function()
-                                                      ' Use FileShare.ReadWrite because the file could be opened by the current process.
-                                                      ' For example, it Is an XML doc file produced by the build.
-                                                      Return New FileStream(fullPath,
-                                                                            FileMode.Open,
-                                                                            FileAccess.Read,
-                                                                            FileShare.ReadWrite)
-                                                  End Function
-            Return New ResourceDescription(resourceName, fileName, dataProvider, isPublic, embedded, checkArgs:=False)
+            Return True
         End Function
 
         Private Shared Sub AddInvalidSwitchValueDiagnostic(diagnostics As IList(Of Diagnostic), ByVal name As String, ByVal nullStringText As String)

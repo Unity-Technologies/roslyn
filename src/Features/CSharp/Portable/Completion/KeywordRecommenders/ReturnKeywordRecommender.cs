@@ -2,36 +2,39 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
-#nullable disable
-
 using System.Threading;
 using Microsoft.CodeAnalysis.CSharp.Extensions.ContextQuery;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.CSharp.Utilities;
 using Microsoft.CodeAnalysis.Shared.Extensions;
 
-namespace Microsoft.CodeAnalysis.CSharp.Completion.KeywordRecommenders
+namespace Microsoft.CodeAnalysis.CSharp.Completion.KeywordRecommenders;
+
+internal sealed class ReturnKeywordRecommender() : AbstractSyntacticSingleKeywordRecommender(SyntaxKind.ReturnKeyword)
 {
-    internal class ReturnKeywordRecommender : AbstractSyntacticSingleKeywordRecommender
+    protected override bool IsValidContext(int position, CSharpSyntaxContext context, CancellationToken cancellationToken)
     {
-        public ReturnKeywordRecommender()
-            : base(SyntaxKind.ReturnKeyword)
-        {
-        }
+        return
+            context.IsStatementContext ||
+            context.IsRegularTopLevelStatementsContext() ||
+            context.TargetToken.IsAfterYieldKeyword() ||
+            IsAttributeContext(context, cancellationToken);
+    }
 
-        protected override bool IsValidContext(int position, CSharpSyntaxContext context, CancellationToken cancellationToken)
-        {
-            return
-                context.IsStatementContext ||
-                context.TargetToken.IsAfterYieldKeyword() ||
-                IsAttributeContext(context, cancellationToken);
-        }
+    private static bool IsAttributeContext(CSharpSyntaxContext context, CancellationToken cancellationToken)
+    {
+        return
+            context.IsMemberAttributeContext(SyntaxKindSet.NonEnumTypeDeclarations, includingRecordParameters: false, cancellationToken) ||
+            (context.SyntaxTree.IsScript() && context.IsTypeAttributeContext(cancellationToken)) ||
+            context.IsStatementAttributeContext() ||
+            IsAccessorAttributeContext();
 
-        private static bool IsAttributeContext(CSharpSyntaxContext context, CancellationToken cancellationToken)
+        bool IsAccessorAttributeContext()
         {
-            return
-                context.IsMemberAttributeContext(SyntaxKindSet.ClassInterfaceStructRecordTypeDeclarations, cancellationToken) ||
-                (context.SyntaxTree.IsScript() && context.IsTypeAttributeContext(cancellationToken)) ||
-                context.IsStatementAttributeContext();
+            var token = context.TargetToken;
+            return token.Kind() == SyntaxKind.OpenBracketToken &&
+                token.Parent is AttributeListSyntax &&
+                token.Parent.Parent is AccessorDeclarationSyntax;
         }
     }
 }

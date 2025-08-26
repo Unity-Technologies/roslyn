@@ -11,7 +11,7 @@ using System.Text;
 using Microsoft.CodeAnalysis.CSharp.Symbols;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.CSharp.Test.Utilities;
-using Microsoft.CodeAnalysis.Test.Extensions;
+using Microsoft.CodeAnalysis.Test.Utilities;
 using Microsoft.CodeAnalysis.Text;
 using Roslyn.Test.Utilities;
 using Xunit;
@@ -141,7 +141,6 @@ class P
 
             var verifier = CompileAndVerify(source: source, expectedOutput: expected);
         }
-
 
         [Fact]
         public void TestMultiDimensionalArrayForEach()

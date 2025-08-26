@@ -2,9 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
-#nullable disable
-
 using System;
+using System.Diagnostics.CodeAnalysis;
 
 namespace Microsoft.CodeAnalysis.Operations
 {
@@ -14,7 +13,7 @@ namespace Microsoft.CodeAnalysis.Operations
     /// <remarks>
     /// We reserve the right to change this struct in the future.
     /// </remarks>
-    public struct CommonConversion
+    public readonly struct CommonConversion
     {
         [Flags]
         private enum ConversionKind
@@ -30,7 +29,7 @@ namespace Microsoft.CodeAnalysis.Operations
 
         private readonly ConversionKind _conversionKind;
 
-        internal CommonConversion(bool exists, bool isIdentity, bool isNumeric, bool isReference, bool isImplicit, bool isNullable, IMethodSymbol methodSymbol)
+        internal CommonConversion(bool exists, bool isIdentity, bool isNumeric, bool isReference, bool isImplicit, bool isNullable, IMethodSymbol? methodSymbol, ITypeSymbol? constrainedToType)
         {
             _conversionKind = (exists ? ConversionKind.Exists : ConversionKind.None) |
                               (isIdentity ? ConversionKind.IsIdentity : ConversionKind.None) |
@@ -39,6 +38,7 @@ namespace Microsoft.CodeAnalysis.Operations
                               (isImplicit ? ConversionKind.IsImplicit : ConversionKind.None) |
                               (isNullable ? ConversionKind.IsNullable : ConversionKind.None);
             MethodSymbol = methodSymbol;
+            ConstrainedToType = constrainedToType;
         }
 
         /// <summary>
@@ -72,11 +72,17 @@ namespace Microsoft.CodeAnalysis.Operations
         /// <summary>
         /// Returns true if the conversion is a user-defined conversion.
         /// </summary>
+        [MemberNotNullWhen(true, nameof(MethodSymbol))]
         public bool IsUserDefined => MethodSymbol != null;
         /// <summary>
         /// Returns the method used to perform the conversion for a user-defined conversion if <see cref="IsUserDefined"/> is true.
         /// Otherwise, returns null.
         /// </summary>
-        public IMethodSymbol MethodSymbol { get; }
+        public IMethodSymbol? MethodSymbol { get; }
+        /// <summary>
+        /// Type parameter which runtime type will be used to resolve virtual invocation of the <see cref="MethodSymbol" />, if any.
+        /// Null if <see cref="MethodSymbol" /> is resolved statically, or is null.
+        /// </summary>
+        public ITypeSymbol? ConstrainedToType { get; }
     }
 }

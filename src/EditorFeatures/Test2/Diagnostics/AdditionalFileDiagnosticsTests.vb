@@ -4,11 +4,9 @@
 
 Imports System.Collections.Immutable
 Imports System.Threading
-Imports System.Threading.Tasks
 Imports Microsoft.CodeAnalysis.CodeActions
 Imports Microsoft.CodeAnalysis.CodeFixes
 Imports Microsoft.CodeAnalysis.Diagnostics
-Imports Microsoft.CodeAnalysis.Editor.UnitTests.Workspaces
 Imports Microsoft.CodeAnalysis.Text
 Imports Microsoft.CodeAnalysis.UnitTests
 
@@ -16,9 +14,7 @@ Namespace Microsoft.CodeAnalysis.Editor.UnitTests.Diagnostics.AdditionalFiles
     Public Class AdditionalFileDiagnosticsTests
         Inherits AbstractCrossLanguageUserDiagnosticTest
 
-        Private Shared ReadOnly s_compositionWithMockDiagnosticUpdateSourceRegistrationService As TestComposition = EditorTestCompositions.EditorFeatures _
-            .AddExcludedPartTypes(GetType(IDiagnosticUpdateSourceRegistrationService)) _
-            .AddParts(GetType(MockDiagnosticUpdateSourceRegistrationService))
+        Private Shared ReadOnly s_compositionWithMockDiagnosticUpdateSourceRegistrationService As TestComposition = EditorTestCompositions.EditorFeatures
 
         Friend Overrides Function CreateDiagnosticProviderAndFixer(workspace As Workspace, language As String) As (DiagnosticAnalyzer, CodeFixProvider)
             Return (New AdditionalFileAnalyzer(), New AdditionalFileFixer())
@@ -42,7 +38,7 @@ Namespace Microsoft.CodeAnalysis.Editor.UnitTests.Diagnostics.AdditionalFiles
                     </Project>
                 </Workspace>
 
-            Using workspace = TestWorkspace.Create(input, composition:=s_compositionWithMockDiagnosticUpdateSourceRegistrationService)
+            Using workspace = EditorTestWorkspace.Create(input, composition:=s_compositionWithMockDiagnosticUpdateSourceRegistrationService)
                 Dim project = workspace.Projects.First()
                 Dim newSln = workspace.CurrentSolution.AddAdditionalDocument(DocumentId.CreateNewId(project.Id), "App.Config", SourceText.From("false"))
                 workspace.TryApplyChanges(newSln)

@@ -9,10 +9,11 @@ Imports Microsoft.VisualStudio.Imaging
 Imports Microsoft.VisualStudio.Text.Adornments
 
 Namespace Microsoft.CodeAnalysis.Editor.UnitTests.IntelliSense
+    <Trait(Traits.Feature, Traits.Features.QuickInfo)>
     Public Class IntellisenseQuickInfoBuilderTests_Lists
         Inherits AbstractIntellisenseQuickInfoBuilderTests
 
-        <WpfTheory, Trait(Traits.Feature, Traits.Features.QuickInfo)>
+        <WpfTheory>
         <InlineData(New Object() {New String() {"item", "description"}})>
         <InlineData(New Object() {New String() {"item"}})>
         Public Async Function QuickInfoForBulletedList(itemTags As String()) As Task
@@ -56,26 +57,28 @@ Namespace Microsoft.CodeAnalysis.Editor.UnitTests.IntelliSense
                             New ClassifiedTextRun(ClassificationTypeNames.Punctuation, "("),
                             New ClassifiedTextRun(ClassificationTypeNames.Punctuation, ")"))),
                     New ContainerElement(
-                        ContainerElementStyle.Wrapped,
-                        New ClassifiedTextElement(
-                            New ClassifiedTextRun(ClassificationTypeNames.Text, "• ")),
-                        New ContainerElement(
-                            ContainerElementStyle.Stacked,
-                            New ClassifiedTextElement(
-                                New ClassifiedTextRun(ClassificationTypeNames.Text, "Item 1"))))),
-                New ContainerElement(
-                    ContainerElementStyle.Wrapped,
-                    New ClassifiedTextElement(
-                        New ClassifiedTextRun(ClassificationTypeNames.Text, "• ")),
-                    New ContainerElement(
                         ContainerElementStyle.Stacked,
-                        New ClassifiedTextElement(
-                            New ClassifiedTextRun(ClassificationTypeNames.Text, "Item 2")))))
+                        New ContainerElement(
+                            ContainerElementStyle.Wrapped,
+                            New ClassifiedTextElement(
+                                New ClassifiedTextRun(ClassificationTypeNames.Text, "• ")),
+                            New ContainerElement(
+                                ContainerElementStyle.Stacked,
+                                New ClassifiedTextElement(
+                                    New ClassifiedTextRun(ClassificationTypeNames.Text, "Item 1")))),
+                        New ContainerElement(
+                            ContainerElementStyle.Wrapped,
+                            New ClassifiedTextElement(
+                                New ClassifiedTextRun(ClassificationTypeNames.Text, "• ")),
+                            New ContainerElement(
+                                ContainerElementStyle.Stacked,
+                                New ClassifiedTextElement(
+                                    New ClassifiedTextRun(ClassificationTypeNames.Text, "Item 2")))))))
 
             ToolTipAssert.EqualContent(expected, intellisenseQuickInfo.Item)
         End Function
 
-        <WpfTheory, Trait(Traits.Feature, Traits.Features.QuickInfo)>
+        <WpfTheory>
         <InlineData(New Object() {New String() {"item", "description"}})>
         <InlineData(New Object() {New String() {"item"}})>
         Public Async Function QuickInfoForNumberedList(itemTags As String()) As Task
@@ -119,26 +122,28 @@ Namespace Microsoft.CodeAnalysis.Editor.UnitTests.IntelliSense
                             New ClassifiedTextRun(ClassificationTypeNames.Punctuation, "("),
                             New ClassifiedTextRun(ClassificationTypeNames.Punctuation, ")"))),
                     New ContainerElement(
-                        ContainerElementStyle.Wrapped,
-                        New ClassifiedTextElement(
-                            New ClassifiedTextRun(ClassificationTypeNames.Text, "1. ")),
-                        New ContainerElement(
-                            ContainerElementStyle.Stacked,
-                            New ClassifiedTextElement(
-                                New ClassifiedTextRun(ClassificationTypeNames.Text, "Item 1"))))),
-                New ContainerElement(
-                    ContainerElementStyle.Wrapped,
-                    New ClassifiedTextElement(
-                        New ClassifiedTextRun(ClassificationTypeNames.Text, "2. ")),
-                    New ContainerElement(
                         ContainerElementStyle.Stacked,
-                        New ClassifiedTextElement(
-                            New ClassifiedTextRun(ClassificationTypeNames.Text, "Item 2")))))
+                        New ContainerElement(
+                            ContainerElementStyle.Wrapped,
+                            New ClassifiedTextElement(
+                                New ClassifiedTextRun(ClassificationTypeNames.Text, "1. ")),
+                            New ContainerElement(
+                                ContainerElementStyle.Stacked,
+                                New ClassifiedTextElement(
+                                    New ClassifiedTextRun(ClassificationTypeNames.Text, "Item 1")))),
+                        New ContainerElement(
+                            ContainerElementStyle.Wrapped,
+                            New ClassifiedTextElement(
+                                New ClassifiedTextRun(ClassificationTypeNames.Text, "2. ")),
+                            New ContainerElement(
+                                ContainerElementStyle.Stacked,
+                                New ClassifiedTextElement(
+                                    New ClassifiedTextRun(ClassificationTypeNames.Text, "Item 2")))))))
 
             ToolTipAssert.EqualContent(expected, intellisenseQuickInfo.Item)
         End Function
 
-        <WpfFact, Trait(Traits.Feature, Traits.Features.QuickInfo)>
+        <WpfFact>
         Public Async Function QuickInfoForBulletedTermList() As Task
             Dim workspace =
                 <Workspace>
@@ -178,32 +183,33 @@ Namespace Microsoft.CodeAnalysis.Editor.UnitTests.IntelliSense
                             New ClassifiedTextRun(ClassificationTypeNames.Punctuation, "("),
                             New ClassifiedTextRun(ClassificationTypeNames.Punctuation, ")"))),
                     New ContainerElement(
-                        ContainerElementStyle.Wrapped,
-                        New ClassifiedTextElement(
-                            New ClassifiedTextRun(ClassificationTypeNames.Text, "• ")),
-                        New ContainerElement(
-                            ContainerElementStyle.Stacked,
-                            New ClassifiedTextElement(
-                                New ClassifiedTextRun(ClassificationTypeNames.Text, "word1", ClassifiedTextRunStyle.Bold),
-                                New ClassifiedTextRun(ClassificationTypeNames.WhiteSpace, " "),
-                                New ClassifiedTextRun(ClassificationTypeNames.Text, "–"),
-                                New ClassifiedTextRun(ClassificationTypeNames.Text, "Item 1"))))),
-                New ContainerElement(
-                    ContainerElementStyle.Wrapped,
-                    New ClassifiedTextElement(
-                        New ClassifiedTextRun(ClassificationTypeNames.Text, "• ")),
-                    New ContainerElement(
                         ContainerElementStyle.Stacked,
-                        New ClassifiedTextElement(
-                            New ClassifiedTextRun(ClassificationTypeNames.Text, "word2", ClassifiedTextRunStyle.Bold),
-                            New ClassifiedTextRun(ClassificationTypeNames.WhiteSpace, " "),
-                            New ClassifiedTextRun(ClassificationTypeNames.Text, "–"),
-                            New ClassifiedTextRun(ClassificationTypeNames.Text, "Item 2")))))
-
+                        New ContainerElement(
+                            ContainerElementStyle.Wrapped,
+                            New ClassifiedTextElement(
+                                New ClassifiedTextRun(ClassificationTypeNames.Text, "• ")),
+                            New ContainerElement(
+                                ContainerElementStyle.Stacked,
+                                New ClassifiedTextElement(
+                                    New ClassifiedTextRun(ClassificationTypeNames.Text, "word1", ClassifiedTextRunStyle.Bold),
+                                    New ClassifiedTextRun(ClassificationTypeNames.WhiteSpace, " "),
+                                    New ClassifiedTextRun(ClassificationTypeNames.Text, "–"),
+                                    New ClassifiedTextRun(ClassificationTypeNames.Text, "Item 1")))),
+                        New ContainerElement(
+                            ContainerElementStyle.Wrapped,
+                            New ClassifiedTextElement(
+                                New ClassifiedTextRun(ClassificationTypeNames.Text, "• ")),
+                            New ContainerElement(
+                                ContainerElementStyle.Stacked,
+                                New ClassifiedTextElement(
+                                    New ClassifiedTextRun(ClassificationTypeNames.Text, "word2", ClassifiedTextRunStyle.Bold),
+                                    New ClassifiedTextRun(ClassificationTypeNames.WhiteSpace, " "),
+                                    New ClassifiedTextRun(ClassificationTypeNames.Text, "–"),
+                                    New ClassifiedTextRun(ClassificationTypeNames.Text, "Item 2")))))))
             ToolTipAssert.EqualContent(expected, intellisenseQuickInfo.Item)
         End Function
 
-        <WpfFact, Trait(Traits.Feature, Traits.Features.QuickInfo)>
+        <WpfFact>
         Public Async Function QuickInfoForNumberedTermList() As Task
             Dim workspace =
                 <Workspace>
@@ -243,32 +249,34 @@ Namespace Microsoft.CodeAnalysis.Editor.UnitTests.IntelliSense
                             New ClassifiedTextRun(ClassificationTypeNames.Punctuation, "("),
                             New ClassifiedTextRun(ClassificationTypeNames.Punctuation, ")"))),
                     New ContainerElement(
-                        ContainerElementStyle.Wrapped,
-                        New ClassifiedTextElement(
-                            New ClassifiedTextRun(ClassificationTypeNames.Text, "1. ")),
-                        New ContainerElement(
-                            ContainerElementStyle.Stacked,
-                            New ClassifiedTextElement(
-                                New ClassifiedTextRun(ClassificationTypeNames.Text, "word1", ClassifiedTextRunStyle.Bold),
-                                New ClassifiedTextRun(ClassificationTypeNames.WhiteSpace, " "),
-                                New ClassifiedTextRun(ClassificationTypeNames.Text, "–"),
-                                New ClassifiedTextRun(ClassificationTypeNames.Text, "Item 1"))))),
-                New ContainerElement(
-                    ContainerElementStyle.Wrapped,
-                    New ClassifiedTextElement(
-                        New ClassifiedTextRun(ClassificationTypeNames.Text, "2. ")),
-                    New ContainerElement(
                         ContainerElementStyle.Stacked,
-                        New ClassifiedTextElement(
-                            New ClassifiedTextRun(ClassificationTypeNames.Text, "word2", ClassifiedTextRunStyle.Bold),
-                            New ClassifiedTextRun(ClassificationTypeNames.WhiteSpace, " "),
-                            New ClassifiedTextRun(ClassificationTypeNames.Text, "–"),
-                            New ClassifiedTextRun(ClassificationTypeNames.Text, "Item 2")))))
+                        New ContainerElement(
+                            ContainerElementStyle.Wrapped,
+                            New ClassifiedTextElement(
+                                New ClassifiedTextRun(ClassificationTypeNames.Text, "1. ")),
+                            New ContainerElement(
+                                ContainerElementStyle.Stacked,
+                                New ClassifiedTextElement(
+                                    New ClassifiedTextRun(ClassificationTypeNames.Text, "word1", ClassifiedTextRunStyle.Bold),
+                                    New ClassifiedTextRun(ClassificationTypeNames.WhiteSpace, " "),
+                                    New ClassifiedTextRun(ClassificationTypeNames.Text, "–"),
+                                    New ClassifiedTextRun(ClassificationTypeNames.Text, "Item 1")))),
+                        New ContainerElement(
+                            ContainerElementStyle.Wrapped,
+                            New ClassifiedTextElement(
+                                New ClassifiedTextRun(ClassificationTypeNames.Text, "2. ")),
+                            New ContainerElement(
+                                ContainerElementStyle.Stacked,
+                                New ClassifiedTextElement(
+                                    New ClassifiedTextRun(ClassificationTypeNames.Text, "word2", ClassifiedTextRunStyle.Bold),
+                                    New ClassifiedTextRun(ClassificationTypeNames.WhiteSpace, " "),
+                                    New ClassifiedTextRun(ClassificationTypeNames.Text, "–"),
+                                    New ClassifiedTextRun(ClassificationTypeNames.Text, "Item 2")))))))
 
             ToolTipAssert.EqualContent(expected, intellisenseQuickInfo.Item)
         End Function
 
-        <WpfTheory, Trait(Traits.Feature, Traits.Features.QuickInfo)>
+        <WpfTheory>
         <InlineData(New Object() {New String() {"item", "description"}})>
         <InlineData(New Object() {New String() {"item"}})>
         Public Async Function QuickInfoForNestedLists(itemTags As String()) As Task
@@ -356,15 +364,15 @@ Namespace Microsoft.CodeAnalysis.Editor.UnitTests.IntelliSense
                     New ContainerElement(
                         ContainerElementStyle.Stacked,
                         New ContainerElement(
-                            ContainerElementStyle.Wrapped,
-                            New ClassifiedTextElement(
-                                New ClassifiedTextRun(ClassificationTypeNames.Text, "1. ")),
+                            ContainerElementStyle.Stacked,
                             New ContainerElement(
-                                ContainerElementStyle.Stacked,
+                                ContainerElementStyle.Wrapped,
                                 New ClassifiedTextElement(
-                                    New ClassifiedTextRun(ClassificationTypeNames.Text, "Item 2.1")))),
-                        New ContainerElement(
-                            ContainerElementStyle.Stacked Or ContainerElementStyle.VerticalPadding,
+                                    New ClassifiedTextRun(ClassificationTypeNames.Text, "1. ")),
+                                New ContainerElement(
+                                    ContainerElementStyle.Stacked,
+                                    New ClassifiedTextElement(
+                                        New ClassifiedTextRun(ClassificationTypeNames.Text, "Item 2.1")))),
                             New ContainerElement(
                                 ContainerElementStyle.Wrapped,
                                 New ClassifiedTextElement(

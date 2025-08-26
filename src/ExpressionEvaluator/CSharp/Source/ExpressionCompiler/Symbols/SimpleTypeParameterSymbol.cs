@@ -4,10 +4,10 @@
 
 #nullable disable
 
+using System.Collections.Immutable;
+using System.Diagnostics;
 using Microsoft.CodeAnalysis.CSharp.Symbols;
 using Roslyn.Utilities;
-using System;
-using System.Collections.Immutable;
 
 namespace Microsoft.CodeAnalysis.CSharp.ExpressionEvaluator
 {
@@ -25,6 +25,11 @@ namespace Microsoft.CodeAnalysis.CSharp.ExpressionEvaluator
             _container = container;
             _ordinal = ordinal;
             _name = name;
+
+            Debug.Assert(this.TypeParameterKind == (ContainingSymbol is MethodSymbol ? TypeParameterKind.Method :
+                                                   (ContainingSymbol is NamedTypeSymbol ? TypeParameterKind.Type :
+                                                   TypeParameterKind.Cref)),
+                         $"Container is {ContainingSymbol?.Kind}, TypeParameterKind is {this.TypeParameterKind}");
         }
 
         public override string Name
@@ -39,7 +44,7 @@ namespace Microsoft.CodeAnalysis.CSharp.ExpressionEvaluator
 
         public override TypeParameterKind TypeParameterKind
         {
-            get { return TypeParameterKind.Type; }
+            get { return ContainingSymbol is MethodSymbol ? TypeParameterKind.Method : TypeParameterKind.Type; }
         }
 
         public override bool HasConstructorConstraint
@@ -71,6 +76,11 @@ namespace Microsoft.CodeAnalysis.CSharp.ExpressionEvaluator
             get { return false; }
         }
 
+        public override bool AllowsRefLikeType
+        {
+            get { return false; }
+        }
+
         public override bool IsValueTypeFromConstraintTypes
         {
             get { return false; }
@@ -93,12 +103,12 @@ namespace Microsoft.CodeAnalysis.CSharp.ExpressionEvaluator
 
         public override ImmutableArray<Location> Locations
         {
-            get { throw ExceptionUtilities.Unreachable; }
+            get { throw ExceptionUtilities.Unreachable(); }
         }
 
         public override ImmutableArray<SyntaxReference> DeclaringSyntaxReferences
         {
-            get { throw ExceptionUtilities.Unreachable; }
+            get { throw ExceptionUtilities.Unreachable(); }
         }
 
         internal override void EnsureAllConstraintsAreResolved()
@@ -112,17 +122,17 @@ namespace Microsoft.CodeAnalysis.CSharp.ExpressionEvaluator
 
         internal override ImmutableArray<NamedTypeSymbol> GetInterfaces(ConsList<TypeParameterSymbol> inProgress)
         {
-            throw ExceptionUtilities.Unreachable;
+            throw ExceptionUtilities.Unreachable();
         }
 
         internal override NamedTypeSymbol GetEffectiveBaseClass(ConsList<TypeParameterSymbol> inProgress)
         {
-            throw ExceptionUtilities.Unreachable;
+            throw ExceptionUtilities.Unreachable();
         }
 
         internal override TypeSymbol GetDeducedBaseType(ConsList<TypeParameterSymbol> inProgress)
         {
-            throw ExceptionUtilities.Unreachable;
+            throw ExceptionUtilities.Unreachable();
         }
     }
 }

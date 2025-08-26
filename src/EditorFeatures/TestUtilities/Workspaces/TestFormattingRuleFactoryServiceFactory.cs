@@ -12,48 +12,46 @@ using Microsoft.CodeAnalysis.Host;
 using Microsoft.CodeAnalysis.Host.Mef;
 using Microsoft.CodeAnalysis.Text;
 
-namespace Microsoft.CodeAnalysis.Editor.UnitTests.Workspaces
+namespace Microsoft.CodeAnalysis.Editor.UnitTests.Workspaces;
+
+[ExportWorkspaceServiceFactory(typeof(IHostDependentFormattingRuleFactoryService), ServiceLayer.Test), Shared, PartNotDiscoverable]
+internal sealed class TestFormattingRuleFactoryServiceFactory : IWorkspaceServiceFactory
 {
-    [ExportWorkspaceServiceFactory(typeof(IHostDependentFormattingRuleFactoryService), ServiceLayer.Test), Shared, PartNotDiscoverable]
-    internal sealed class TestFormattingRuleFactoryServiceFactory : IWorkspaceServiceFactory
+    [ImportingConstructor]
+    [Obsolete(MefConstruction.ImportingConstructorMessage, error: true)]
+    public TestFormattingRuleFactoryServiceFactory()
     {
-        [ImportingConstructor]
-        [Obsolete(MefConstruction.ImportingConstructorMessage, error: true)]
-        public TestFormattingRuleFactoryServiceFactory()
+    }
+
+    public IWorkspaceService CreateService(HostWorkspaceServices workspaceServices)
+    {
+        // return new factory per workspace
+        return new Factory();
+    }
+
+    public sealed class Factory : IHostDependentFormattingRuleFactoryService
+    {
+        public int BaseIndentation = 0;
+        public TextSpan TextSpan = default;
+        public bool UseBaseIndentation = false;
+
+        public bool ShouldUseBaseIndentation(DocumentId documentId)
+            => UseBaseIndentation;
+
+        public bool ShouldNotFormatOrCommitOnPaste(DocumentId documentId)
+            => UseBaseIndentation;
+
+        public AbstractFormattingRule CreateRule(ParsedDocument document, int position)
         {
-        }
-
-        public IWorkspaceService CreateService(HostWorkspaceServices workspaceServices)
-        {
-            // return new factory per workspace
-            return new Factory();
-        }
-
-        public sealed class Factory : IHostDependentFormattingRuleFactoryService
-        {
-            public int BaseIndentation = 0;
-            public TextSpan TextSpan = default;
-            public bool UseBaseIndentation = false;
-
-            public bool ShouldUseBaseIndentation(Document document)
-                => UseBaseIndentation;
-
-            public AbstractFormattingRule CreateRule(Document document, int position)
+            if (BaseIndentation == 0)
             {
-                if (BaseIndentation == 0)
-                {
-                    return NoOpFormattingRule.Instance;
-                }
-
-                var root = document.GetSyntaxRootAsync().Result;
-                return new BaseIndentationFormattingRule(root, TextSpan, BaseIndentation + 4);
+                return NoOpFormattingRule.Instance;
             }
 
-            public IEnumerable<TextChange> FilterFormattedChanges(Document document, TextSpan span, IList<TextChange> changes)
-                => changes;
-
-            public bool ShouldNotFormatOrCommitOnPaste(Document document)
-                => UseBaseIndentation;
+            return new BaseIndentationFormattingRule(document.Root, TextSpan, BaseIndentation + 4);
         }
+
+        public IEnumerable<TextChange> FilterFormattedChanges(DocumentId document, TextSpan span, IList<TextChange> changes)
+            => changes;
     }
 }

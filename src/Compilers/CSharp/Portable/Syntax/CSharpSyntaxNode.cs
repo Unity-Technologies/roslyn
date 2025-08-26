@@ -10,7 +10,6 @@ using System.Linq;
 using System.Threading;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.PooledObjects;
-using Roslyn.Utilities;
 
 namespace Microsoft.CodeAnalysis.CSharp
 {
@@ -72,7 +71,9 @@ namespace Microsoft.CodeAnalysis.CSharp
                 if (parent == null)
                 {
                     // set the tree on the root node atomically
-                    Interlocked.CompareExchange(ref node._syntaxTree, CSharpSyntaxTree.CreateWithoutClone(node), null);
+#pragma warning disable RS0030 // Do not use banned APIs (CreateWithoutClone is intended to be used from this call site)
+                    Interlocked.CompareExchange(ref node._syntaxTree, CSharpSyntaxTree.CreateWithoutClone(node, CSharpParseOptions.Default), null);
+#pragma warning restore
                     tree = node._syntaxTree;
                     break;
                 }
@@ -180,28 +181,9 @@ namespace Microsoft.CodeAnalysis.CSharp
         /// <summary>
         /// Deserialize a syntax node from the byte stream.
         /// </summary>
+        [Obsolete(SerializationDeprecationException.Text, error: true)]
         public static SyntaxNode DeserializeFrom(Stream stream, CancellationToken cancellationToken = default)
-        {
-            if (stream == null)
-            {
-                throw new ArgumentNullException(nameof(stream));
-            }
-
-            if (!stream.CanRead)
-            {
-                throw new InvalidOperationException(CodeAnalysisResources.TheStreamCannotBeReadFrom);
-            }
-
-            using var reader = ObjectReader.TryGetReader(stream, leaveOpen: true, cancellationToken);
-
-            if (reader == null)
-            {
-                throw new ArgumentException(CodeAnalysisResources.Stream_contains_invalid_data, nameof(stream));
-            }
-
-            var root = (Syntax.InternalSyntax.CSharpSyntaxNode)reader.ReadValue();
-            return root.CreateRed();
-        }
+            => throw new SerializationDeprecationException();
 
         #endregion
 
@@ -466,7 +448,7 @@ namespace Microsoft.CodeAnalysis.CSharp
         /// <returns></returns>
         protected override bool EquivalentToCore(SyntaxNode other)
         {
-            throw ExceptionUtilities.Unreachable;
+            throw ExceptionUtilities.Unreachable();
         }
 
         protected override SyntaxTree SyntaxTreeCore
@@ -552,6 +534,32 @@ namespace Microsoft.CodeAnalysis.CSharp
         string IFormattable.ToString(string? format, IFormatProvider? formatProvider)
         {
             return ToString();
+        }
+
+        /// <summary>
+        /// This is ONLY used for debugging purpose
+        /// </summary>
+        internal string Dump()
+        {
+            return TreeDumper.DumpCompact(makeTree(this));
+
+            static TreeDumperNode makeTree(SyntaxNodeOrToken nodeOrToken)
+            {
+                var kind = nodeOrToken.Kind().ToString();
+
+                if (nodeOrToken.AsNode(out var node)
+                    && node is not IdentifierNameSyntax)
+                {
+                    return new TreeDumperNode(kind, null, node.ChildNodesAndTokens().Select(makeTree));
+                }
+
+                return new TreeDumperNode($"""{kind} {stringOrMissing(nodeOrToken)}""");
+            }
+
+            static string stringOrMissing(SyntaxNodeOrToken nodeOrToken)
+            {
+                return nodeOrToken.IsMissing ? "<missing>" : $@"""{nodeOrToken}""";
+            }
         }
     }
 }

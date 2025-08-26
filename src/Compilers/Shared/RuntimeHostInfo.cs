@@ -2,6 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+#nullable enable
+
 using System;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
@@ -17,84 +19,60 @@ namespace Microsoft.CodeAnalysis
     /// </summary>
     internal static class RuntimeHostInfo
     {
-        internal static bool IsCoreClrRuntime => !IsDesktopRuntime;
+        internal static bool IsDesktopRuntime => !IsCoreClrRuntime;
 
-        internal static string ToolExtension => IsCoreClrRuntime ? "dll" : "exe";
-        private static string NativeToolSuffix => PlatformInformation.IsWindows ? ".exe" : "";
+        internal static string GetDotNetExecCommandLine(string toolFilePath, string commandLineArguments) =>
+            $@"exec ""{toolFilePath}"" {commandLineArguments}";
 
-        /// <summary>
-        /// This gets information about invoking a tool on the current runtime. This will attempt to 
-        /// execute a tool as an EXE when on desktop and using dotnet when on CoreClr.
-        /// </summary>
-        internal static (string processFilePath, string commandLineArguments, string toolFilePath) GetProcessInfo(string toolFilePathWithoutExtension, string commandLineArguments)
-        {
-            Debug.Assert(!toolFilePathWithoutExtension.EndsWith(".dll") && !toolFilePathWithoutExtension.EndsWith(".exe"));
-
-            var nativeToolFilePath = $"{toolFilePathWithoutExtension}{NativeToolSuffix}";
-            if (IsCoreClrRuntime && File.Exists(nativeToolFilePath))
-            {
-                return (nativeToolFilePath, commandLineArguments, nativeToolFilePath);
-            }
-            var toolFilePath = $"{toolFilePathWithoutExtension}.{ToolExtension}";
-            if (IsDotNetHost(out string? pathToDotNet))
-            {
-                commandLineArguments = $@"exec ""{toolFilePath}"" {commandLineArguments}";
-                return (pathToDotNet!, commandLineArguments, toolFilePath);
-            }
-            else
-            {
-                return (toolFilePath, commandLineArguments, toolFilePath);
-            }
-        }
-
-#if NET472
-        internal static bool IsDesktopRuntime => true;
-
-        internal static bool IsDotNetHost([NotNullWhen(true)] out string? pathToDotNet)
-        {
-            pathToDotNet = null;
-            return false;
-        }
-
-        internal static NamedPipeClientStream CreateNamedPipeClient(string serverName, string pipeName, PipeDirection direction, PipeOptions options) =>
-            new NamedPipeClientStream(serverName, pipeName, direction, options);
-
-#elif NETCOREAPP
-        internal static bool IsDesktopRuntime => false;
+        internal static bool IsCoreClrRuntime =>
+#if NET
+            true;
+#else
+            false;
+#endif
 
         private const string DotNetHostPathEnvironmentName = "DOTNET_HOST_PATH";
-
-        private static bool IsDotNetHost(out string? pathToDotNet)
-        {
-            pathToDotNet = GetDotNetPathOrDefault();
-            return true;
-        }
+        private const string DotNetExperimentalHostPathEnvironmentName = "DOTNET_EXPERIMENTAL_HOST_PATH";
 
         /// <summary>
-        /// Get the path to the dotnet executable. This will throw in the case it is not properly setup 
-        /// by the environment.
+        /// Get the path to the dotnet executable. In the case the .NET SDK did not provide this information
+        /// in the environment this tries to find "dotnet" on the PATH. In the case it is not found,
+        /// this will return simply "dotnet".
         /// </summary>
-        private static string GetDotNetPath()
+        internal static string GetDotNetPathOrDefault()
         {
-            var pathToDotNet = Environment.GetEnvironmentVariable(DotNetHostPathEnvironmentName);
-            if (string.IsNullOrEmpty(pathToDotNet))
+            if (Environment.GetEnvironmentVariable(DotNetHostPathEnvironmentName) is { Length: > 0 } pathToDotNet)
             {
-                throw new InvalidOperationException($"{DotNetHostPathEnvironmentName} is not set");
+                return pathToDotNet;
             }
-            return pathToDotNet;
-        }
 
-        /// <summary>
-        /// Get the path to the dotnet executable. In the case the host did not provide this information
-        /// in the environment this will return simply "dotnet".
-        /// </summary>
-        private static string GetDotNetPathOrDefault()
-        {
-            var pathToDotNet = Environment.GetEnvironmentVariable(DotNetHostPathEnvironmentName);
-            return pathToDotNet ?? "dotnet";
+            if (Environment.GetEnvironmentVariable(DotNetExperimentalHostPathEnvironmentName) is { Length: > 0 } pathToDotNetExperimental)
+            {
+                return pathToDotNetExperimental;
+            }
+
+            var (fileName, sep) = PlatformInformation.IsWindows
+                ? ("dotnet.exe", new char[] { ';' })
+                : ("dotnet", new char[] { ':' });
+
+            var path = Environment.GetEnvironmentVariable("PATH") ?? "";
+            foreach (var item in path.Split(sep, StringSplitOptions.RemoveEmptyEntries))
+            {
+                try
+                {
+                    var filePath = Path.Combine(item, fileName);
+                    if (File.Exists(filePath))
+                    {
+                        return filePath;
+                    }
+                }
+                catch
+                {
+                    // If we can't read a directory for any reason just skip it
+                }
+            }
+
+            return fileName;
         }
-#else
-#error Unsupported configuration
-#endif
     }
 }

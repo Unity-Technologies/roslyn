@@ -7,7 +7,6 @@ Imports System.Threading
 Imports Microsoft.CodeAnalysis
 Imports Microsoft.CodeAnalysis.GenerateMember.GenerateVariable
 Imports Microsoft.CodeAnalysis.Host.Mef
-Imports Microsoft.CodeAnalysis.Options
 Imports Microsoft.CodeAnalysis.VisualBasic.Extensions.ContextQuery
 Imports Microsoft.CodeAnalysis.VisualBasic.Syntax
 
@@ -90,7 +89,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.GenerateMember.GenerateVariable
                 simpleNameOrMemberAccessExpression = identifierName
             End If
 
-            Dim semanticModel = DirectCast(document.SemanticModel, SemanticModel)
+            Dim semanticModel = document.SemanticModel
             If Not IsLegal(semanticModel, simpleNameOrMemberAccessExpression, cancellationToken) AndAlso
                Not simpleNameOrMemberAccessExpression.Parent.IsKind(SyntaxKind.NameOfExpression, SyntaxKind.NamedFieldInitializer) Then
                 identifierToken = Nothing
@@ -117,7 +116,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.GenerateMember.GenerateVariable
             Return expression.CanReplaceWithLValue(semanticModel, cancellationToken)
         End Function
 
-        Protected Overrides Function TryConvertToLocalDeclaration(type As ITypeSymbol, identifierToken As SyntaxToken, options As OptionSet, semanticModel As SemanticModel, cancellationToken As CancellationToken, ByRef newRoot As SyntaxNode) As Boolean
+        Protected Overrides Function TryConvertToLocalDeclaration(type As ITypeSymbol, identifierToken As SyntaxToken, semanticModel As SemanticModel, cancellationToken As CancellationToken, ByRef newRoot As SyntaxNode) As Boolean
             Return False
         End Function
     End Class

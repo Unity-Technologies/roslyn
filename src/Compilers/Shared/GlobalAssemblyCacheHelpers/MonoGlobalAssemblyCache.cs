@@ -12,6 +12,7 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Text;
+using Microsoft.CodeAnalysis.Collections;
 using Roslyn.Utilities;
 
 namespace Microsoft.CodeAnalysis
@@ -115,6 +116,8 @@ namespace Microsoft.CodeAnalysis
 
                 var gacAssemblyName = CreateAssemblyNameFromFile(assemblyPath);
 
+#pragma warning disable SYSLIB0037
+                // warning SYSLIB0037: 'AssemblyName.ProcessorArchitecture' is obsolete: 'AssemblyName members HashAlgorithm, ProcessorArchitecture, and VersionCompatibility are obsolete and not supported.'
                 if (gacAssemblyName.ProcessorArchitecture != ProcessorArchitecture.None &&
                     architectureFilter != default(ImmutableArray<ProcessorArchitecture>) &&
                     architectureFilter.Length > 0 &&
@@ -122,6 +125,7 @@ namespace Microsoft.CodeAnalysis
                 {
                     continue;
                 }
+#pragma warning restore SYSLIB0037
 
                 var assemblyIdentity = new AssemblyIdentity(
                     gacAssemblyName.Name,

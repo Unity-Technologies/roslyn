@@ -126,7 +126,7 @@ namespace Microsoft.Cci
     /// <summary>
     /// The definition of a type parameter of a generic type or method.
     /// </summary>
-    internal interface IGenericParameter : IGenericParameterReference
+    internal interface IGenericParameter : IDefinition, IGenericParameterReference
     {
         /// <summary>
         /// A list of classes or interfaces. All type arguments matching this parameter must be derived from all of the classes and implement all of the interfaces.
@@ -149,6 +149,11 @@ namespace Microsoft.Cci
         {
             get;
             // ^ ensures result ==> !this.MustBeReferenceType;
+        }
+
+        bool AllowsRefLikeType
+        {
+            get;
         }
 
         /// <summary>
@@ -253,6 +258,9 @@ namespace Microsoft.Cci
         /// If true, the persisted type name is mangled by appending "`n" where n is the number of type parameters, if the number of type parameters is greater than 0.
         /// </summary>
         bool MangleName { get; }
+
+        /// <summary>Indicates that the type is scoped to the file it is declared in. Used as a prefix for the metadata name.</summary>
+        string? AssociatedFileIdentifier { get; }
     }
 
     /// <summary>
@@ -317,6 +325,11 @@ namespace Microsoft.Cci
     /// </summary>
     internal interface INestedTypeReference : INamedTypeReference, ITypeMemberReference
     {
+        /// <summary>
+        /// When true, the type inherits type parameters from the enclosing type.
+        /// Note, <see cref="INamedTypeReference.GenericParameterCount"/> does not include count of the inherited type parameters.
+        /// </summary>
+        bool InheritsEnclosingTypeTypeParameters { get; }
     }
 
     /// <summary>
@@ -336,7 +349,7 @@ namespace Microsoft.Cci
     /// <summary>
     /// Models an explicit implementation or override of a base class virtual method or an explicit implementation of an interface method.
     /// </summary>
-    internal struct MethodImplementation
+    internal readonly struct MethodImplementation
     {
         /// <summary>
         /// The type that is explicitly implementing or overriding the base class virtual method or explicitly implementing an interface method.
@@ -414,7 +427,7 @@ namespace Microsoft.Cci
     // be unnecessary if we added a GetAttributes method onto IDefinition and
     // properly segregated attributes that are on type references and attributes
     // that are on underlying type definitions.
-    internal struct TypeReferenceWithAttributes
+    internal readonly struct TypeReferenceWithAttributes
     {
         /// <summary>
         /// The type reference.

@@ -15,7 +15,7 @@ namespace Roslyn.Utilities
     internal sealed class MultiDictionary<K, V> : IEnumerable<KeyValuePair<K, MultiDictionary<K, V>.ValueSet>>
         where K : notnull
     {
-        public struct ValueSet : IEnumerable<V>
+        public readonly struct ValueSet : IEnumerable<V>
         {
             public struct Enumerator : IEnumerator<V>
             {
@@ -231,9 +231,17 @@ namespace Roslyn.Utilities
             _dictionary = new Dictionary<K, ValueSet>();
         }
 
-        public MultiDictionary(IEqualityComparer<K> comparer)
+        public MultiDictionary(IEqualityComparer<K> comparer, IEqualityComparer<V>? valueComparer = null)
         {
             _dictionary = new Dictionary<K, ValueSet>(comparer);
+            _valueComparer = valueComparer;
+        }
+
+        public void EnsureCapacity(int capacity)
+        {
+#if NET
+            _dictionary.EnsureCapacity(capacity);
+#endif
         }
 
         public MultiDictionary(int capacity, IEqualityComparer<K> comparer, IEqualityComparer<V>? valueComparer = null)

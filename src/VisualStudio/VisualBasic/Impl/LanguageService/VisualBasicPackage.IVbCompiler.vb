@@ -4,7 +4,6 @@
 
 Imports Microsoft.CodeAnalysis.Editor.Shared.Utilities
 Imports Microsoft.CodeAnalysis.VisualBasic
-Imports Microsoft.VisualStudio.LanguageServices.Implementation.TaskList
 Imports Microsoft.VisualStudio.LanguageServices.VisualBasic.ProjectSystemShim
 Imports Microsoft.VisualStudio.LanguageServices.VisualBasic.ProjectSystemShim.Interop
 Imports Microsoft.VisualStudio.Shell.Interop
@@ -19,8 +18,6 @@ Namespace Microsoft.VisualStudio.LanguageServices.VisualBasic
         End Function
 
         Public Function CreateProject(wszName As String, punkProject As Object, pProjHier As IVsHierarchy, pVbCompilerHost As IVbCompilerHost) As IVbCompilerProject Implements IVbCompiler.CreateProject
-            Dim hostDiagnosticUpdateSource = ComponentModel.GetService(Of HostDiagnosticUpdateSource)()
-
             Return New VisualBasicProject(
                 wszName,
                 pVbCompilerHost,

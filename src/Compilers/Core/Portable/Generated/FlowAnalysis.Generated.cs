@@ -2,9 +2,11 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 // < auto-generated />
+#nullable enable
 using System;
 using System.Collections.Immutable;
 using Microsoft.CodeAnalysis.Operations;
+using Microsoft.CodeAnalysis.PooledObjects;
 
 namespace Microsoft.CodeAnalysis.FlowAnalysis
 {
@@ -51,6 +53,10 @@ namespace Microsoft.CodeAnalysis.FlowAnalysis
         /// An id used to match references to the same intermediate result.
         /// </summary>
         CaptureId Id { get; }
+        /// <summary>
+        /// True if this reference to the capture initializes the capture. Used when the capture is being initialized by being passed as an <see langword="out" /> parameter.
+        /// </summary>
+        bool IsInitialization { get; }
     }
     /// <summary>
     /// Represents result of checking whether the <see cref="Operand" /> is null.
@@ -114,8 +120,10 @@ namespace Microsoft.CodeAnalysis.FlowAnalysis
     /// Represents an anonymous function operation in context of a <see cref="ControlFlowGraph" />.
     /// <para>
     /// Current usage:
-    ///  (1) C# lambda expression.
-    ///  (2) VB anonymous delegate expression.
+    /// <list type="number">
+    ///   <item><description>C# lambda expression</description></item>
+    ///   <item><description>VB anonymous delegate expression</description></item>
+    /// </list>
     /// </para>
     /// A <see cref="ControlFlowGraph" /> for the body of the anonymous function is available from
     /// the enclosing <see cref="ControlFlowGraph" />.

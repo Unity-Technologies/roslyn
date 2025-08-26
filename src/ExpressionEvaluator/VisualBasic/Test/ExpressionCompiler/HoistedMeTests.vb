@@ -2,16 +2,14 @@
 ' The .NET Foundation licenses this file to you under the MIT license.
 ' See the LICENSE file in the project root for more information.
 
-Imports System.Collections.Immutable
 Imports Microsoft.CodeAnalysis.CodeGen
+Imports Microsoft.CodeAnalysis.Collections
 Imports Microsoft.CodeAnalysis.ExpressionEvaluator
 Imports Microsoft.CodeAnalysis.ExpressionEvaluator.UnitTests
 Imports Microsoft.CodeAnalysis.PooledObjects
-Imports Microsoft.CodeAnalysis.Test.Extensions
 Imports Microsoft.CodeAnalysis.Test.Utilities
 Imports Microsoft.CodeAnalysis.VisualBasic.Symbols
 Imports Microsoft.CodeAnalysis.VisualBasic.UnitTests
-Imports Roslyn.Test.PdbUtilities
 Imports Roslyn.Test.Utilities
 Imports Xunit
 
@@ -19,8 +17,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.ExpressionEvaluator.UnitTests
     Public Class HoistedMeTests
         Inherits ExpressionCompilerTestBase
 
-        <WorkItem(1067379, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/1067379")>
-        <Fact>
+        <Fact, WorkItem("http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/1067379")>
         Public Sub InstanceIterator_NoCapturing()
             Const source = "
 Class C
@@ -43,8 +40,7 @@ End Class
             VerifyHasMe(source, "C.VB$StateMachine_1_F.MoveNext", "C", expectedIL)
         End Sub
 
-        <WorkItem(1067379, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/1067379")>
-        <Fact>
+        <Fact, WorkItem("http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/1067379")>
         Public Sub InstanceAsync_NoCapturing()
             Const source = "
 Imports System
@@ -72,8 +68,7 @@ End Class
             VerifyHasMe(source, "C.VB$StateMachine_1_F.MoveNext", "C", expectedIL)
         End Sub
 
-        <WorkItem(1067379, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/1067379")>
-        <Fact>
+        <Fact, WorkItem("http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/1067379")>
         Public Sub InstanceLambda_NoCapturing()
             Const source = "
 Class C
@@ -89,7 +84,7 @@ End Class
             VerifyNoMe(source, "C._Closure$__._Lambda$__1-0")
         End Sub
 
-        <Fact()>
+        <Fact>
         Public Sub InstanceLambda_NoCapturingExceptThis()
             Const source = "
 Class C
@@ -161,7 +156,7 @@ End Class
             VerifyHasMe(source, "C.VB$StateMachine_1_F.MoveNext", "C", expectedIL)
         End Sub
 
-        <Fact()>
+        <Fact>
         Public Sub InstanceLambda_CapturedMe_DisplayClass()
             Const source = "
 Class C
@@ -185,7 +180,7 @@ End Class
             VerifyHasMe(source, "C._Closure$__2-0._Lambda$__0", "C", expectedIL)
         End Sub
 
-        <Fact()>
+        <Fact>
         Public Sub InstanceLambda_CapturedMe_NoDisplayClass()
             Const source = "
 Class C
@@ -259,7 +254,7 @@ End Class
             VerifyHasMe(source, "C.VB$StateMachine_1_F.MoveNext", "C(Of T)", expectedIL)
         End Sub
 
-        <Fact()>
+        <Fact>
         Public Sub InstanceLambda_Generic()
             Const source = "
 Class C(Of T)
@@ -344,7 +339,7 @@ End Class
             VerifyHasMe(source, "C.VB$StateMachine_1_F.MoveNext", "C", expectedIL)
         End Sub
 
-        <Fact()>
+        <Fact>
         Public Sub InstanceLambda_ExplicitInterfaceImplementation()
             Const source = "
 Interface I
@@ -399,7 +394,7 @@ End Module
             VerifyNoMe(source, "M.VB$StateMachine_0_F.MoveNext")
         End Sub
 
-        <Fact()>
+        <Fact>
         Public Sub SharedLambda()
             Const source = "
 Module M
@@ -441,7 +436,7 @@ End Module
             VerifyNoMe(source, "M.VB$StateMachine_0_F.MoveNext")
         End Sub
 
-        <Fact()>
+        <Fact>
         Public Sub ExtensionLambda()
             Const source = "
 Module M
@@ -455,8 +450,7 @@ End Module
             VerifyNoMe(source, "M._Closure$__0-0._Lambda$__0")
         End Sub
 
-        <WorkItem(1072296, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/1072296")>
-        <Fact>
+        <Fact, WorkItem("http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/1072296")>
         Public Sub OldStyleNonCapturingLambda()
             Const ilSource = "
 .class public auto ansi C
@@ -492,9 +486,8 @@ End Module
             VerifyNoMe(context)
         End Sub
 
-        <WorkItem(1067379, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/1067379")>
-        <WorkItem(1069554, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/1069554")>
-        <Fact>
+        <Fact, WorkItem("http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/1069554")>
+        <WorkItem("http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/1067379")>
         Public Sub LambdaLocations_HasThis()
             Const source = "
 Imports System
@@ -556,7 +549,7 @@ End Class
                     Assert.True(displayClassTypes.Any())
                     For Each displayClassType In displayClassTypes
                         Dim displayClassName = displayClassType.Name
-                        Assert.True(displayClassName.StartsWith(StringConstants.DisplayClassPrefix, StringComparison.Ordinal))
+                        Assert.True(displayClassName.StartsWith(GeneratedNameConstants.DisplayClassPrefix, StringComparison.Ordinal))
                         For Each displayClassMethod In displayClassType.GetMembers().OfType(Of MethodSymbol)().Where(AddressOf IsLambda)
                             Dim lambdaMethodName = String.Format("C.{0}.{1}", displayClassName, displayClassMethod.Name)
                             Dim context = CreateMethodContext(runtime, lambdaMethodName)
@@ -567,8 +560,7 @@ End Class
                 End Sub)
         End Sub
 
-        <WorkItem(1069554, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/1069554")>
-        <Fact>
+        <Fact, WorkItem("http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/1069554")>
         Public Sub LambdaLocations_NoThis()
             Const source = "
 Imports System
@@ -613,7 +605,7 @@ End Module
                     Assert.True(displayClassTypes.Any())
                     For Each displayClassType In displayClassTypes
                         Dim displayClassName = displayClassType.Name
-                        Assert.True(displayClassName.StartsWith(StringConstants.DisplayClassPrefix, StringComparison.Ordinal))
+                        Assert.True(displayClassName.StartsWith(GeneratedNameConstants.DisplayClassPrefix, StringComparison.Ordinal))
                         For Each displayClassMethod In displayClassType.GetMembers().OfType(Of MethodSymbol)().Where(AddressOf IsLambda)
                             Dim lambdaMethodName = String.Format("M.{0}.{1}", displayClassName, displayClassMethod.Name)
                             Dim context = CreateMethodContext(runtime, lambdaMethodName)
@@ -719,8 +711,7 @@ End Module
                             })
         End Sub
 
-        <WorkItem(1024137, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/1024137")>
-        <Fact>
+        <Fact, WorkItem("http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/1024137")>
         Public Sub InstanceMembersInIterator()
             Const source = "
 Class C
@@ -756,8 +747,7 @@ End Class
                 End Sub)
         End Sub
 
-        <WorkItem(1024137, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/1024137")>
-        <Fact>
+        <Fact, WorkItem("http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/1024137")>
         Public Sub InstanceMembersInLambda()
             Const source = "
 Class C
@@ -791,8 +781,7 @@ End Class
                 End Sub)
         End Sub
 
-        <WorkItem(1024137, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/1024137")>
-        <Fact>
+        <Fact, WorkItem("http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/1024137")>
         Public Sub InstanceMembersInAsync()
             Const source = "
 Imports System
@@ -1147,7 +1136,7 @@ End Class
                 source,
                 Function(m) m.Name = "M" AndAlso isDesiredOverload(m),
                 Function(originalType)
-                    Dim stateMachineType = originalType.GetMembers().OfType(Of NamedTypeSymbol).Single(Function(t) t.Name.StartsWith(StringConstants.StateMachineTypeNamePrefix, StringComparison.Ordinal))
+                    Dim stateMachineType = originalType.GetMembers().OfType(Of NamedTypeSymbol).Single(Function(t) t.Name.StartsWith(GeneratedNameConstants.StateMachineTypeNamePrefix, StringComparison.Ordinal))
                     Return stateMachineType.GetMember(Of MethodSymbol)("MoveNext")
                 End Function)
         End Sub
@@ -1157,13 +1146,13 @@ End Class
                 source,
                 isDesiredOverload,
                 Function(originalType)
-                    Dim displayClass As NamedTypeSymbol = originalType.GetMembers().OfType(Of NamedTypeSymbol).Single(Function(t) t.Name.StartsWith(StringConstants.DisplayClassPrefix, StringComparison.Ordinal))
+                    Dim displayClass As NamedTypeSymbol = originalType.GetMembers().OfType(Of NamedTypeSymbol).Single(Function(t) t.Name.StartsWith(GeneratedNameConstants.DisplayClassPrefix, StringComparison.Ordinal))
                     Return displayClass.GetMembers().OfType(Of MethodSymbol).Single(AddressOf IsLambda)
                 End Function)
         End Sub
 
         Private Shared Function IsLambda(method As MethodSymbol) As Boolean
-            Return method.Name.StartsWith(StringConstants.LambdaMethodNamePrefix, StringComparison.Ordinal)
+            Return method.Name.StartsWith(GeneratedNameConstants.LambdaMethodNamePrefix, StringComparison.Ordinal)
         End Function
 
         Private Shared Sub CheckOverloading(source As String, isDesiredOverload As Func(Of MethodSymbol, Boolean), getSynthesizedMethod As Func(Of NamedTypeSymbol, MethodSymbol))

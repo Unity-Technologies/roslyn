@@ -13,6 +13,7 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.InteropServices;
+using Microsoft.CodeAnalysis.Collections;
 using Roslyn.Utilities;
 
 namespace Microsoft.CodeAnalysis
@@ -21,6 +22,8 @@ namespace Microsoft.CodeAnalysis
 
     /// <summary>
     /// Provides APIs to enumerate and look up assemblies stored in the Global Assembly Cache.
+    /// 
+    /// This resolver only works when running under the .net framework runtime.
     /// </summary>
     internal sealed class ClrGlobalAssemblyCache : GlobalAssemblyCache
     {

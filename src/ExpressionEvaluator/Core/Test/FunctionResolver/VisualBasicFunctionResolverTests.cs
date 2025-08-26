@@ -4,11 +4,11 @@
 
 #nullable disable
 
+using System;
 using Microsoft.CodeAnalysis.Test.Utilities;
 using Microsoft.CodeAnalysis.VisualBasic.ExpressionEvaluator;
 using Microsoft.VisualStudio.Debugger.Evaluation;
 using Roslyn.Test.Utilities;
-using System;
 using Xunit;
 
 namespace Microsoft.CodeAnalysis.ExpressionEvaluator.UnitTests
@@ -21,8 +21,7 @@ namespace Microsoft.CodeAnalysis.ExpressionEvaluator.UnitTests
         /// Should only handle requests with expected language id or
         /// default language id or causality breakpoints.
         /// </summary>
-        [WorkItem(15119, "https://github.com/dotnet/roslyn/issues/15119")]
-        [Fact]
+        [Fact, WorkItem("https://github.com/dotnet/roslyn/issues/15119")]
         public void LanguageId()
         {
             var source =

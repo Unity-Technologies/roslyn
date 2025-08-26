@@ -8,9 +8,8 @@ using System;
 using System.Globalization;
 using System.Reflection;
 using System.Text;
-using Microsoft.CodeAnalysis.PooledObjects;
 using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.Collections;
+using Microsoft.CodeAnalysis.PooledObjects;
 
 namespace Microsoft.CodeAnalysis.Scripting.Hosting
 {
@@ -212,7 +211,7 @@ namespace Microsoft.CodeAnalysis.Scripting.Hosting
                 quoteStringsAndCharacters: true,
                 escapeNonPrintableCharacters: true,
                 cultureInfo: CultureInfo.InvariantCulture);
-            var formatted = int.MinValue <= bound && bound <= int.MaxValue
+            var formatted = bound is >= int.MinValue and <= int.MaxValue
                 ? PrimitiveFormatter.FormatPrimitive((int)bound, options)
                 : PrimitiveFormatter.FormatPrimitive(bound, options);
             sb.Append(formatted);
@@ -295,7 +294,7 @@ namespace Microsoft.CodeAnalysis.Scripting.Hosting
                 int backtick = name.IndexOf('`');
                 if (backtick > 0)
                 {
-                    builder.Append(name.Substring(0, backtick));
+                    builder.Append(name[..backtick]);
                 }
                 else
                 {

@@ -23,6 +23,9 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
 #endif 
         IPropertyDefinition
     {
+        public bool IsEncDeleted
+            => false;
+
         #region IPropertyDefinition Members
 
         IEnumerable<IMethodReference> IPropertyDefinition.GetAccessors(EmitContext context)
@@ -204,7 +207,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
         {
             CheckDefinitionInvariantAllowEmbedded();
             return ((PEModuleBuilder)context.Module).Translate(AdaptedPropertySymbol.Type,
-                                                      syntaxNodeOpt: (CSharpSyntaxNode)context.SyntaxNodeOpt,
+                                                      syntaxNodeOpt: (CSharpSyntaxNode)context.SyntaxNode,
                                                       diagnostics: context.Diagnostics);
         }
 
@@ -217,6 +220,14 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
             get
             {
                 CheckDefinitionInvariant();
+
+                // Tracked by https://github.com/dotnet/roslyn/issues/78827 : code quality, share logic with Cci.ITypeMemberReference.GetContainingType implementation?
+                if (AdaptedPropertySymbol.GetIsNewExtensionMember())
+                {
+                    var containingType = AdaptedPropertySymbol.ContainingType;
+                    return ((SourceMemberContainerTypeSymbol)containingType.ContainingType).GetExtensionGroupingInfo().GetCorrespondingGroupingType((SourceNamedTypeSymbol)containingType);
+                }
+
                 return AdaptedPropertySymbol.ContainingType.GetCciAdapter();
             }
         }
@@ -226,7 +237,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
             get
             {
                 CheckDefinitionInvariant();
-                return PEModuleBuilder.MemberVisibility(AdaptedPropertySymbol);
+                return AdaptedPropertySymbol.MetadataVisibility;
             }
         }
 
@@ -237,6 +248,14 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
         ITypeReference ITypeMemberReference.GetContainingType(EmitContext context)
         {
             CheckDefinitionInvariant();
+
+            // Tracked by https://github.com/dotnet/roslyn/issues/78827 : code quality, share logic with Cci.ITypeMemberReference.GetContainingType implementation in MethodSymbolAdapter?
+            if (AdaptedPropertySymbol.GetIsNewExtensionMember())
+            {
+                var containingType = AdaptedPropertySymbol.ContainingType;
+                return ((SourceMemberContainerTypeSymbol)containingType.ContainingType).GetExtensionGroupingInfo().GetCorrespondingGroupingType((SourceNamedTypeSymbol)containingType);
+            }
+
             return AdaptedPropertySymbol.ContainingType.GetCciAdapter();
         }
 
@@ -329,7 +348,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
             if (underlyingPropertySymbol is NativeIntegerPropertySymbol)
             {
                 // Emit should use underlying symbol only.
-                throw ExceptionUtilities.Unreachable;
+                throw ExceptionUtilities.Unreachable();
             }
         }
 

@@ -3,12 +3,8 @@
 ' See the LICENSE file in the project root for more information.
 
 Imports Microsoft.CodeAnalysis
-Imports Microsoft.CodeAnalysis.Editor.UnitTests
-Imports Microsoft.CodeAnalysis.Editor.UnitTests.Workspaces
 Imports Microsoft.CodeAnalysis.Test.Utilities
-Imports Microsoft.VisualStudio.LanguageServices.CSharp.CodeModel
 Imports Microsoft.VisualStudio.LanguageServices.Implementation.Venus
-Imports Microsoft.VisualStudio.LanguageServices.VisualBasic.CodeModel
 
 Namespace Microsoft.VisualStudio.LanguageServices.UnitTests.Venus
 
@@ -26,8 +22,10 @@ Namespace Microsoft.VisualStudio.LanguageServices.UnitTests.Venus
             AssertValidId(id, Sub(value) Assert.False(value))
         End Sub
 
+#Disable Warning CA1822 ' Mark members as static - False positive due to https://github.com/dotnet/roslyn/issues/50582
         Private Sub AssertValidId(id As String, assertion As Action(Of Boolean))
-            Using workspace = TestWorkspace.Create(
+#Enable Warning CA1822
+            Using workspace = EditorTestWorkspace.Create(
 <Workspace>
     <Project Language=<%= Language %> AssemblyName="Assembly" CommonReferences="true">
         <Document>
@@ -41,8 +39,8 @@ Namespace Microsoft.VisualStudio.LanguageServices.UnitTests.Venus
 
         End Sub
 
-        Protected Function GetWorkspace(code As String) As TestWorkspace
-            Return TestWorkspace.Create(
+        Protected Function GetWorkspace(code As String) As EditorTestWorkspace
+            Return EditorTestWorkspace.Create(
 <Workspace>
     <Project Language=<%= Language %> AssemblyName="Assembly" CommonReferences="true">
         <Document FilePath="file">
@@ -52,7 +50,7 @@ Namespace Microsoft.VisualStudio.LanguageServices.UnitTests.Venus
 </Workspace>, composition:=VisualStudioTestCompositions.LanguageServices)
         End Function
 
-        Protected Function GetDocument(workspace As TestWorkspace) As Document
+        Protected Function GetDocument(workspace As EditorTestWorkspace) As Document
             Return workspace.CurrentSolution.Projects.Single().Documents.Single()
         End Function
     End Class

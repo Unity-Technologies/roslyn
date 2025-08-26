@@ -18,6 +18,7 @@ using Microsoft.CodeAnalysis.CodeRefactorings;
 using Microsoft.CodeAnalysis.Host.Mef;
 using Microsoft.CodeAnalysis.Text;
 using Microsoft.VisualStudio.Composition;
+using Roslyn.Utilities;
 using static AnalyzerRunner.Program;
 
 namespace AnalyzerRunner
@@ -91,10 +92,11 @@ namespace AnalyzerRunner
 
                     foreach (var codeAction in codeActions)
                     {
-                        var operations = await codeAction.GetOperationsAsync(cancellationToken).ConfigureAwait(false);
+                        var operations = await codeAction.GetOperationsAsync(
+                            document.Project.Solution, CodeAnalysisProgress.None, cancellationToken).ConfigureAwait(false);
                         foreach (var operation in operations)
                         {
-                            if (!(operation is ApplyChangesOperation applyChangesOperation))
+                            if (operation is not ApplyChangesOperation applyChangesOperation)
                             {
                                 continue;
                             }
@@ -230,7 +232,7 @@ namespace AnalyzerRunner
             var languages = refactorings.SelectMany(refactoring => refactoring.Metadata.Languages).Distinct();
             return languages.ToImmutableDictionary(
                 language => language,
-                language => refactorings.Where(refactoring => refactoring.Metadata.Languages.Contains(language)).ToImmutableArray());
+                language => refactorings.WhereAsArray(refactoring => refactoring.Metadata.Languages.Contains(language)));
         }
 
         private class CodeRefactoringProviderMetadata
@@ -244,7 +246,7 @@ namespace AnalyzerRunner
                 Languages = languages switch
                 {
                     IEnumerable<string> values => values,
-                    string value => new[] { value },
+                    string value => [value],
                     _ => Array.Empty<string>(),
                 };
             }

@@ -2,12 +2,13 @@
 ' The .NET Foundation licenses this file to you under the MIT license.
 ' See the LICENSE file in the project root for more information.
 
+Imports System.Collections.Immutable
 Imports System.Composition
 Imports System.Threading
 Imports Microsoft.CodeAnalysis
 Imports Microsoft.CodeAnalysis.DocumentationComments
 Imports Microsoft.CodeAnalysis.Host.Mef
-Imports Microsoft.CodeAnalysis.LanguageServices
+Imports Microsoft.CodeAnalysis.LanguageService
 Imports Microsoft.CodeAnalysis.SignatureHelp
 Imports Microsoft.CodeAnalysis.Text
 Imports Microsoft.CodeAnalysis.VisualBasic.Syntax
@@ -23,13 +24,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.SignatureHelp
         Public Sub New()
         End Sub
 
-        Public Overrides Function IsTriggerCharacter(ch As Char) As Boolean
-            Return ch = "("c OrElse ch = ","c
-        End Function
+        Public Overrides ReadOnly Property TriggerCharacters As ImmutableArray(Of Char) = ImmutableArray.Create("("c, ","c)
 
-        Public Overrides Function IsRetriggerCharacter(ch As Char) As Boolean
-            Return ch = ")"c
-        End Function
+        Public Overrides ReadOnly Property RetriggerCharacters As ImmutableArray(Of Char) = ImmutableArray.Create(")"c)
 
         Private Function TryGetAttributeExpression(root As SyntaxNode, position As Integer, syntaxFacts As ISyntaxFactsService, triggerReason As SignatureHelpTriggerReason, cancellationToken As CancellationToken, ByRef attribute As AttributeSyntax) As Boolean
             If Not CommonSignatureHelpUtilities.TryGetSyntax(root, position, syntaxFacts, triggerReason, AddressOf IsTriggerToken, AddressOf IsArgumentListToken, cancellationToken, attribute) Then
@@ -51,7 +48,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.SignatureHelp
                 token <> node.ArgumentList.CloseParenToken
         End Function
 
-        Protected Overrides Async Function GetItemsWorkerAsync(document As Document, position As Integer, triggerInfo As SignatureHelpTriggerInfo, cancellationToken As CancellationToken) As Task(Of SignatureHelpItems)
+        Protected Overrides Async Function GetItemsWorkerAsync(document As Document, position As Integer, triggerInfo As SignatureHelpTriggerInfo, options As MemberDisplayOptions, cancellationToken As CancellationToken) As Task(Of SignatureHelpItems)
             Dim root = Await document.GetSyntaxRootAsync(cancellationToken).ConfigureAwait(False)
 
             Dim attribute As AttributeSyntax = Nothing
@@ -72,14 +69,14 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.SignatureHelp
 
             Dim accessibleConstructors = attributeType.InstanceConstructors.
                                                        WhereAsArray(Function(c) c.IsAccessibleWithin(within)).
-                                                       FilterToVisibleAndBrowsableSymbolsAndNotUnsafeSymbols(document.ShouldHideAdvancedMembers(), semanticModel.Compilation).
+                                                       FilterToVisibleAndBrowsableSymbolsAndNotUnsafeSymbols(options.HideAdvancedMembers, semanticModel.Compilation).
                                                        Sort(semanticModel, attribute.SpanStart)
 
             If Not accessibleConstructors.Any() Then
                 Return Nothing
             End If
 
-            Dim anonymousTypeDisplayService = document.GetLanguageService(Of IAnonymousTypeDisplayService)()
+            Dim structuralTypeDisplayService = document.GetLanguageService(Of IStructuralTypeDisplayService)()
             Dim documentationCommentFormattingService = document.GetLanguageService(Of IDocumentationCommentFormattingService)()
             Dim textSpan = SignatureHelpUtilities.GetSignatureHelpSpan(attribute.ArgumentList)
             Dim syntaxFacts = document.GetLanguageService(Of ISyntaxFactsService)
@@ -88,11 +85,11 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.SignatureHelp
             Dim selectedItem = TryGetSelectedIndex(accessibleConstructors, symbolInfo.Symbol)
 
             Return CreateSignatureHelpItems(accessibleConstructors.Select(
-                Function(c) Convert(c, within, attribute, semanticModel, anonymousTypeDisplayService, documentationCommentFormattingService)).ToList(),
-                textSpan, GetCurrentArgumentState(root, position, syntaxFacts, textSpan, cancellationToken), selectedItem)
+                Function(c) Convert(c, within, attribute, semanticModel, structuralTypeDisplayService, documentationCommentFormattingService)).ToList(),
+                textSpan, GetCurrentArgumentState(root, position, syntaxFacts, textSpan, cancellationToken), selectedItem, parameterIndexOverride:=-1)
         End Function
 
-        Public Overrides Function GetCurrentArgumentState(root As SyntaxNode, position As Integer, syntaxFacts As ISyntaxFactsService, currentSpan As TextSpan, cancellationToken As CancellationToken) As SignatureHelpState
+        Private Function GetCurrentArgumentState(root As SyntaxNode, position As Integer, syntaxFacts As ISyntaxFactsService, currentSpan As TextSpan, cancellationToken As CancellationToken) As SignatureHelpState?
             Dim expression As AttributeSyntax = Nothing
             If TryGetAttributeExpression(root, position, syntaxFacts, SignatureHelpTriggerReason.InvokeSignatureHelpCommand, cancellationToken, expression) AndAlso
                 currentSpan.Start = SignatureHelpUtilities.GetSignatureHelpSpan(expression.ArgumentList).Start Then
@@ -107,7 +104,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.SignatureHelp
                                            within As ISymbol,
                                            attribute As AttributeSyntax,
                                            semanticModel As SemanticModel,
-                                           anonymousTypeDisplayService As IAnonymousTypeDisplayService,
+                                           structuralTypeDisplayService As IStructuralTypeDisplayService,
                                            documentationCommentFormattingService As IDocumentationCommentFormattingService) As SignatureHelpItem
             Dim position = attribute.SpanStart
             Dim namedParameters = constructor.ContainingType.GetAttributeNamedParameters(semanticModel.Compilation, within).
@@ -119,7 +116,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.SignatureHelp
 
             Dim item = CreateItem(
                 constructor, semanticModel, position,
-                anonymousTypeDisplayService,
+                structuralTypeDisplayService,
                 isVariadic,
                 constructor.GetDocumentationPartsFactory(semanticModel, position, documentationCommentFormattingService),
                 GetPreambleParts(constructor, semanticModel, position),
@@ -169,7 +166,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.SignatureHelp
         Private Shared Function GetParameterPrefixDisplayParts(i As Integer) As List(Of SymbolDisplayPart)
             If i = 0 Then
                 Return New List(Of SymbolDisplayPart) From {
-                    New SymbolDisplayPart(SymbolDisplayPartKind.Text, Nothing, VBFeaturesResources.Properties),
+                    New SymbolDisplayPart(SymbolDisplayPartKind.Text, Nothing, FeaturesResources.Properties),
                     Punctuation(SyntaxKind.ColonToken),
                     Space()
                 }

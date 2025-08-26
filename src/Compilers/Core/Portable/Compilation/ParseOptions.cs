@@ -32,9 +32,8 @@ namespace Microsoft.CodeAnalysis
         public SourceCodeKind SpecifiedKind { get; protected set; }
 
         /// <summary>
-        /// Gets a value indicating whether the documentation comments are parsed.
+        /// Gets a value indicating whether the documentation comments are parsed and analyzed.
         /// </summary>
-        /// <value><c>true</c> if documentation comments are parsed, <c>false</c> otherwise.</value>
         public DocumentationMode DocumentationMode { get; protected set; }
 
         internal ParseOptions(SourceCodeKind kind, DocumentationMode documentationMode)
@@ -142,7 +141,7 @@ namespace Microsoft.CodeAnalysis
             return
                 this.SpecifiedKind == other.SpecifiedKind &&
                 this.DocumentationMode == other.DocumentationMode &&
-                this.Features.SequenceEqual(other.Features) &&
+                FeaturesEqual(Features, other.Features) &&
                 (this.PreprocessorSymbolNames == null ? other.PreprocessorSymbolNames == null : this.PreprocessorSymbolNames.SequenceEqual(other.PreprocessorSymbolNames, StringComparer.Ordinal));
         }
 
@@ -155,6 +154,29 @@ namespace Microsoft.CodeAnalysis
                 Hash.Combine((int)this.DocumentationMode,
                 Hash.Combine(HashFeatures(this.Features),
                 Hash.Combine(Hash.CombineValues(this.PreprocessorSymbolNames, StringComparer.Ordinal), 0))));
+        }
+
+        private static bool FeaturesEqual(IReadOnlyDictionary<string, string> features, IReadOnlyDictionary<string, string> other)
+        {
+            if (ReferenceEquals(features, other))
+            {
+                return true;
+            }
+
+            if (features.Count != other.Count)
+            {
+                return false;
+            }
+
+            foreach (var (key, value) in features)
+            {
+                if (!other.TryGetValue(key, out var otherValue) || value != otherValue)
+                {
+                    return false;
+                }
+            }
+
+            return true;
         }
 
         private static int HashFeatures(IReadOnlyDictionary<string, string> features)

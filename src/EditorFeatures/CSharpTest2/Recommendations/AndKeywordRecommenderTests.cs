@@ -2,537 +2,550 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
-#nullable disable
-
 using System.Threading.Tasks;
 using Microsoft.CodeAnalysis.Test.Utilities;
 using Roslyn.Test.Utilities;
 using Xunit;
 
-namespace Microsoft.CodeAnalysis.Editor.CSharp.UnitTests.Recommendations
-{
-    public class AndKeywordRecommenderTests : KeywordRecommenderTests
-    {
-        private const string InitializeObjectE = @"var e = new object();
-";
+namespace Microsoft.CodeAnalysis.Editor.CSharp.UnitTests.Recommendations;
 
-        [Fact, Trait(Traits.Feature, Traits.Features.KeywordRecommending)]
-        public async Task TestAfterConstant()
-        {
-            await VerifyKeywordAsync(AddInsideMethod(InitializeObjectE +
+[Trait(Traits.Feature, Traits.Features.KeywordRecommending)]
+public sealed class AndKeywordRecommenderTests : KeywordRecommenderTests
+{
+    private const string InitializeObjectE = """
+        var e = new object();
+        """;
+
+    [Fact]
+    public Task TestAfterConstant()
+        => VerifyKeywordAsync(AddInsideMethod(InitializeObjectE +
 @"if (e is 1 $$"));
-        }
 
-        [Fact, Trait(Traits.Feature, Traits.Features.KeywordRecommending)]
-        public async Task TestAfterMultipleConstants()
-        {
-            await VerifyKeywordAsync(AddInsideMethod(InitializeObjectE +
+    [Fact]
+    public Task TestAfterMultipleConstants()
+        => VerifyKeywordAsync(AddInsideMethod(InitializeObjectE +
 @"if (e is 1 or 2 $$"));
-        }
 
-        [Fact, Trait(Traits.Feature, Traits.Features.KeywordRecommending)]
-        public async Task TestAfterType()
-        {
-            await VerifyKeywordAsync(AddInsideMethod(InitializeObjectE +
+    [Fact]
+    public Task TestAfterType()
+        => VerifyKeywordAsync(AddInsideMethod(InitializeObjectE +
 @"if (e is int $$"));
-        }
 
-        [Fact, Trait(Traits.Feature, Traits.Features.KeywordRecommending)]
-        public async Task TestAfterRelationalOperator()
-        {
-            await VerifyKeywordAsync(AddInsideMethod(InitializeObjectE +
+    [Fact]
+    public Task TestAfterRelationalOperator()
+        => VerifyKeywordAsync(AddInsideMethod(InitializeObjectE +
 @"if (e is >= 0 $$"));
-        }
 
-        [Fact, Trait(Traits.Feature, Traits.Features.KeywordRecommending)]
-        public async Task TestAfterGenericType()
-        {
-            await VerifyKeywordAsync(
-@"class C<T>
-{
-    void M()
-    {
-        var e = new object();
-        if (e is T $$");
-        }
+    [Fact]
+    public Task TestAfterGenericType()
+        => VerifyKeywordAsync(
+            """
+            class C<T>
+            {
+                void M()
+                {
+                    var e = new object();
+                    if (e is T $$
+            """);
 
-        [Fact, Trait(Traits.Feature, Traits.Features.KeywordRecommending)]
-        public async Task TestAfterArrayType()
-        {
-            await VerifyKeywordAsync(
-@"class C
-{
-    void M()
-    {
-        var e = new object();
-        if (e is int[] $$");
-        }
+    [Fact]
+    public Task TestAfterArrayType()
+        => VerifyKeywordAsync(
+            """
+            class C
+            {
+                void M()
+                {
+                    var e = new object();
+                    if (e is int[] $$
+            """);
 
-        [Fact, Trait(Traits.Feature, Traits.Features.KeywordRecommending)]
-        public async Task TestAfterListType()
-        {
-            await VerifyKeywordAsync(
-@"using System.Collections.Generic;
+    [Fact]
+    public Task TestAfterListType()
+        => VerifyKeywordAsync(
+            """
+            using System.Collections.Generic;
 
-class C
-{
-    void M()
-    {
-        var e = new object();
-        if (e is List<int> $$");
-        }
+            class C
+            {
+                void M()
+                {
+                    var e = new object();
+                    if (e is List<int> $$
+            """);
 
-        [Fact, Trait(Traits.Feature, Traits.Features.KeywordRecommending)]
-        public async Task TestAfterListType_FullyQualified()
-        {
-            await VerifyKeywordAsync(
-@"class C
-{
-    void M()
-    {
-        var e = new object();
-        if (e is System.Collections.Generic.List<int> $$");
-        }
+    [Fact]
+    public Task TestAfterListType_FullyQualified()
+        => VerifyKeywordAsync(
+            """
+            class C
+            {
+                void M()
+                {
+                    var e = new object();
+                    if (e is System.Collections.Generic.List<int> $$
+            """);
 
-        [Fact, Trait(Traits.Feature, Traits.Features.KeywordRecommending)]
-        public async Task TestAfterRecursivePattern()
-        {
-            await VerifyKeywordAsync(
-@"class C
-{
-    int P { get; }
+    [Fact]
+    public Task TestAfterRecursivePattern()
+        => VerifyKeywordAsync(
+            """
+            class C
+            {
+                int P { get; }
 
-    void M(C test)
-    {
-        if (test is { P: 1 } $$");
-        }
+                void M(C test)
+                {
+                    if (test is { P: 1 } $$
+            """);
 
-        [Fact, Trait(Traits.Feature, Traits.Features.KeywordRecommending)]
-        public async Task TestInsideSubpattern()
-        {
-            await VerifyKeywordAsync(
-@"class C
-{
-    public int P { get; }
+    [Fact]
+    public Task TestInsideSubpattern()
+        => VerifyKeywordAsync(
+            """
+            class C
+            {
+                public int P { get; }
 
-    void M(C test)
-    {
-        if (test is { P: 1 $$");
-        }
+                void M(C test)
+                {
+                    if (test is { P: 1 $$
+            """);
 
-        [Fact, Trait(Traits.Feature, Traits.Features.KeywordRecommending)]
-        public async Task TestInsideSubpattern_ComplexConstant()
-        {
-            await VerifyKeywordAsync(
-@"namespace N
-{
-    class C
-    {
-        const int P = 1;
+    [Fact]
+    public Task TestInsideSubpattern_ComplexConstant()
+        => VerifyKeywordAsync(
+            """
+            namespace N
+            {
+                class C
+                {
+                    const int P = 1;
 
-        int Prop { get; }
+                    int Prop { get; }
 
-        void M(C test)
-        {
-            if (test is { Prop: N.C.P $$");
-        }
+                    void M(C test)
+                    {
+                        if (test is { Prop: N.C.P $$
+            """);
 
-        [Fact, Trait(Traits.Feature, Traits.Features.KeywordRecommending)]
-        public async Task TestInsideSubpattern_AfterOpenParen()
-        {
-            await VerifyKeywordAsync(
-@"class C
-{
-    int P { get; }
+    [Fact]
+    public Task TestInsideSubpattern_AfterOpenParen()
+        => VerifyKeywordAsync(
+            """
+            class C
+            {
+                int P { get; }
 
-    void M()
-    {
-        var C2 = new C();
-        if (C2 is { P: (1 $$");
-        }
+                void M()
+                {
+                    var C2 = new C();
+                    if (C2 is { P: (1 $$
+            """);
 
-        [Fact, Trait(Traits.Feature, Traits.Features.KeywordRecommending)]
-        public async Task TestInsideSubpattern_AfterOpenParen_ComplexConstant()
-        {
-            await VerifyKeywordAsync(
-@"namespace N
-{
-    class C
-    {
-        const int P = 1;
+    [Fact]
+    public Task TestInsideSubpattern_AfterOpenParen_ComplexConstant()
+        => VerifyKeywordAsync(
+            """
+            namespace N
+            {
+                class C
+                {
+                    const int P = 1;
 
-        int Prop { get; }
+                    int Prop { get; }
 
-        void M(C test)
-        {
-            if (test is { Prop: (N.C.P $$");
-        }
+                    void M(C test)
+                    {
+                        if (test is { Prop: (N.C.P $$
+            """);
 
-        [Fact, Trait(Traits.Feature, Traits.Features.KeywordRecommending)]
-        public async Task TestInsideSubpattern_AfterMultipleOpenParens()
-        {
-            await VerifyKeywordAsync(
-@"class C
-{
-    int P { get; }
+    [Fact]
+    public Task TestInsideSubpattern_AfterMultipleOpenParens()
+        => VerifyKeywordAsync(
+            """
+            class C
+            {
+                int P { get; }
 
-    void M()
-    {
-        var C2 = new C();
-        if (C2 is { P: (((1 $$");
-        }
+                void M()
+                {
+                    var C2 = new C();
+                    if (C2 is { P: (((1 $$
+            """);
 
-        [Fact, Trait(Traits.Feature, Traits.Features.KeywordRecommending)]
-        public async Task TestInsideSubpattern_AfterMultipleOpenParens_ComplexConstant()
-        {
-            await VerifyKeywordAsync(
-@"namespace N
-{
-    class C
-    {
-        const int P = 1;
+    [Fact]
+    public Task TestInsideSubpattern_AfterMultipleOpenParens_ComplexConstant()
+        => VerifyKeywordAsync(
+            """
+            namespace N
+            {
+                class C
+                {
+                    const int P = 1;
 
-        int Prop { get; }
+                    int Prop { get; }
 
-        void M(C test)
-        {
-            if (test is { Prop: (((N.C.P $$");
-        }
+                    void M(C test)
+                    {
+                        if (test is { Prop: (((N.C.P $$
+            """);
 
-        [Fact, Trait(Traits.Feature, Traits.Features.KeywordRecommending)]
-        public async Task TestInsideSubpattern_AfterParenPair()
-        {
-            await VerifyKeywordAsync(
-@"class C
-{
-    int P { get; }
+    [Fact]
+    public Task TestInsideSubpattern_AfterParenPair()
+        => VerifyKeywordAsync(
+            """
+            class C
+            {
+                int P { get; }
 
-    void M()
-    {
-        var C2 = new C();
-        if (C2 is { P: (1) $$");
-        }
+                void M()
+                {
+                    var C2 = new C();
+                    if (C2 is { P: (1) $$
+            """);
 
-        [Fact, Trait(Traits.Feature, Traits.Features.KeywordRecommending)]
-        public async Task TestInsideSubpattern_AfterParenPair_ComplexConstant()
-        {
-            await VerifyKeywordAsync(
-@"namespace N
-{
-    class C
-    {
-        const int P = 1;
+    [Fact]
+    public Task TestInsideSubpattern_AfterParenPair_ComplexConstant()
+        => VerifyKeywordAsync(
+            """
+            namespace N
+            {
+                class C
+                {
+                    const int P = 1;
 
-        int Prop { get; }
+                    int Prop { get; }
 
-        void M(C test)
-        {
-            if (test is { Prop: (N.C.P + 1) $$");
-        }
+                    void M(C test)
+                    {
+                        if (test is { Prop: (N.C.P + 1) $$
+            """);
 
-        [Fact, Trait(Traits.Feature, Traits.Features.KeywordRecommending)]
-        public async Task TestInsideSubpattern_AfterMultipleParenPairs()
-        {
-            await VerifyKeywordAsync(
-@"class C
-{
-    int P { get; }
+    [Fact]
+    public Task TestInsideSubpattern_AfterMultipleParenPairs()
+        => VerifyKeywordAsync(
+            """
+            class C
+            {
+                int P { get; }
 
-    void M()
-    {
-        var C2 = new C();
-        if (C2 is { P: (((1))) $$");
-        }
+                void M()
+                {
+                    var C2 = new C();
+                    if (C2 is { P: (((1))) $$
+            """);
 
-        [Fact, Trait(Traits.Feature, Traits.Features.KeywordRecommending)]
-        public async Task TestInsideSubpattern_AfterMultipleParenPairs_ComplexConstant()
-        {
-            await VerifyKeywordAsync(
-@"namespace N
-{
-    class C
-    {
-        const int P = 1;
+    [Fact]
+    public Task TestInsideSubpattern_AfterMultipleParenPairs_ComplexConstant()
+        => VerifyKeywordAsync(
+            """
+            namespace N
+            {
+                class C
+                {
+                    const int P = 1;
 
-        int Prop { get; }
+                    int Prop { get; }
 
-        void M(C test)
-        {
-            if (test is { Prop: (((N.C.P))) $$");
-        }
+                    void M(C test)
+                    {
+                        if (test is { Prop: (((N.C.P))) $$
+            """);
 
-        [Fact, Trait(Traits.Feature, Traits.Features.KeywordRecommending)]
-        public async Task TestAfterQualifiedName()
-        {
-            await VerifyKeywordAsync(
-@"class C
-{
-    int P { get; }
+    [Fact]
+    public Task TestAfterQualifiedName()
+        => VerifyKeywordAsync(
+            """
+            class C
+            {
+                int P { get; }
 
-    void M()
-    {
-        var C2 = new C();
-        var e = new object();
-        if (e is C2.P $$");
-        }
+                void M()
+                {
+                    var C2 = new C();
+                    var e = new object();
+                    if (e is C2.P $$
+            """);
 
-        [Fact, Trait(Traits.Feature, Traits.Features.KeywordRecommending)]
-        public async Task TestAfterQualifiedName2()
-        {
-            await VerifyKeywordAsync(
-@"
-namespace N
-{
-    class C
-    {
-        const int P = 1;
+    [Fact]
+    public Task TestAfterQualifiedName2()
+        => VerifyKeywordAsync(
+            """
+            namespace N
+            {
+                class C
+                {
+                    const int P = 1;
 
-        void M()
-        {
-            var e = new object();
-            if (e is N.C.P $$");
-        }
+                    void M()
+                    {
+                        var e = new object();
+                        if (e is N.C.P $$
+            """);
 
-        [Fact, Trait(Traits.Feature, Traits.Features.KeywordRecommending)]
-        public async Task TestAtBeginningOfSwitchExpression()
-        {
-            await VerifyKeywordAsync(AddInsideMethod(InitializeObjectE +
-@"var result = e switch
-{
-    1 $$"));
-        }
-
-        [Fact, Trait(Traits.Feature, Traits.Features.KeywordRecommending)]
-        public async Task TestAtBeginningOfSwitchExpression_Complex()
-        {
-            await VerifyKeywordAsync(
-@"namespace N
-{
-    class C
-    {
-        const int P = 1;
-
-        void M()
-        {
-            var e = new object();
+    [Fact]
+    public Task TestAtBeginningOfSwitchExpression()
+        => VerifyKeywordAsync(AddInsideMethod(InitializeObjectE +
+            """
             var result = e switch
             {
-                N.C.P $$");
-        }
+                1 $$
+            """));
 
-        [Fact, Trait(Traits.Feature, Traits.Features.KeywordRecommending)]
-        public async Task TestAtBeginningOfSwitchStatement()
-        {
-            await VerifyKeywordAsync(AddInsideMethod(InitializeObjectE +
-@"switch (e)
-{
-    case 1 $$"));
-        }
-
-        [Fact, Trait(Traits.Feature, Traits.Features.KeywordRecommending)]
-        public async Task TestAtBeginningOfSwitchExpression_AfterOpenParen()
-        {
-            await VerifyKeywordAsync(AddInsideMethod(InitializeObjectE +
-@"var result = e switch
-{
-    (1 $$"));
-        }
-
-        [Fact, Trait(Traits.Feature, Traits.Features.KeywordRecommending)]
-        public async Task TestAtBeginningOfSwitchExpression_AfterOpenParen_Complex()
-        {
-            await VerifyKeywordAsync(
-@"namespace N
-{
-    class C
-    {
-        const int P = 1;
-
-        void M()
-        {
-            var e = new object();
-            var result = e switch
+    [Fact]
+    public Task TestAtBeginningOfSwitchExpression_Complex()
+        => VerifyKeywordAsync(
+            """
+            namespace N
             {
-                (N.C.P $$");
-        }
+                class C
+                {
+                    const int P = 1;
 
-        [Fact, Trait(Traits.Feature, Traits.Features.KeywordRecommending)]
-        public async Task TestAtBeginningOfSwitchExpression_AfterMultipleOpenParens()
-        {
-            await VerifyKeywordAsync(AddInsideMethod(InitializeObjectE +
-@"var result = e switch
-{
-    (((1 $$"));
-        }
+                    void M()
+                    {
+                        var e = new object();
+                        var result = e switch
+                        {
+                            N.C.P $$
+            """);
 
-        [Fact, Trait(Traits.Feature, Traits.Features.KeywordRecommending)]
-        public async Task TestAtBeginningOfSwitchExpression_AfterMultipleOpenParens_Complex()
-        {
-            await VerifyKeywordAsync(
-@"namespace N
-{
-    class C
-    {
-        const int P = 1;
-
-        void M()
-        {
-            var e = new object();
-            var result = e switch
-            {
-                (((N.C.P $$");
-        }
-
-        [Fact, Trait(Traits.Feature, Traits.Features.KeywordRecommending)]
-        public async Task TestAtBeginningOfSwitchStatement_AfterOpenParen()
-        {
-            await VerifyKeywordAsync(AddInsideMethod(InitializeObjectE +
-@"switch (e)
-{
-    case (1 $$"));
-        }
-
-        [Fact, Trait(Traits.Feature, Traits.Features.KeywordRecommending)]
-        public async Task TestAtBeginningOfSwitchStatement_AfterMultipleOpenParens()
-        {
-            await VerifyKeywordAsync(AddInsideMethod(InitializeObjectE +
-@"switch (e)
-{
-    case (((1 $$"));
-        }
-
-        [Fact, Trait(Traits.Feature, Traits.Features.KeywordRecommending)]
-        public async Task TestAtBeginningOfSwitchStatement_AfterMultipleOpenParens_MemberAccessExpression()
-        {
-            await VerifyKeywordAsync(
-@"namespace N
-{
-    class C
-    {
-        const int P = 1;
-
-        void M()
-        {
-            var e = new object();
+    [Fact]
+    public Task TestAtBeginningOfSwitchStatement()
+        => VerifyKeywordAsync(AddInsideMethod(InitializeObjectE +
+            """
             switch (e)
             {
-                case (((N.C.P $$");
-        }
+                case 1 $$
+            """));
 
-        [Fact, Trait(Traits.Feature, Traits.Features.KeywordRecommending)]
-        public async Task TestAtBeginningOfSwitchStatement_AfterMultipleOpenParens_MemberAccessExpression2()
-        {
-            await VerifyKeywordAsync(
-@"namespace N
-{
-    class C
-    {
-        void M()
-        {
-            var e = new object();
+    [Fact]
+    public Task TestAtBeginningOfSwitchExpression_AfterOpenParen()
+        => VerifyKeywordAsync(AddInsideMethod(InitializeObjectE +
+            """
+            var result = e switch
+            {
+                (1 $$
+            """));
+
+    [Fact]
+    public Task TestAtBeginningOfSwitchExpression_AfterOpenParen_Complex()
+        => VerifyKeywordAsync(
+            """
+            namespace N
+            {
+                class C
+                {
+                    const int P = 1;
+
+                    void M()
+                    {
+                        var e = new object();
+                        var result = e switch
+                        {
+                            (N.C.P $$
+            """);
+
+    [Fact]
+    public Task TestAtBeginningOfSwitchExpression_AfterMultipleOpenParens()
+        => VerifyKeywordAsync(AddInsideMethod(InitializeObjectE +
+            """
+            var result = e switch
+            {
+                (((1 $$
+            """));
+
+    [Fact]
+    public Task TestAtBeginningOfSwitchExpression_AfterMultipleOpenParens_Complex()
+        => VerifyKeywordAsync(
+            """
+            namespace N
+            {
+                class C
+                {
+                    const int P = 1;
+
+                    void M()
+                    {
+                        var e = new object();
+                        var result = e switch
+                        {
+                            (((N.C.P $$
+            """);
+
+    [Fact]
+    public Task TestAtBeginningOfSwitchStatement_AfterOpenParen()
+        => VerifyKeywordAsync(AddInsideMethod(InitializeObjectE +
+            """
             switch (e)
             {
-                case (((N.C $$");
-        }
+                case (1 $$
+            """));
 
-        [Fact, Trait(Traits.Feature, Traits.Features.KeywordRecommending)]
-        public async Task TestMissingAfterIsKeyword()
-        {
-            await VerifyAbsenceAsync(AddInsideMethod(InitializeObjectE +
+    [Fact]
+    public Task TestAtBeginningOfSwitchStatement_AfterMultipleOpenParens()
+        => VerifyKeywordAsync(AddInsideMethod(InitializeObjectE +
+            """
+            switch (e)
+            {
+                case (((1 $$
+            """));
+
+    [Fact]
+    public Task TestAtBeginningOfSwitchStatement_AfterMultipleOpenParens_MemberAccessExpression()
+        => VerifyKeywordAsync(
+            """
+            namespace N
+            {
+                class C
+                {
+                    const int P = 1;
+
+                    void M()
+                    {
+                        var e = new object();
+                        switch (e)
+                        {
+                            case (((N.C.P $$
+            """);
+
+    [Fact]
+    public Task TestAtBeginningOfSwitchStatement_AfterMultipleOpenParens_MemberAccessExpression2()
+        => VerifyKeywordAsync(
+            """
+            namespace N
+            {
+                class C
+                {
+                    void M()
+                    {
+                        var e = new object();
+                        switch (e)
+                        {
+                            case (((N.C $$
+            """);
+
+    [Fact]
+    public Task TestMissingAfterIsKeyword()
+        => VerifyAbsenceAsync(AddInsideMethod(InitializeObjectE +
 @"if (e is $$"));
-        }
 
-        [Fact, Trait(Traits.Feature, Traits.Features.KeywordRecommending)]
-        public async Task TestMissingAfterNotKeyword()
-        {
-            await VerifyAbsenceAsync(AddInsideMethod(InitializeObjectE +
+    [Fact]
+    public Task TestMissingAfterNotKeyword()
+        => VerifyAbsenceAsync(AddInsideMethod(InitializeObjectE +
 @"if (e is not $$"));
-        }
 
-        [Fact, Trait(Traits.Feature, Traits.Features.KeywordRecommending)]
-        public async Task TestMissingAfterVarKeyword()
-        {
-            await VerifyAbsenceAsync(AddInsideMethod(InitializeObjectE +
+    [Fact]
+    public Task TestMissingAfterVarKeyword()
+        => VerifyAbsenceAsync(AddInsideMethod(InitializeObjectE +
 @"if (e is var $$"));
-        }
 
-        [Fact, Trait(Traits.Feature, Traits.Features.KeywordRecommending)]
-        public async Task TestMissingAfterAndKeyword()
-        {
-            await VerifyAbsenceAsync(AddInsideMethod(InitializeObjectE +
+    [Fact]
+    public Task TestMissingAfterAndKeyword()
+        => VerifyAbsenceAsync(AddInsideMethod(InitializeObjectE +
 @"if (e is 1 and $$"));
-        }
 
-        [Fact, Trait(Traits.Feature, Traits.Features.KeywordRecommending)]
-        public async Task TestMissingAfterOrKeyword()
-        {
-            await VerifyAbsenceAsync(AddInsideMethod(InitializeObjectE +
+    [Fact]
+    public Task TestMissingAfterOrKeyword()
+        => VerifyAbsenceAsync(AddInsideMethod(InitializeObjectE +
 @"if (e is 1 or $$"));
-        }
 
-        [Fact, Trait(Traits.Feature, Traits.Features.KeywordRecommending)]
-        public async Task TestMissingAfterOpenParen()
-        {
-            await VerifyAbsenceAsync(AddInsideMethod(InitializeObjectE +
+    [Fact]
+    public Task TestMissingAfterOpenParen()
+        => VerifyAbsenceAsync(AddInsideMethod(InitializeObjectE +
 @"if (e is ($$"));
-        }
 
-        [Fact, Trait(Traits.Feature, Traits.Features.KeywordRecommending)]
-        public async Task TestMissingAfterOpenBracket()
-        {
-            await VerifyAbsenceAsync(AddInsideMethod(InitializeObjectE +
+    [Fact]
+    public Task TestMissingAfterOpenBracket()
+        => VerifyAbsenceAsync(AddInsideMethod(InitializeObjectE +
 @"if (e is { $$"));
-        }
 
-        [Fact, Trait(Traits.Feature, Traits.Features.KeywordRecommending)]
-        public async Task TestMissingAtBeginningOfSwitchExpression()
-        {
-            await VerifyAbsenceAsync(AddInsideMethod(InitializeObjectE +
-@"var result = e switch
-{
-    $$"));
-        }
+    [Fact]
+    public Task TestMissingAtBeginningOfSwitchExpression()
+        => VerifyAbsenceAsync(AddInsideMethod(InitializeObjectE +
+            """
+            var result = e switch
+            {
+                $$
+            """));
 
-        [Fact, Trait(Traits.Feature, Traits.Features.KeywordRecommending)]
-        public async Task TestMissingAtBeginningOfSwitchStatement()
-        {
-            await VerifyAbsenceAsync(AddInsideMethod(InitializeObjectE +
-@"switch (e)
-{
-    case $$"));
-        }
+    [Fact]
+    public Task TestMissingAtBeginningOfSwitchStatement()
+        => VerifyAbsenceAsync(AddInsideMethod(InitializeObjectE +
+            """
+            switch (e)
+            {
+                case $$
+            """));
 
-        [Fact, Trait(Traits.Feature, Traits.Features.KeywordRecommending)]
-        public async Task TestMissingAfterTypeAndOpenParen()
-        {
-            await VerifyAbsenceAsync(AddInsideMethod(InitializeObjectE +
+    [Fact]
+    public Task TestMissingAfterTypeAndOpenParen()
+        => VerifyAbsenceAsync(AddInsideMethod(InitializeObjectE +
 @"if (e is int ($$"));
-        }
 
-        [Fact, Trait(Traits.Feature, Traits.Features.KeywordRecommending)]
-        public async Task TestMissingAfterTypeAndCloseParen()
-        {
-            await VerifyAbsenceAsync(AddInsideMethod(InitializeObjectE +
+    [Fact]
+    public Task TestMissingAfterTypeAndCloseParen()
+        => VerifyAbsenceAsync(AddInsideMethod(InitializeObjectE +
 @"if (e is int)$$"));
-        }
 
-        [WorkItem(44396, "https://github.com/dotnet/roslyn/issues/44396")]
-        [Fact, Trait(Traits.Feature, Traits.Features.KeywordRecommending)]
-        public async Task TestMissingAfterColonColonPatternSyntax()
-        {
-            await VerifyAbsenceAsync(AddInsideMethod(InitializeObjectE +
+    [Fact, WorkItem("https://github.com/dotnet/roslyn/issues/44396")]
+    public Task TestMissingAfterColonColonPatternSyntax()
+        => VerifyAbsenceAsync(AddInsideMethod(InitializeObjectE +
 @"if (e is null or global::$$) { }"));
-        }
 
-        [WorkItem(44396, "https://github.com/dotnet/roslyn/issues/44396")]
-        [Fact, Trait(Traits.Feature, Traits.Features.KeywordRecommending)]
-        public async Task TestMissingAfterColonColonPatternSyntax_SwitchExpression()
-        {
-            await VerifyAbsenceAsync(AddInsideMethod(InitializeObjectE +
-@"var x = false;
-x = e switch
-{
-    global::$$"));
-        }
-    }
+    [Fact, WorkItem("https://github.com/dotnet/roslyn/issues/44396")]
+    public Task TestMissingAfterColonColonPatternSyntax_SwitchExpression()
+        => VerifyAbsenceAsync(AddInsideMethod(InitializeObjectE +
+            """
+            var x = false;
+            x = e switch
+            {
+                global::$$
+            """));
+
+    [Fact, WorkItem("https://github.com/dotnet/roslyn/issues/51431")]
+    public Task TestNotAtIncompleteSwitchPattern()
+        => VerifyAbsenceAsync(
+            """
+            var goo = Goo.First;
+            switch (goo)
+            {
+                case Goo.$$
+            }
+
+            public enum Goo
+            {
+                First,
+                Second
+            }
+            """);
+
+    [Fact]
+    public Task TestAfterParenthesizedPattern1()
+        => VerifyKeywordAsync(
+            """
+            expr is (not []) $$
+            """);
+
+    [Fact]
+    public Task TestAfterParenthesizedPattern2()
+        => VerifyKeywordAsync(
+            """
+            expr is (not []) $$ var x
+            """);
+
+    [Fact, WorkItem("https://github.com/dotnet/roslyn/issues/70045")]
+    public Task TestNotInMemberAccessInPattern1()
+        => VerifyAbsenceAsync("""
+            int v = 0;
+            if (v is var a and a.$$)
+            """);
+
+    [Fact, WorkItem("https://github.com/dotnet/roslyn/issues/70045")]
+    public Task TestNotInMemberAccessInPattern2()
+        => VerifyAbsenceAsync("""
+            int* v = null;
+            if (v is var a and a->$$)
+            """);
 }

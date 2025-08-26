@@ -7,15 +7,9 @@ using System.Composition;
 using Microsoft.CodeAnalysis.Host.Mef;
 using Microsoft.CodeAnalysis.NavigateTo;
 
-namespace Microsoft.CodeAnalysis.CSharp.NavigateTo
-{
-    [ExportLanguageService(typeof(INavigateToSearchService), LanguageNames.CSharp), Shared]
-    internal class CSharpNavigateToSearchService : AbstractNavigateToSearchService
-    {
-        [ImportingConstructor]
-        [Obsolete(MefConstruction.ImportingConstructorMessage, error: true)]
-        public CSharpNavigateToSearchService()
-        {
-        }
-    }
-}
+namespace Microsoft.CodeAnalysis.CSharp.NavigateTo;
+
+[ExportLanguageService(typeof(INavigateToSearchService), LanguageNames.CSharp), Shared]
+[method: ImportingConstructor]
+[method: Obsolete(MefConstruction.ImportingConstructorMessage, error: true)]
+internal sealed class CSharpNavigateToSearchService() : AbstractNavigateToSearchService;

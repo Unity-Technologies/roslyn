@@ -2,11 +2,7 @@
 ' The .NET Foundation licenses this file to you under the MIT license.
 ' See the LICENSE file in the project root for more information.
 
-Imports Microsoft.CodeAnalysis.Editor.UnitTests.CodeActions
 Imports Microsoft.CodeAnalysis.Test.Utilities
-Imports Microsoft.CodeAnalysis.Text
-Imports Microsoft.CodeAnalysis.VisualBasic
-Imports Microsoft.CodeAnalysis.VisualBasic.Syntax
 Imports Roslyn.Test.Utilities
 Imports Xunit
 
@@ -15,7 +11,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.UnitTests.CaseCorrection
         Inherits VisualBasicCaseCorrectionTestBase
 
         <Fact, Trait(Traits.Feature, Traits.Features.CaseCorrection)>
-        <WorkItem(45508, "https://github.com/dotnet/roslyn/issues/45508")>
+        <WorkItem("https://github.com/dotnet/roslyn/issues/45508")>
         Public Async Function NamedTupleIdentifier() As Task
             Dim code = <Code>Class C
     Sub NamedTupleCasing(value1 As Integer)

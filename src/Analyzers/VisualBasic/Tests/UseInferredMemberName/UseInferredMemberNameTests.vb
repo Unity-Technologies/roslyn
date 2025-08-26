@@ -10,7 +10,7 @@ Imports Microsoft.CodeAnalysis.VisualBasic.UseInferredMemberName
 Namespace Microsoft.CodeAnalysis.Editor.VisualBasic.UnitTests.UseInferredMemberName
     <Trait(Traits.Feature, Traits.Features.CodeActionsUseInferredMemberName)>
     Public Class UseInferredMemberNameTests
-        Inherits AbstractVisualBasicDiagnosticProviderBasedUserDiagnosticTest
+        Inherits AbstractVisualBasicDiagnosticProviderBasedUserDiagnosticTest_NoEditor
 
         Friend Overrides Function CreateDiagnosticProviderAndFixer(workspace As Workspace) As (DiagnosticAnalyzer, CodeFixProvider)
             Return (New VisualBasicUseInferredMemberNameDiagnosticAnalyzer(),
@@ -38,11 +38,10 @@ Class C
         Dim t = (a, 2)
     End Sub
 End Class
-", parseOptions:=s_parseOptions)
+", New TestParameters(parseOptions:=s_parseOptions))
         End Function
 
-        <Fact>
-        <WorkItem(24480, "https://github.com/dotnet/roslyn/issues/24480")>
+        <Fact, WorkItem("https://github.com/dotnet/roslyn/issues/24480")>
         Public Async Function TestInferredTupleName_WithAmbiguity() As Task
             Await TestMissingAsync(
 "
@@ -56,8 +55,7 @@ End Class
 ", parameters:=New TestParameters(s_parseOptions))
         End Function
 
-        <Fact>
-        <WorkItem(23659, "https://github.com/dotnet/roslyn/issues/23659")>
+        <Fact, WorkItem("https://github.com/dotnet/roslyn/issues/23659")>
         Public Async Function TestMissingForObjectCreation() As Task
             Await TestMissingAsync(
 "
@@ -89,7 +87,7 @@ Class C
         Dim t = (1, a)
     End Sub
 End Class
-", parseOptions:=s_parseOptions)
+", New TestParameters(parseOptions:=s_parseOptions))
         End Function
 
         <Fact>
@@ -112,7 +110,7 @@ Class C
         Dim t = (a, b)
     End Sub
 End Class
-", parseOptions:=s_parseOptions)
+", New TestParameters(parseOptions:=s_parseOptions))
         End Function
 
         <Fact>
@@ -133,11 +131,10 @@ Class C
         Dim t = New With {a, .b = 2}
     End Sub
 End Class
-", parseOptions:=s_parseOptions)
+", New TestParameters(parseOptions:=s_parseOptions))
         End Function
 
-        <Fact>
-        <WorkItem(24480, "https://github.com/dotnet/roslyn/issues/24480")>
+        <Fact, WorkItem("https://github.com/dotnet/roslyn/issues/24480")>
         Public Async Function TestInferredAnonymousTypeMemberName_WithAmbiguity() As Task
             Await TestMissingAsync("
 Class C
@@ -170,8 +167,7 @@ Class C
         Dim t = New With {a, b}
     End Sub
 End Class
-", parseOptions:=s_parseOptions)
+", New TestParameters(parseOptions:=s_parseOptions))
         End Function
-
     End Class
 End Namespace

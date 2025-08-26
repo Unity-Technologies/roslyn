@@ -14,7 +14,7 @@ namespace Microsoft.CodeAnalysis.CSharp
     {
         public override BoundNode VisitTupleLiteral(BoundTupleLiteral node)
         {
-            throw ExceptionUtilities.Unreachable;
+            throw ExceptionUtilities.Unreachable();
         }
 
         public override BoundNode VisitConvertedTupleLiteral(BoundConvertedTupleLiteral node)
@@ -64,7 +64,9 @@ namespace Microsoft.CodeAnalysis.CSharp
                 }
 
                 MethodSymbol smallestConstructor = smallestCtor.AsMember(smallestType);
-                BoundObjectCreationExpression currentCreation = new BoundObjectCreationExpression(syntax, smallestConstructor, null, smallestCtorArguments);
+                BoundObjectCreationExpression currentCreation = new BoundObjectCreationExpression(syntax, smallestConstructor, smallestCtorArguments);
+
+                Binder.CheckRequiredMembersInObjectInitializer(smallestConstructor, initializers: ImmutableArray<BoundExpression>.Empty, syntax, _diagnostics);
 
                 if (underlyingTupleTypeChain.Count > 0)
                 {
@@ -78,6 +80,8 @@ namespace Microsoft.CodeAnalysis.CSharp
                         return _factory.BadExpression(type);
                     }
 
+                    Binder.CheckRequiredMembersInObjectInitializer(tuple8Ctor, initializers: ImmutableArray<BoundExpression>.Empty, syntax, _diagnostics);
+
                     // make successively larger creation expressions containing the previous one
                     do
                     {
@@ -87,7 +91,7 @@ namespace Microsoft.CodeAnalysis.CSharp
                                                                                       .Add(currentCreation);
 
                         MethodSymbol constructor = tuple8Ctor.AsMember(underlyingTupleTypeChain.Pop());
-                        currentCreation = new BoundObjectCreationExpression(syntax, constructor, null, ctorArguments);
+                        currentCreation = new BoundObjectCreationExpression(syntax, constructor, ctorArguments);
                     }
                     while (underlyingTupleTypeChain.Count > 0);
                 }
@@ -100,9 +104,8 @@ namespace Microsoft.CodeAnalysis.CSharp
                     currentCreation.Expanded,
                     currentCreation.ArgsToParamsOpt,
                     currentCreation.DefaultArguments,
-                    currentCreation.ConstantValue,
+                    currentCreation.ConstantValueOpt,
                     currentCreation.InitializerExpressionOpt,
-                    currentCreation.BinderOpt,
                     type);
 
                 return currentCreation;

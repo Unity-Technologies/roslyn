@@ -3,7 +3,7 @@
 ' See the LICENSE file in the project root for more information.
 
 Imports Microsoft.CodeAnalysis
-Imports Microsoft.CodeAnalysis.Test.Extensions
+Imports Microsoft.CodeAnalysis.Collections
 Imports Microsoft.CodeAnalysis.Test.Utilities
 Imports Microsoft.CodeAnalysis.VisualBasic.Syntax
 
@@ -1069,7 +1069,6 @@ End Module
             End If
 
         End Sub
-
 
         <Fact>
         Public Sub Join_Lookup()

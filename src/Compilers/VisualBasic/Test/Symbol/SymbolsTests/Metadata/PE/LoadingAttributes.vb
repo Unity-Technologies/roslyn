@@ -2,17 +2,11 @@
 ' The .NET Foundation licenses this file to you under the MIT license.
 ' See the LICENSE file in the project root for more information.
 
-Imports System.Runtime.CompilerServices
-Imports CompilationCreationTestHelpers
-Imports Microsoft.CodeAnalysis.Collections
+Imports Basic.Reference.Assemblies
 Imports Microsoft.CodeAnalysis.Test.Utilities
-Imports Microsoft.CodeAnalysis.Text
-Imports Microsoft.CodeAnalysis.VisualBasic
-Imports Microsoft.CodeAnalysis.VisualBasic.Symbols.Metadata.PE
 Imports Microsoft.CodeAnalysis.VisualBasic.Symbols
-Imports Microsoft.CodeAnalysis.VisualBasic.Syntax
+Imports Microsoft.CodeAnalysis.VisualBasic.Symbols.Metadata.PE
 Imports Roslyn.Test.Utilities
-Imports Roslyn.Test.Utilities.TestMetadata
 
 Namespace Microsoft.CodeAnalysis.VisualBasic.UnitTests.Symbols.Metadata.PE
 
@@ -66,7 +60,7 @@ End Class]]>
                                     {
                                         TestResources.SymbolsTests.Metadata.MDTestAttributeApplicationLib,
                                         TestResources.SymbolsTests.Metadata.MDTestAttributeDefLib,
-                                        ResourcesNet40.mscorlib
+                                        Net40.Resources.mscorlib
                                     })
 
             Dim assembly0 = assemblies(0)
@@ -138,7 +132,7 @@ End Class]]>
                 {
                     TestResources.SymbolsTests.Metadata.MDTestAttributeApplicationLib,
                     TestResources.SymbolsTests.Metadata.MDTestAttributeDefLib,
-                    ResourcesNet40.mscorlib
+                    Net40.Resources.mscorlib
                 })
 
             Dim assembly1 = assemblies(1)
@@ -211,7 +205,7 @@ End Class]]>
                                     {
                                         TestResources.SymbolsTests.Metadata.MDTestAttributeApplicationLib,
                                         TestResources.SymbolsTests.Metadata.MDTestAttributeDefLib,
-                                        ResourcesNet40.mscorlib
+                                        Net40.Resources.mscorlib
                                     })
 
             '<AString("C1")>
@@ -282,7 +276,7 @@ End Class]]>
                                     {
                                         TestResources.SymbolsTests.Metadata.MDTestAttributeApplicationLib,
                                         TestResources.SymbolsTests.Metadata.MDTestAttributeDefLib,
-                                        ResourcesNet40.mscorlib
+                                        Net40.Resources.mscorlib
                                     })
 
             Dim aBoolClass = TryCast(assemblies(1).Modules(0).GlobalNamespace.GetMember("ABooleanAttribute"), NamedTypeSymbol)
@@ -368,7 +362,7 @@ End Class]]>
             {
                 TestResources.SymbolsTests.Metadata.MDTestAttributeApplicationLib,
                 TestResources.SymbolsTests.Metadata.MDTestAttributeDefLib,
-                ResourcesNet40.mscorlib
+                Net40.Resources.mscorlib
             })
 
             Dim aBoolClass = TryCast(assemblies(1).Modules(0).GlobalNamespace.GetMember("ABooleanAttribute"), NamedTypeSymbol)
@@ -418,7 +412,7 @@ End Class]]>
                                     {
                                         TestResources.SymbolsTests.Metadata.MDTestAttributeApplicationLib,
                                         TestResources.SymbolsTests.Metadata.MDTestAttributeDefLib,
-                                        ResourcesNet40.mscorlib
+                                        Net40.Resources.mscorlib
                                     })
 
             '<AString("C1")>
@@ -469,7 +463,7 @@ End Class]]>
                                     {
                                         TestResources.SymbolsTests.Metadata.MDTestAttributeApplicationLib,
                                         TestResources.SymbolsTests.Metadata.MDTestAttributeDefLib,
-                                        ResourcesNet40.mscorlib
+                                        Net40.Resources.mscorlib
                                     })
 
             'Public Class C2(Of T1)
@@ -489,7 +483,6 @@ End Class]]>
 
             '    <AType(GetType(List(Of KeyValuePair(Of String, C1.InnerC1(of integer).InnerC2(of string, string)))))>
             '    Public L5 As List(Of KeyValuePair(Of String, C1.InnerC1(of integer).InnerC2(of string, string)))
-
 
             Dim c2 = DirectCast(assemblies(0).Modules(0).GlobalNamespace.GetMembers("C2").Single, NamedTypeSymbol)
 
@@ -659,7 +652,7 @@ End Class]]>
             Dim assemblies = MetadataTestHelpers.GetSymbolsForReferences(
                                     {
                                         TestResources.SymbolsTests.Metadata.AttributeInterop01,
-                                        ResourcesNet40.mscorlib
+                                        Net40.Resources.mscorlib
                                     })
 
             '[assembly: ImportedFromTypeLib("InteropAttributes")]
@@ -751,7 +744,7 @@ End Class]]>
             Dim assemblies = MetadataTestHelpers.GetSymbolsForReferences(
                                    {
                                        TestResources.SymbolsTests.Metadata.AttributeInterop01,
-                                       ResourcesNet40.mscorlib
+                                       Net40.Resources.mscorlib
                                    })
 
             '[ComImport, Guid("ABCDEF5D-2448-447A-B786-64682CBEF123")]
@@ -818,7 +811,7 @@ End Class]]>
             Dim assemblies = MetadataTestHelpers.GetSymbolsForReferences(
                                    {
                                        TestResources.SymbolsTests.Metadata.AttributeInterop01,
-                                       ResourcesNet40.mscorlib
+                                       Net40.Resources.mscorlib
                                    })
 
             ' [Serializable, ComVisible(false)]
@@ -861,7 +854,7 @@ End Class]]>
             Dim assemblies = MetadataTestHelpers.GetSymbolsForReferences(
                                    {
                                        TestResources.SymbolsTests.Metadata.AttributeInterop02,
-                                       ResourcesNet40.mscorlib
+                                       Net40.Resources.mscorlib
                                    })
 
             ' [Guid("31230DD5-2448-447A-B786-64682CBEFEEE"), Flags]
@@ -901,7 +894,7 @@ End Class]]>
             Dim assemblies = MetadataTestHelpers.GetSymbolsForReferences(
                                    {
                                        TestResources.SymbolsTests.Metadata.AttributeInterop01,
-                                       ResourcesNet40.mscorlib
+                                       Net40.Resources.mscorlib
                                    })
 
             '[ComImport, TypeLibType(TypeLibTypeFlags.FAggregatable)]
@@ -1002,7 +995,7 @@ End Class]]>
                                    {
                                        TestResources.SymbolsTests.Metadata.AttributeTestLib01,
                                        TestResources.SymbolsTests.Metadata.AttributeTestDef01,
-                                       ResourcesNet40.mscorlib
+                                       Net40.Resources.mscorlib
                                    })
 
             Dim caNS = DirectCast(assemblies(1).GlobalNamespace.GetMember("CustomAttribute"), NamespaceSymbol)
@@ -1043,7 +1036,7 @@ End Class]]>
                                    {
                                        TestResources.SymbolsTests.Metadata.AttributeTestLib01,
                                        TestResources.SymbolsTests.Metadata.AttributeTestDef01,
-                                       ResourcesNet40.mscorlib
+                                       Net40.Resources.mscorlib
                                    })
 
             Dim caNS = DirectCast(assemblies(1).GlobalNamespace.GetMember("CustomAttribute"), NamespaceSymbol)
@@ -1140,7 +1133,7 @@ End Class]]>
                                    {
                                        TestResources.SymbolsTests.Metadata.AttributeTestLib01,
                                        TestResources.SymbolsTests.Metadata.AttributeTestDef01,
-                                       ResourcesNet40.mscorlib
+                                       Net40.Resources.mscorlib
                                    })
 
             Dim caNS = DirectCast(assemblies(1).GlobalNamespace.GetMember("CustomAttribute"), NamespaceSymbol)
@@ -1249,9 +1242,9 @@ End Class]]>
 
             Dim assemblies = MetadataTestHelpers.GetSymbolsForReferences(
                                    {
-                                       ResourcesNet451.SystemCore,
-                                       ResourcesNet451.System,
-                                       ResourcesNet40.mscorlib
+                                       Net461.Resources.SystemCore,
+                                       Net461.Resources.System,
+                                       Net40.Resources.mscorlib
                                    })
 
             Dim sysNS = DirectCast(assemblies(2).GlobalNamespace.GetMember("System"), NamespaceSymbol)
@@ -1260,11 +1253,11 @@ End Class]]>
 
             Dim asmFileAttr = DirectCast(refNS.GetTypeMembers("AssemblyFileVersionAttribute").Single(), NamedTypeSymbol)
             Dim attr1 = assemblies(0).GetAttribute(asmFileAttr)
-            Assert.Equal("4.0.30319.18408", attr1.CommonConstructorArguments(0).Value)
+            Assert.Equal("4.6.1055.0", attr1.CommonConstructorArguments(0).Value)
 
             Dim asmInfoAttr = DirectCast(refNS.GetTypeMembers("AssemblyInformationalVersionAttribute").Single(), NamedTypeSymbol)
             attr1 = assemblies(0).GetAttribute(asmInfoAttr)
-            Assert.Equal("4.0.30319.18408", attr1.CommonConstructorArguments(0).Value)
+            Assert.Equal("4.6.1055.0", attr1.CommonConstructorArguments(0).Value)
         End Sub
 
         <WorkItem(539996, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/539996")>
@@ -1273,9 +1266,9 @@ End Class]]>
 
             Dim assemblies = MetadataTestHelpers.GetSymbolsForReferences(
                                    {
-                                       ResourcesNet451.SystemCore,
-                                       ResourcesNet451.System,
-                                       ResourcesNet40.mscorlib
+                                       Net461.Resources.SystemCore,
+                                       Net461.Resources.System,
+                                       Net40.Resources.mscorlib
                                    })
 
             Dim corsysNS = TryCast(assemblies(2).GlobalNamespace.GetMembers("System").Single, NamespaceSymbol)
@@ -1305,9 +1298,9 @@ End Class]]>
 
             Dim assemblies = MetadataTestHelpers.GetSymbolsForReferences(
                 {
-                    ResourcesNet451.System,
-                    ResourcesNet40.mscorlib,
-                    ResourcesNet451.SystemConfiguration
+                    Net461.Resources.System,
+                    Net40.Resources.mscorlib,
+                    Net461.Resources.SystemConfiguration
                 })
 
             Dim sysNS = DirectCast(assemblies(0).GlobalNamespace.GetMember("System"), NamespaceSymbol)
@@ -1338,10 +1331,10 @@ End Class]]>
 
             Dim assemblies = MetadataTestHelpers.GetSymbolsForReferences(
                                  {
-                                     ResourcesNet451.SystemData,
-                                     ResourcesNet451.SystemCore,
-                                     ResourcesNet451.System,
-                                     ResourcesNet451.mscorlib
+                                     Net461.Resources.SystemData,
+                                     Net461.Resources.SystemCore,
+                                     Net461.Resources.System,
+                                     Net461.Resources.mscorlib
                                  })
 
             Dim sysNS = DirectCast(assemblies(0).GlobalNamespace.GetMember("System"), NamespaceSymbol)
@@ -1523,7 +1516,6 @@ End Class
                     </file>
                 </compilation>, ilSource)
 
-
             CompileAndVerify(c1, symbolValidator:=Sub(m As ModuleSymbol)
                                                       Dim peModule = DirectCast(m, PEModuleSymbol)
                                                       Dim class1 = peModule.ContainingAssembly.GetTypeByMetadataName("Class2").BaseType()
@@ -1603,7 +1595,6 @@ End Class
 
 } // end of class MyAttribute
 ]]>.Value
-
 
             Dim c = CompilationUtils.CreateCompilationWithCustomILSource(
 <compilation>

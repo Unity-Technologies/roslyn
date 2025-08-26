@@ -10,38 +10,33 @@ using Microsoft.CodeAnalysis.CSharp.Precedence;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Diagnostics;
 
-namespace Microsoft.CodeAnalysis.CSharp.AddRequiredParentheses
+namespace Microsoft.CodeAnalysis.CSharp.AddRequiredParentheses;
+
+[DiagnosticAnalyzer(LanguageNames.CSharp)]
+internal sealed class CSharpAddRequiredPatternParenthesesDiagnosticAnalyzer() :
+    AbstractAddRequiredParenthesesDiagnosticAnalyzer<
+        PatternSyntax, BinaryPatternSyntax, SyntaxKind>(CSharpPatternPrecedenceService.Instance)
 {
-    [DiagnosticAnalyzer(LanguageNames.CSharp)]
-    internal class CSharpAddRequiredPatternParenthesesDiagnosticAnalyzer :
-        AbstractAddRequiredParenthesesDiagnosticAnalyzer<
-            PatternSyntax, BinaryPatternSyntax, SyntaxKind>
+    private static readonly ImmutableArray<SyntaxKind> s_kinds = [SyntaxKind.AndPattern, SyntaxKind.OrPattern];
+
+    protected override ImmutableArray<SyntaxKind> GetSyntaxNodeKinds()
+        => s_kinds;
+
+    protected override int GetPrecedence(BinaryPatternSyntax pattern)
+        => (int)pattern.GetOperatorPrecedence();
+
+    protected override bool IsBinaryLike(PatternSyntax node)
+        => node is BinaryPatternSyntax;
+
+    protected override (PatternSyntax, SyntaxToken, PatternSyntax) GetPartsOfBinaryLike(BinaryPatternSyntax binaryPattern)
     {
-        public CSharpAddRequiredPatternParenthesesDiagnosticAnalyzer()
-            : base(CSharpPatternPrecedenceService.Instance)
-        {
-        }
-
-        private static readonly ImmutableArray<SyntaxKind> s_kinds = ImmutableArray.Create(
-            SyntaxKind.AndPattern,
-            SyntaxKind.OrPattern);
-
-        protected override ImmutableArray<SyntaxKind> GetSyntaxNodeKinds()
-            => s_kinds;
-
-        protected override int GetPrecedence(BinaryPatternSyntax pattern)
-            => (int)pattern.GetOperatorPrecedence();
-
-        protected override bool IsBinaryLike(PatternSyntax node)
-            => node is BinaryPatternSyntax;
-
-        protected override (PatternSyntax, SyntaxToken, PatternSyntax) GetPartsOfBinaryLike(BinaryPatternSyntax binaryPattern)
-        {
-            Debug.Assert(IsBinaryLike(binaryPattern));
-            return (binaryPattern.Left, binaryPattern.OperatorToken, binaryPattern.Right);
-        }
-
-        protected override PatternSyntax? TryGetAppropriateParent(BinaryPatternSyntax binaryLike)
-            => binaryLike.Parent as PatternSyntax;
+        Debug.Assert(IsBinaryLike(binaryPattern));
+        return (binaryPattern.Left, binaryPattern.OperatorToken, binaryPattern.Right);
     }
+
+    protected override PatternSyntax? TryGetAppropriateParent(BinaryPatternSyntax binaryLike)
+        => binaryLike.Parent as PatternSyntax;
+
+    protected override bool IsAsExpression(BinaryPatternSyntax node)
+        => false;
 }

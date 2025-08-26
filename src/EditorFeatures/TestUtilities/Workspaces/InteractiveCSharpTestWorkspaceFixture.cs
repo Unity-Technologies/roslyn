@@ -5,25 +5,24 @@
 #nullable disable
 
 using System.Xml.Linq;
-using Microsoft.VisualStudio.Composition;
+using Microsoft.CodeAnalysis.Test.Utilities;
 
-namespace Microsoft.CodeAnalysis.Editor.UnitTests.Workspaces
+namespace Microsoft.CodeAnalysis.Editor.UnitTests.Workspaces;
+
+public sealed class InteractiveCSharpTestWorkspaceFixture : CSharpTestWorkspaceFixture
 {
-    public class InteractiveCSharpTestWorkspaceFixture : CSharpTestWorkspaceFixture
+    internal static EditorTestWorkspace CreateInteractiveWorkspace(string fileContent, TestComposition composition)
     {
-        internal static TestWorkspace CreateInteractiveWorkspace(string fileContent, ExportProvider exportProvider)
-        {
-            var workspaceDefinition = $@"
-<Workspace>
-    <Submission Language=""C#"" CommonReferences=""true"">
-<![CDATA[{fileContent}]]>
-    </Submission>
-</Workspace>
-";
-            return TestWorkspace.Create(XElement.Parse(workspaceDefinition), exportProvider: exportProvider, workspaceKind: WorkspaceKind.Interactive);
-        }
-
-        protected override TestWorkspace CreateWorkspace(ExportProvider exportProvider = null)
-            => CreateInteractiveWorkspace(fileContent: "", exportProvider);
+        return EditorTestWorkspace.Create(XElement.Parse($"""
+            <Workspace>
+                <Submission Language="C#" CommonReferences="true">
+            <![CDATA[
+                        {fileContent}]]>
+                </Submission>
+            </Workspace>
+            """), composition: composition, workspaceKind: WorkspaceKind.Interactive);
     }
+
+    protected override EditorTestWorkspace CreateWorkspace(TestComposition composition = null)
+        => CreateInteractiveWorkspace(fileContent: "", composition);
 }

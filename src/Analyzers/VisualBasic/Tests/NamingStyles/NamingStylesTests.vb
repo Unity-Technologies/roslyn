@@ -10,8 +10,9 @@ Imports Microsoft.CodeAnalysis.Editor.UnitTests.Workspaces
 Imports Microsoft.CodeAnalysis.VisualBasic.Diagnostics.Analyzers
 
 Namespace Microsoft.CodeAnalysis.Editor.VisualBasic.UnitTests.Diagnostics.NamingStyles
+    <Trait(Traits.Feature, Traits.Features.NamingStyle)>
     Public Class NamingStylesTests
-        Inherits AbstractVisualBasicDiagnosticProviderBasedUserDiagnosticTest
+        Inherits AbstractVisualBasicDiagnosticProviderBasedUserDiagnosticTest_NoEditor
 
         Private Shared ReadOnly s_options As NamingStylesTestOptionSets = New NamingStylesTestOptionSets(LanguageNames.VisualBasic)
 
@@ -25,7 +26,7 @@ Namespace Microsoft.CodeAnalysis.Editor.VisualBasic.UnitTests.Diagnostics.Naming
 
         ' TODO: everything else apart from locals
 
-        <Fact, Trait(Traits.Feature, Traits.Features.NamingStyle)>
+        <Fact>
         Public Async Function TestCamelCaseParameters() As Task
             Await TestInRegularAndScriptAsync(
 "module C
@@ -36,10 +37,10 @@ end module",
     sub M(x as integer)
     end sub
 end module",
-                options:=s_options.ParameterNamesAreCamelCase)
+                New TestParameters(options:=s_options.ParameterNamesAreCamelCase))
         End Function
 
-        <Fact, Trait(Traits.Feature, Traits.Features.NamingStyle)>
+        <Fact>
         Public Async Function TestCamelCaseLocals_LocalDeclaration1() As Task
             Await TestInRegularAndScriptAsync(
 "module C
@@ -52,10 +53,10 @@ end module",
         dim x = 0
     end sub
 end module",
-                options:=s_options.LocalNamesAreCamelCase)
+                New TestParameters(options:=s_options.LocalNamesAreCamelCase))
         End Function
 
-        <Fact, Trait(Traits.Feature, Traits.Features.NamingStyle)>
+        <Fact>
         Public Async Function TestCamelCaseLocals_LocalDeclaration2() As Task
             Await TestInRegularAndScriptAsync(
 "module C
@@ -68,10 +69,10 @@ end module",
         dim X as integer, y, Z as string
     end sub
 end module",
-                options:=s_options.LocalNamesAreCamelCase)
+                New TestParameters(options:=s_options.LocalNamesAreCamelCase))
         End Function
 
-        <Fact, Trait(Traits.Feature, Traits.Features.NamingStyle)>
+        <Fact>
         Public Async Function TestCamelCaseLocals_LocalDeclaration3() As Task
             Await TestInRegularAndScriptAsync(
 "module C
@@ -84,10 +85,10 @@ end module",
         dim x(0 to 4) as integer, Y as new object(), Z%? as integer
     end sub
 end module",
-                options:=s_options.LocalNamesAreCamelCase)
+                New TestParameters(options:=s_options.LocalNamesAreCamelCase))
         End Function
 
-        <Fact, Trait(Traits.Feature, Traits.Features.NamingStyle)>
+        <Fact>
         Public Async Function TestCamelCaseLocals_LocalDeclaration4() As Task
             Await TestInRegularAndScriptAsync(
 "module C
@@ -100,10 +101,10 @@ end module",
         dim X(0 to 4) as integer, y as new object(), Z%? as integer
     end sub
 end module",
-                options:=s_options.LocalNamesAreCamelCase)
+                New TestParameters(options:=s_options.LocalNamesAreCamelCase))
         End Function
 
-        <Fact, Trait(Traits.Feature, Traits.Features.NamingStyle)>
+        <Fact>
         Public Async Function TestCamelCaseLocals_LocalDeclaration5() As Task
             Await TestInRegularAndScriptAsync(
 "module C
@@ -116,10 +117,10 @@ end module",
         dim X(0 to 4) as integer, Y as new object(), z%? as integer
     end sub
 end module",
-                options:=s_options.LocalNamesAreCamelCase)
+                New TestParameters(options:=s_options.LocalNamesAreCamelCase))
         End Function
 
-        <Fact, Trait(Traits.Feature, Traits.Features.NamingStyle)>
+        <Fact>
         Public Async Function TestCamelCaseLocals_UsingVariable1() As Task
             Await TestInRegularAndScriptAsync(
 "module C
@@ -134,10 +135,10 @@ end module",
         end using
     end sub
 end module",
-                options:=s_options.LocalNamesAreCamelCase)
+                New TestParameters(options:=s_options.LocalNamesAreCamelCase))
         End Function
 
-        <Fact, Trait(Traits.Feature, Traits.Features.NamingStyle)>
+        <Fact>
         Public Async Function TestCamelCaseLocals_UsingVariable2() As Task
             Await TestInRegularAndScriptAsync(
 "module C
@@ -152,11 +153,10 @@ end module",
         end using
     end sub
 end module",
-                options:=s_options.LocalNamesAreCamelCase)
+                New TestParameters(options:=s_options.LocalNamesAreCamelCase))
         End Function
 
         <Fact(Skip:="Implicit declarations cannot be found by syntax. Requires https://github.com/dotnet/roslyn/issues/14061")>
-        <Trait(Traits.Feature, Traits.Features.NamingStyle)>
         Public Async Function TestCamelCaseLocals_ForVariable1_ImplicitlyDeclared() As Task
             Await TestInRegularAndScriptAsync(
 "module C
@@ -171,10 +171,10 @@ end module",
         next
     end sub
 end module",
-                options:=s_options.LocalNamesAreCamelCase)
+                New TestParameters(options:=s_options.LocalNamesAreCamelCase))
         End Function
 
-        <Fact, Trait(Traits.Feature, Traits.Features.NamingStyle)>
+        <Fact>
         Public Async Function TestCamelCaseLocals_ForVariable1_NotWhenDeclaredPreviously() As Task
             Await TestMissingInRegularAndScriptAsync(
 "module C
@@ -186,7 +186,7 @@ end module",
 end module", New TestParameters(options:=s_options.LocalNamesAreCamelCase))
         End Function
 
-        <Fact, Trait(Traits.Feature, Traits.Features.NamingStyle)>
+        <Fact>
         Public Async Function TestCamelCaseLocals_ForVariable2() As Task
             Await TestInRegularAndScriptAsync(
 "module C
@@ -201,11 +201,10 @@ end module",
         next
     end sub
 end module",
-                options:=s_options.LocalNamesAreCamelCase)
+                New TestParameters(options:=s_options.LocalNamesAreCamelCase))
         End Function
 
         <Fact(Skip:="Implicit declarations cannot be found by syntax. Requires https://github.com/dotnet/roslyn/issues/14061")>
-        <Trait(Traits.Feature, Traits.Features.NamingStyle)>
         Public Async Function TestCamelCaseLocals_ForEachVariable1_ImplicitlyDeclared() As Task
             Await TestInRegularAndScriptAsync(
 "module C
@@ -220,10 +219,10 @@ end module",
         next
     end sub
 end module",
-                options:=s_options.LocalNamesAreCamelCase)
+                New TestParameters(options:=s_options.LocalNamesAreCamelCase))
         End Function
 
-        <Fact, Trait(Traits.Feature, Traits.Features.NamingStyle)>
+        <Fact>
         Public Async Function TestCamelCaseLocals_ForEachVariable1_NotWhenDeclaredPreviously() As Task
             Await TestMissingInRegularAndScriptAsync(
 "module C
@@ -235,7 +234,7 @@ end module",
 end module", New TestParameters(options:=s_options.LocalNamesAreCamelCase))
         End Function
 
-        <Fact, Trait(Traits.Feature, Traits.Features.NamingStyle)>
+        <Fact>
         Public Async Function TestCamelCaseLocals_ForEachVariable2() As Task
             Await TestInRegularAndScriptAsync(
 "module C
@@ -250,10 +249,10 @@ end module",
         next
     end sub
 end module",
-                options:=s_options.LocalNamesAreCamelCase)
+                New TestParameters(options:=s_options.LocalNamesAreCamelCase))
         End Function
 
-        <Fact, Trait(Traits.Feature, Traits.Features.NamingStyle)>
+        <Fact>
         Public Async Function TestCamelCaseLocals_CatchVariable() As Task
             Await TestInRegularAndScriptAsync(
 "imports System
@@ -272,10 +271,10 @@ module C
         end try
     end sub
 end module",
-                options:=s_options.LocalNamesAreCamelCase)
+                New TestParameters(options:=s_options.LocalNamesAreCamelCase))
         End Function
 
-        <Fact, Trait(Traits.Feature, Traits.Features.NamingStyle)>
+        <Fact>
         Public Async Function TestCamelCaseLocals_CatchWithoutDeclarationIgnored() As Task
             Await TestMissingInRegularAndScriptAsync(
 "imports System
@@ -289,7 +288,6 @@ end module", New TestParameters(options:=s_options.LocalNamesAreCamelCase))
         End Function
 
         <Fact(Skip:="Implicit declarations cannot be found by syntax. Requires https://github.com/dotnet/roslyn/issues/14061")>
-        <Trait(Traits.Feature, Traits.Features.NamingStyle)>
         Public Async Function TestCamelCaseLocals_ImplicitlyDeclaredLocal() As Task
             Await TestInRegularAndScriptAsync(
 "module C
@@ -304,10 +302,10 @@ end module",
         System.Console.WriteLine(value)
     end sub
 end module",
-                options:=s_options.LocalNamesAreCamelCase)
+                New TestParameters(options:=s_options.LocalNamesAreCamelCase))
         End Function
 
-        <Fact, Trait(Traits.Feature, Traits.Features.NamingStyle)>
+        <Fact>
         Public Async Function TestCamelCaseLocals_ImplicitlyDeclaredLocal_NotOnSecondUse() As Task
             Await TestMissingInRegularAndScriptAsync(
 "module C
@@ -318,7 +316,7 @@ end module",
 end module", New TestParameters(options:=s_options.LocalNamesAreCamelCase))
         End Function
 
-        <Fact, Trait(Traits.Feature, Traits.Features.NamingStyle)>
+        <Fact>
         Public Async Function TestCamelCaseLocals_NotWhenLocalDeclaredPreviously() As Task
             Await TestMissingInRegularAndScriptAsync(
 "module C
@@ -330,7 +328,7 @@ end module", New TestParameters(options:=s_options.LocalNamesAreCamelCase))
 end module", New TestParameters(options:=s_options.LocalNamesAreCamelCase))
         End Function
 
-        <Fact, Trait(Traits.Feature, Traits.Features.NamingStyle)>
+        <Fact>
         Public Async Function TestCamelCaseLocals_QueryFromClauseIgnored() As Task
             ' This is an IRangeVariableSymbol, not ILocalSymbol
             Await TestMissingInRegularAndScriptAsync(
@@ -344,7 +342,7 @@ end module", New TestParameters(options:=s_options.LocalNamesAreCamelCase))
 end module", New TestParameters(options:=s_options.LocalNamesAreCamelCase))
         End Function
 
-        <Fact, Trait(Traits.Feature, Traits.Features.NamingStyle)>
+        <Fact>
         Public Async Function TestCamelCaseLocals_QueryLetClauseIgnored() As Task
             ' This is an IRangeVariableSymbol, not ILocalSymbol
             Await TestMissingInRegularAndScriptAsync(
@@ -358,7 +356,7 @@ end module", New TestParameters(options:=s_options.LocalNamesAreCamelCase))
 end module", New TestParameters(options:=s_options.LocalNamesAreCamelCase))
         End Function
 
-        <Fact, Trait(Traits.Feature, Traits.Features.NamingStyle)>
+        <Fact>
         Public Async Function TestCamelCaseLocals_ParameterIgnored() As Task
             Await TestMissingInRegularAndScriptAsync(
 "module C
@@ -367,7 +365,7 @@ end module", New TestParameters(options:=s_options.LocalNamesAreCamelCase))
 end module", New TestParameters(options:=s_options.LocalNamesAreCamelCase))
         End Function
 
-        <Fact, Trait(Traits.Feature, Traits.Features.NamingStyle)>
+        <Fact>
         Public Async Function TestCamelCaseLocals_TupleTypeElementNameIgnored1() As Task
             Await TestMissingInRegularAndScriptAsync(
 "module C
@@ -377,7 +375,7 @@ end module", New TestParameters(options:=s_options.LocalNamesAreCamelCase))
 end module", New TestParameters(options:=s_options.LocalNamesAreCamelCase))
         End Function
 
-        <Fact, Trait(Traits.Feature, Traits.Features.NamingStyle)>
+        <Fact>
         Public Async Function TestCamelCaseLocals_TupleTypeElementNameIgnored2() As Task
             Await TestMissingInRegularAndScriptAsync(
 "module C
@@ -387,7 +385,7 @@ end module", New TestParameters(options:=s_options.LocalNamesAreCamelCase))
 end module", New TestParameters(options:=s_options.LocalNamesAreCamelCase))
         End Function
 
-        <Fact, Trait(Traits.Feature, Traits.Features.NamingStyle)>
+        <Fact>
         Public Async Function TestCamelCaseLocals_TupleExpressionElementNameIgnored() As Task
             Await TestMissingInRegularAndScriptAsync(
 "module C
@@ -397,7 +395,7 @@ end module", New TestParameters(options:=s_options.LocalNamesAreCamelCase))
 end module", New TestParameters(options:=s_options.LocalNamesAreCamelCase))
         End Function
 
-        <Fact, Trait(Traits.Feature, Traits.Features.NamingStyle)>
+        <Fact>
         Public Async Function TestUpperCaseConstants_ConstField() As Task
             Await TestInRegularAndScriptAsync(
 "module C
@@ -406,10 +404,10 @@ end module",
 "module C
     const FIELD = 0
 end module",
-                options:=s_options.ConstantsAreUpperCase)
+                New TestParameters(options:=s_options.ConstantsAreUpperCase))
         End Function
 
-        <Fact, Trait(Traits.Feature, Traits.Features.NamingStyle)>
+        <Fact>
         Public Async Function TestUpperCaseConstants_ConstLocal() As Task
             Await TestInRegularAndScriptAsync(
 "module C
@@ -422,10 +420,10 @@ end module",
         const local1 = 0, LOCAL2 as integer = 0
     end sub
 end module",
-                options:=s_options.ConstantsAreUpperCase)
+                New TestParameters(options:=s_options.ConstantsAreUpperCase))
         End Function
 
-        <Fact, Trait(Traits.Feature, Traits.Features.NamingStyle)>
+        <Fact>
         Public Async Function TestUpperCaseConstants_NonConstFieldIgnored() As Task
             Await TestMissingInRegularAndScriptAsync(
 "module C
@@ -433,7 +431,7 @@ end module",
 end module", New TestParameters(options:=s_options.ConstantsAreUpperCase))
         End Function
 
-        <Fact, Trait(Traits.Feature, Traits.Features.NamingStyle)>
+        <Fact>
         Public Async Function TestUpperCaseConstants_NonConstLocalIgnored() As Task
             Await TestMissingInRegularAndScriptAsync(
 "module C
@@ -443,7 +441,7 @@ end module", New TestParameters(options:=s_options.ConstantsAreUpperCase))
 end module", New TestParameters(options:=s_options.ConstantsAreUpperCase))
         End Function
 
-        <Fact, Trait(Traits.Feature, Traits.Features.NamingStyle)>
+        <Fact>
         Public Async Function TestCamelCaseLocalsUpperCaseConstants_ConstLocal() As Task
             Await TestInRegularAndScriptAsync(
 "module C
@@ -456,10 +454,10 @@ end module",
         const PASCALCASE = 0
     end sub
 end module",
-                options:=s_options.LocalsAreCamelCaseConstantsAreUpperCase)
+                New TestParameters(options:=s_options.LocalsAreCamelCaseConstantsAreUpperCase))
         End Function
 
-        <Fact, Trait(Traits.Feature, Traits.Features.NamingStyle)>
+        <Fact>
         Public Async Function TestCamelCaseLocalsUpperCaseConstants_NonConstLocal() As Task
             Await TestInRegularAndScriptAsync(
 "module C
@@ -472,30 +470,36 @@ end module",
         dim pascalCase = 0
     end sub
 end module",
-                options:=s_options.LocalsAreCamelCaseConstantsAreUpperCase)
+                New TestParameters(options:=s_options.LocalsAreCamelCaseConstantsAreUpperCase))
         End Function
 
-        <Fact, Trait(Traits.Feature, Traits.Features.NamingStyle)>
-        <WorkItem(38513, "https://github.com/dotnet/roslyn/issues/38513")>
+        <Fact, WorkItem("https://github.com/dotnet/roslyn/issues/38513")>
         Public Async Function TestInterfaceNamesStartWithI() As Task
             Await TestInRegularAndScriptAsync(
 "Interface [|test|]
 End Interface",
 "Interface ITest
 End Interface",
-                options:=s_options.InterfaceNamesStartWithI)
+                New TestParameters(options:=s_options.InterfaceNamesStartWithI))
         End Function
 
-        <Fact, Trait(Traits.Feature, Traits.Features.NamingStyle)>
-        <WorkItem(38513, "https://github.com/dotnet/roslyn/issues/38513")>
+        <Fact, WorkItem("https://github.com/dotnet/roslyn/issues/38513")>
         Public Async Function TestTypeParameterNamesStartWithT() As Task
             Await TestInRegularAndScriptAsync(
 "Public Class classHolder(Of [|type|])
 End Class",
 "Public Class classHolder(Of TType)
 End Class",
-                options:=s_options.TypeParameterNamesStartWithT)
+                New TestParameters(options:=s_options.TypeParameterNamesStartWithT))
         End Function
 
+        <Fact, WorkItem("https://github.com/dotnet/roslyn/issues/51727")>
+        Public Async Function TestExternMethod() As Task
+            Await TestMissingInRegularAndScriptAsync(
+"Public Class C
+    Declare Sub [|some_p_invoke|] Lib ""some""()
+End Class",
+                New TestParameters(options:=s_options.MethodNamesArePascalCase))
+        End Function
     End Class
 End Namespace

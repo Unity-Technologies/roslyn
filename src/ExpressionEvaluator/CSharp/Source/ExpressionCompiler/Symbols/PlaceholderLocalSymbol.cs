@@ -4,7 +4,6 @@
 
 #nullable disable
 
-using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
@@ -13,7 +12,6 @@ using Microsoft.CodeAnalysis.CSharp.Symbols.Metadata.PE;
 using Microsoft.CodeAnalysis.ExpressionEvaluator;
 using Microsoft.CodeAnalysis.PooledObjects;
 using Microsoft.VisualStudio.Debugger.Clr;
-using Roslyn.Utilities;
 
 namespace Microsoft.CodeAnalysis.CSharp.ExpressionEvaluator
 {
@@ -88,7 +86,7 @@ namespace Microsoft.CodeAnalysis.CSharp.ExpressionEvaluator
 
         internal override SyntaxToken IdentifierToken
         {
-            get { throw ExceptionUtilities.Unreachable; }
+            get { throw ExceptionUtilities.Unreachable(); }
         }
 
         public override TypeWithAnnotations TypeWithAnnotations
@@ -97,6 +95,11 @@ namespace Microsoft.CodeAnalysis.CSharp.ExpressionEvaluator
         }
 
         internal override bool IsPinned
+        {
+            get { return false; }
+        }
+
+        internal override bool IsKnownToReferToTempIfReferenceType
         {
             get { return false; }
         }
@@ -137,33 +140,39 @@ namespace Microsoft.CodeAnalysis.CSharp.ExpressionEvaluator
         {
             // Placeholders should be rewritten (as method calls)
             // rather than copied as locals to the target method.
-            throw ExceptionUtilities.Unreachable;
+            throw ExceptionUtilities.Unreachable();
         }
 
         /// <summary>
         /// Rewrite the local reference as a call to a synthesized method.
         /// </summary>
-        internal abstract BoundExpression RewriteLocal(CSharpCompilation compilation, EENamedTypeSymbol container, SyntaxNode syntax, DiagnosticBag diagnostics);
+        internal abstract BoundExpression RewriteLocal(CSharpCompilation compilation, SyntaxNode syntax, DiagnosticBag diagnostics);
 
         internal static BoundExpression ConvertToLocalType(CSharpCompilation compilation, BoundExpression expr, TypeSymbol type, DiagnosticBag diagnostics)
         {
+            var bindingDiagnostics = BindingDiagnosticBag.GetInstance(withDiagnostics: true, withDependencies: false);
+
             if (type.IsPointerType())
             {
                 var syntax = expr.Syntax;
                 var intPtrType = compilation.GetSpecialType(SpecialType.System_IntPtr);
-                Binder.ReportUseSiteDiagnostics(intPtrType, diagnostics, syntax);
+                Binder.ReportUseSite(intPtrType, bindingDiagnostics, syntax);
                 MethodSymbol conversionMethod;
-                if (Binder.TryGetSpecialTypeMember(compilation, SpecialMember.System_IntPtr__op_Explicit_ToPointer, syntax, diagnostics, out conversionMethod))
+                if (Binder.TryGetSpecialTypeMember(compilation, SpecialMember.System_IntPtr__op_Explicit_ToPointer, syntax, bindingDiagnostics, out conversionMethod))
                 {
-                    var temp = ConvertToLocalTypeHelper(compilation, expr, intPtrType, diagnostics);
+                    var temp = ConvertToLocalTypeHelper(compilation, expr, intPtrType, bindingDiagnostics);
                     expr = BoundCall.Synthesized(
                         syntax,
                         receiverOpt: null,
+                        initialBindingReceiverIsSubjectToCloning: ThreeState.Unknown,
                         method: conversionMethod,
                         arg0: temp);
                 }
                 else
                 {
+                    diagnostics.AddRange(bindingDiagnostics.DiagnosticBag);
+                    bindingDiagnostics.Free();
+
                     return new BoundBadExpression(
                         syntax,
                         LookupResultKind.Empty,
@@ -173,16 +182,22 @@ namespace Microsoft.CodeAnalysis.CSharp.ExpressionEvaluator
                 }
             }
 
-            return ConvertToLocalTypeHelper(compilation, expr, type, diagnostics);
+            var result = ConvertToLocalTypeHelper(compilation, expr, type, bindingDiagnostics);
+            diagnostics.AddRange(bindingDiagnostics.DiagnosticBag);
+            bindingDiagnostics.Free();
+
+            return result;
         }
 
-        private static BoundExpression ConvertToLocalTypeHelper(CSharpCompilation compilation, BoundExpression expr, TypeSymbol type, DiagnosticBag diagnostics)
+        private static BoundExpression ConvertToLocalTypeHelper(CSharpCompilation compilation, BoundExpression expr, TypeSymbol type, BindingDiagnosticBag diagnostics)
         {
+            Debug.Assert(diagnostics.DiagnosticBag != null);
+
             // NOTE: This conversion can fail if some of the types involved are from not-yet-loaded modules.
             // For example, if System.Exception hasn't been loaded, then this call will fail for $stowedexception.
-            HashSet<DiagnosticInfo> useSiteDiagnostics = null;
-            var conversion = compilation.Conversions.ClassifyConversionFromExpression(expr, type, ref useSiteDiagnostics);
-            diagnostics.Add(expr.Syntax, useSiteDiagnostics);
+            var useSiteInfo = new CompoundUseSiteInfo<AssemblySymbol>(diagnostics, compilation.Assembly);
+            var conversion = compilation.Conversions.ClassifyConversionFromExpression(expr, type, isChecked: false, ref useSiteInfo);
+            diagnostics.Add(expr.Syntax, useSiteInfo);
             Debug.Assert(conversion.IsValid || diagnostics.HasAnyErrors());
 
             return BoundConversion.Synthesized(

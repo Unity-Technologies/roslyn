@@ -3,8 +3,7 @@
 ' See the LICENSE file in the project root for more information.
 
 Imports Microsoft.CodeAnalysis
-Imports Microsoft.CodeAnalysis.Test.Extensions
-Imports Microsoft.CodeAnalysis.VisualBasic
+Imports Microsoft.CodeAnalysis.Test.Utilities
 Imports Microsoft.CodeAnalysis.VisualBasic.Syntax
 Imports Roslyn.Test.Utilities
 
@@ -693,9 +692,16 @@ End Class
     </file>
 </compilation>
 
-            Dim c1 = CreateCompilationWithMscorlib40AndVBRuntime(source).VerifyDiagnostics(
-                Diagnostic(ERRID.WRN_SharedMemberThroughInstance, "j.MaxValue"),
-                Diagnostic(ERRID.WRN_SharedMemberThroughInstance, "i.MaxValue"))
+            Dim c1 = CreateCompilationWithMscorlib40AndVBRuntime(source)
+            c1.AssertTheseDiagnostics(
+<expected>
+BC42025: Access of shared member, constant member, enum member or nested type through an instance; qualifying expression will not be evaluated.
+    Const i As Integer = j.MaxValue
+                         ~~~~~~~~~~
+BC42025: Access of shared member, constant member, enum member or nested type through an instance; qualifying expression will not be evaluated.
+    Const j As Integer = i.MaxValue
+                         ~~~~~~~~~~
+</expected>)
 
         End Sub
 
@@ -937,7 +943,6 @@ End Module
     expectedOutput:="Public")
         End Sub
 
-
         <Fact>
         Public Sub Bug4249()
 
@@ -1158,7 +1163,6 @@ BC32045: 'goo' has no type parameters and so cannot have type arguments.
         goo(Of Integer)()
            ~~~~~~~~~~~~
                                                </errors>)
-
 
         End Sub
 
@@ -1594,7 +1598,6 @@ End Module
 
             Dim compilation = CreateCompilationWithMscorlib40AndVBRuntime(compilationDef)
 
-
             AssertTheseDiagnostics(compilation,
                                                <errors>
 BC30455: Argument not specified for parameter 'x' of 'Public ReadOnly Property Color(x As Integer) As Module1.Color'.
@@ -1657,10 +1660,8 @@ End Module
 
             Dim compilation = CreateCompilationWithMscorlib40AndVBRuntime(compilationDef)
 
-
             AssertNoDiagnostics(compilation)
         End Sub
-
 
         <Fact>
         Public Sub ColorColorOverloadedAddressOf()
@@ -2699,6 +2700,59 @@ End Class
             CompileAndVerify(compilation, expectedOutput:="42")
         End Sub
 
+        <Fact, WorkItem("https://github.com/dotnet/roslyn/issues/71039")>
+        Public Sub ConstInAttributes_NoCycle_01()
+            Dim source = "
+                Imports ILGPU
+                Imports System.Runtime.CompilerServices
+
+                <Assembly: InternalsVisibleTo(Context.RuntimeAssemblyName)>
+
+                Namespace ILGPU
+                    Public Class Context
+                        Public Const RuntimeAssemblyName As String = RuntimeSystem.AssemblyName
+                        Public Property RuntimeSystem As RuntimeSystem
+                    End Class
+                End Namespace
+                "
+
+            CreateCompilation(source).AssertTheseDiagnostics(<expected><![CDATA[
+BC31537: Friend declaration '' is invalid and cannot be resolved.
+                <Assembly: InternalsVisibleTo(Context.RuntimeAssemblyName)>
+                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+BC30369: Cannot refer to an instance member of a class from within a shared method or shared member initializer without an explicit instance of the class.
+                        Public Const RuntimeAssemblyName As String = RuntimeSystem.AssemblyName
+                                                                     ~~~~~~~~~~~~~
+BC30002: Type 'RuntimeSystem' is not defined.
+                        Public Property RuntimeSystem As RuntimeSystem
+                                                         ~~~~~~~~~~~~~]]></expected>
+            )
+        End Sub
+
+        <Fact, WorkItem("https://github.com/dotnet/roslyn/issues/71039")>
+        Public Sub ConstInAttributes_NoCycle_02()
+            Dim source = "
+                Imports ILGPU
+                Imports System.Runtime.CompilerServices
+
+                <Assembly: InternalsVisibleTo(Context.RuntimeAssemblyName)>
+
+                Namespace ILGPU
+                    Public Class Context
+                        Public Const RuntimeAssemblyName As String = RuntimeSystem.AssemblyName
+                        Public Property RuntimeSystem As RuntimeSystem
+                    End Class
+
+                    Public Class RuntimeSystem
+                        Public Const AssemblyName As String = ""RuntimeSystem""
+                    End Class
+                End Namespace
+                "
+
+            Dim compilation = CreateCompilation(source)
+            CompileAndVerify(compilation)
+        End Sub
+
         <WorkItem(1108036, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/1108036")>
         <Fact()>
         Public Sub Bug1108036()
@@ -3444,5 +3498,121 @@ End Class    </file>
 
             CompileAndVerify(compilation, expectedOutput:="42")
         End Sub
+
+        <WorkItem("https://github.com/dotnet/roslyn/issues/70007")>
+        <Fact()>
+        Public Sub CycleThroughAttribute_01()
+            Dim compilation = CreateCompilation(
+<compilation>
+    <file name="a.vb"><![CDATA[
+Imports System.Reflection
+
+<Assembly: AssemblyVersion(MainVersion.CurrentVersion)>
+
+Public Class MainVersion
+    Public Const Hauptversion As String = "8"
+    Public Const Nebenversion As String = "2"
+    Public Const Build As String = "0"
+    Public Const Revision As String = "1"
+
+    Public Const CurrentVersion As String = Hauptversion & "." & Nebenversion & "." & Build & "." & Revision
+End Class
+    ]]></file>
+</compilation>)
+
+            CompileAndVerify(compilation).VerifyDiagnostics()
+        End Sub
+
+        <WorkItem("https://github.com/dotnet/roslyn/issues/70007")>
+        <Fact()>
+        Public Sub CycleThroughAttribute_02()
+            Dim compilation = CreateCompilation(
+<compilation>
+    <file name="a.vb"><![CDATA[
+<Module: MyAttribute(MainVersion.CurrentVersion)>
+
+Public Class MainVersion
+    Public Const Hauptversion As String = "8"
+    Public Const Nebenversion As String = "2"
+    Public Const Build As String = "0"
+    Public Const Revision As String = "1"
+
+    Public Const CurrentVersion As String = Hauptversion & "." & Nebenversion & "." & Build & "." & Revision
+End Class
+
+class MyAttribute
+	Inherits System.Attribute
+
+	Sub New(x as String)
+	End Sub
+End Class
+    ]]></file>
+</compilation>)
+
+            CompileAndVerify(compilation).VerifyDiagnostics()
+        End Sub
+
+        <WorkItem("https://github.com/dotnet/roslyn/issues/70007")>
+        <Fact()>
+        Public Sub CycleThroughAttribute_03()
+            Dim compilation = CreateCompilation(
+<compilation>
+    <file name="a.vb"><![CDATA[
+<MyAttribute(MainVersion.CurrentVersion)>
+Public Class MainVersion
+    Public Const Hauptversion As String = "8"
+    Public Const Nebenversion As String = "2"
+    Public Const Build As String = "0"
+    Public Const Revision As String = "1"
+
+    Public Const CurrentVersion As String = Hauptversion & "." & Nebenversion & "." & Build & "." & Revision
+End Class
+
+class MyAttribute
+	Inherits System.Attribute
+
+	Sub New(x as String)
+	End Sub
+End Class
+    ]]></file>
+</compilation>)
+
+            CompileAndVerify(compilation).VerifyDiagnostics()
+        End Sub
+
+        <WorkItem("https://github.com/dotnet/roslyn/issues/70007")>
+        <Fact()>
+        Public Sub CycleThroughAttribute_04()
+            Dim compilation = CreateCompilation(
+<compilation>
+    <file name="a.vb"><![CDATA[
+Imports System.Reflection
+
+<Assembly: AssemblyVersion(MainVersion.CurrentVersion)>
+
+<Module: MyAttribute(MainVersion.CurrentVersion)>
+
+<MyAttribute(MainVersion.CurrentVersion)>
+Public Class MainVersion
+    Public Const Hauptversion As String = "8"
+    Public Const Nebenversion As String = "2"
+    Public Const Build As String = "0"
+    Public Const Revision As String = "1"
+
+    Public Const CurrentVersion As String = Hauptversion & "." & Nebenversion & "." & Build & "." & Revision
+End Class
+
+class MyAttribute
+	Inherits System.Attribute
+
+	Sub New(x as String)
+	End Sub
+End Class
+    ]]></file>
+</compilation>)
+
+            CompileAndVerify(compilation).VerifyDiagnostics()
+        End Sub
+
     End Class
 End Namespace

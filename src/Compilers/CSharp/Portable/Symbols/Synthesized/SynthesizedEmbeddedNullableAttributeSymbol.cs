@@ -43,7 +43,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
                     this,
                     byteArrayType.Type,
                     NullableFlagsFieldName,
-                    isPublic: true,
+                    DeclarationModifiers.Public,
                     isReadOnly: true,
                     isStatic: false));
 
@@ -64,9 +64,6 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
         internal override IEnumerable<FieldSymbol> GetFieldsToEmit() => _fields;
 
         public override ImmutableArray<MethodSymbol> Constructors => _constructors;
-
-        internal override bool IsRecord => false;
-        internal override bool HasPossibleWellKnownCloneMethod() => false;
 
         internal override AttributeUsageInfo GetAttributeUsageInfo()
         {
@@ -128,12 +125,12 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
 
         public override ImmutableArray<ParameterSymbol> Parameters => _parameters;
 
-        internal override void GenerateMethodBody(TypeCompilationState compilationState, DiagnosticBag diagnostics)
+        internal override void GenerateMethodBody(TypeCompilationState compilationState, BindingDiagnosticBag diagnostics)
         {
             GenerateMethodBodyCore(compilationState, diagnostics);
         }
 
-        internal override void GenerateMethodBodyStatements(SyntheticBoundNodeFactory factory, ArrayBuilder<BoundStatement> statements, DiagnosticBag diagnostics) => _getConstructorBody(factory, statements, _parameters);
+        internal override void GenerateMethodBodyStatements(SyntheticBoundNodeFactory factory, ArrayBuilder<BoundStatement> statements, BindingDiagnosticBag diagnostics) => _getConstructorBody(factory, statements, _parameters);
     }
 }
 

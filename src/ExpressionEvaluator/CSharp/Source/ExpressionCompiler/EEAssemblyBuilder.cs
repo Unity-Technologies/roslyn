@@ -2,6 +2,10 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+using System;
+using System.Collections.Immutable;
+using System.Diagnostics;
+using System.Reflection.Metadata;
 using Microsoft.CodeAnalysis.CodeGen;
 using Microsoft.CodeAnalysis.CSharp.Emit;
 using Microsoft.CodeAnalysis.CSharp.Symbols;
@@ -10,11 +14,6 @@ using Microsoft.CodeAnalysis.Emit;
 using Microsoft.CodeAnalysis.ExpressionEvaluator;
 using Microsoft.CodeAnalysis.PooledObjects;
 using Microsoft.CodeAnalysis.Symbols;
-using Roslyn.Utilities;
-using System;
-using System.Collections.Immutable;
-using System.Diagnostics;
-using System.Reflection.Metadata;
 
 namespace Microsoft.CodeAnalysis.CSharp.ExpressionEvaluator
 {
@@ -34,15 +33,14 @@ namespace Microsoft.CodeAnalysis.CSharp.ExpressionEvaluator
                   emitOptions,
                   outputKind: OutputKind.DynamicallyLinkedLibrary,
                   serializationProperties: serializationProperties,
-                  manifestResources: SpecializedCollections.EmptyEnumerable<ResourceDescription>(),
+                  manifestResources: [],
                   additionalTypes: additionalTypes)
         {
             _getDynamicOperationContextType = getDynamicOperationContextType;
 
             if (testData != null)
             {
-                this.SetMethodTestData(testData.Methods);
-                testData.Module = this;
+                SetTestData(testData);
             }
         }
 
@@ -65,13 +63,23 @@ namespace Microsoft.CodeAnalysis.CSharp.ExpressionEvaluator
         }
 
         internal override bool IgnoreAccessibility => true;
+        public override EmitBaseline? PreviousGeneration => null;
+        public override SymbolChanges? EncSymbolChanges => null;
+        public override bool FieldRvaSupported => true;
+
+        public override INamedTypeSymbolInternal? TryGetOrCreateSynthesizedHotReloadExceptionType()
+            => null;
+
+        public override IMethodSymbolInternal GetOrCreateHotReloadExceptionConstructorDefinition()
+            => throw ExceptionUtilities.Unreachable();
+
+        public override INamedTypeSymbolInternal? GetUsedSynthesizedHotReloadExceptionType()
+            => null;
 
         internal override NamedTypeSymbol GetDynamicOperationContextType(NamedTypeSymbol contextType)
         {
             return _getDynamicOperationContextType(contextType);
         }
-
-        public override int CurrentGenerationOrdinal => 0;
 
         internal override VariableSlotAllocator? TryCreateVariableSlotAllocator(MethodSymbol symbol, MethodSymbol topLevelMethod, DiagnosticBag diagnostics)
             => (symbol is EEMethodSymbol method) ? new SlotAllocator(GetLocalDefinitions(method.Locals, diagnostics)) : null;
@@ -161,18 +169,27 @@ namespace Microsoft.CodeAnalysis.CSharp.ExpressionEvaluator
                 return false;
             }
 
-            public override bool TryGetPreviousClosure(SyntaxNode closureSyntax, out DebugId closureId)
+            public override bool TryGetPreviousClosure(SyntaxNode closureSyntax, DebugId? parentClosureId, ImmutableArray<string> structCaptures, out DebugId closureId, out RuntimeRudeEdit? runtimeRudeEdit)
             {
                 closureId = default;
+                runtimeRudeEdit = null;
                 return false;
             }
 
-            public override bool TryGetPreviousLambda(SyntaxNode lambdaOrLambdaBodySyntax, bool isLambdaBody, out DebugId lambdaId)
+            public override bool TryGetPreviousLambda(SyntaxNode lambdaOrLambdaBodySyntax, bool isLambdaBody, int closureOrdinal, ImmutableArray<DebugId> structClosureIds, out DebugId lambdaId, out RuntimeRudeEdit? runtimeRudeEdit)
             {
                 lambdaId = default;
+                runtimeRudeEdit = null;
                 return false;
             }
 
+            public override bool TryGetPreviousStateMachineState(SyntaxNode syntax, AwaitDebugId awaitId, out StateMachineState state)
+            {
+                state = 0;
+                return false;
+            }
+
+            public override StateMachineState? GetFirstUnusedStateMachineState(bool increasing) => null;
             public override string? PreviousStateMachineTypeName => null;
             public override int PreviousHoistedLocalSlotCount => 0;
             public override int PreviousAwaiterSlotCount => 0;

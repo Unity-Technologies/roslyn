@@ -31,7 +31,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
                     this,
                     systemByteType,
                     "Flag",
-                    isPublic: true,
+                    DeclarationModifiers.Public,
                     isReadOnly: true,
                     isStatic: false));
 
@@ -48,9 +48,6 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
         internal override IEnumerable<FieldSymbol> GetFieldsToEmit() => _fields;
 
         public override ImmutableArray<MethodSymbol> Constructors => _constructors;
-
-        internal override bool IsRecord => false;
-        internal override bool HasPossibleWellKnownCloneMethod() => false;
 
         internal override AttributeUsageInfo GetAttributeUsageInfo()
         {

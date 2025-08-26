@@ -10,26 +10,22 @@ using System.Threading.Tasks;
 using Microsoft.CodeAnalysis.PooledObjects;
 using Microsoft.CodeAnalysis.Structure;
 
-namespace Microsoft.CodeAnalysis.Editor.UnitTests.Structure
+namespace Microsoft.CodeAnalysis.Editor.UnitTests.Structure;
+
+public abstract class AbstractSyntaxTriviaStructureProviderTests : AbstractSyntaxStructureProviderTests
 {
-    public abstract class AbstractSyntaxTriviaStructureProviderTests : AbstractSyntaxStructureProviderTests
+    internal abstract AbstractSyntaxStructureProvider CreateProvider();
+
+    internal sealed override async Task<ImmutableArray<BlockSpan>> GetBlockSpansWorkerAsync(Document document, BlockStructureOptions options, int position)
     {
-        internal abstract AbstractSyntaxStructureProvider CreateProvider();
+        var root = await document.GetSyntaxRootAsync();
+        var trivia = root.FindTrivia(position, findInsideTrivia: true);
 
-        internal sealed override async Task<ImmutableArray<BlockSpan>> GetBlockSpansWorkerAsync(Document document, int position)
-        {
-            var root = await document.GetSyntaxRootAsync();
-            var trivia = root.FindTrivia(position, findInsideTrivia: true);
+        var outliner = CreateProvider();
+        using var _ = ArrayBuilder<BlockSpan>.GetInstance(out var actualRegions);
+        outliner.CollectBlockSpans(trivia, actualRegions, options, CancellationToken.None);
 
-            var outliner = CreateProvider();
-            var actualRegions = ArrayBuilder<BlockSpan>.GetInstance();
-            var optionProvider = new BlockStructureOptionProvider(
-                document.Project.Solution.Options,
-                isMetadataAsSource: document.Project.Solution.Workspace.Kind == CodeAnalysis.WorkspaceKind.MetadataAsSource);
-            outliner.CollectBlockSpans(trivia, actualRegions, optionProvider, CancellationToken.None);
-
-            // TODO: Determine why we get null outlining spans.
-            return actualRegions.ToImmutableAndFree();
-        }
+        // TODO: Determine why we get null outlining spans.
+        return actualRegions.ToImmutableAndClear();
     }
 }

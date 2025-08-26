@@ -6,67 +6,67 @@
 
 using System;
 using System.Threading.Tasks;
-using Microsoft.CodeAnalysis.Editor.CSharp.KeywordHighlighting.KeywordHighlighters;
+using Microsoft.CodeAnalysis.CSharp.KeywordHighlighting.KeywordHighlighters;
 using Microsoft.CodeAnalysis.Test.Utilities;
 using Xunit;
 
-namespace Microsoft.CodeAnalysis.Editor.CSharp.UnitTests.KeywordHighlighting
+namespace Microsoft.CodeAnalysis.Editor.CSharp.UnitTests.KeywordHighlighting;
+
+[Trait(Traits.Feature, Traits.Features.KeywordHighlighting)]
+public sealed class CheckedStatementHighlighterTests : AbstractCSharpKeywordHighlighterTests
 {
-    public class CheckedStatementHighlighterTests : AbstractCSharpKeywordHighlighterTests
-    {
-        internal override Type GetHighlighterType()
-            => typeof(CheckedStatementHighlighter);
+    internal override Type GetHighlighterType()
+        => typeof(CheckedStatementHighlighter);
 
-        [Fact, Trait(Traits.Feature, Traits.Features.KeywordHighlighting)]
-        public async Task TestExample1_1()
-        {
-            await TestAsync(
-@"class C
-{
-    void M()
-    {
-        short x = 0;
-        short y = 100;
-        while (true)
-        {
-            {|Cursor:[|checked|]|}
+    [Fact]
+    public Task TestExample1_1()
+        => TestAsync(
+            """
+            class C
             {
-                x++;
-            }
+                void M()
+                {
+                    short x = 0;
+                    short y = 100;
+                    while (true)
+                    {
+                        {|Cursor:[|checked|]|}
+                        {
+                            x++;
+                        }
 
-            unchecked
-            {
-                y++;
+                        unchecked
+                        {
+                            y++;
+                        }
+                    }
+                }
             }
-        }
-    }
-}");
-        }
+            """);
 
-        [Fact, Trait(Traits.Feature, Traits.Features.KeywordHighlighting)]
-        public async Task TestExample1_2()
-        {
-            await TestAsync(
-@"class C
-{
-    void M()
-    {
-        short x = 0;
-        short y = 100;
-        while (true)
-        {
-            checked
+    [Fact]
+    public Task TestExample1_2()
+        => TestAsync(
+            """
+            class C
             {
-                x++;
-            }
+                void M()
+                {
+                    short x = 0;
+                    short y = 100;
+                    while (true)
+                    {
+                        checked
+                        {
+                            x++;
+                        }
 
-            {|Cursor:[|unchecked|]|}
-            {
-                y++;
+                        {|Cursor:[|unchecked|]|}
+                        {
+                            y++;
+                        }
+                    }
+                }
             }
-        }
-    }
-}");
-        }
-    }
+            """);
 }

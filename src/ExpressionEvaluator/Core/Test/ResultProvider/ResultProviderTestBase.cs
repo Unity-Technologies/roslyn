@@ -5,11 +5,10 @@
 #nullable disable
 
 using System;
-using System.Collections.ObjectModel;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Linq;
 using System.Runtime.ExceptionServices;
-using Microsoft.CodeAnalysis.Collections;
 using Microsoft.CodeAnalysis.PooledObjects;
 using Microsoft.VisualStudio.Debugger;
 using Microsoft.VisualStudio.Debugger.Clr;
@@ -410,7 +409,7 @@ namespace Microsoft.CodeAnalysis.ExpressionEvaluator
                 builder.Append(", ");
                 builder.Append(Quote(result.EditableValue));
             }
-            builder.Append(")");
+            builder.Append(')');
             return pooledBuilder.ToStringAndFree();
         }
 
@@ -437,7 +436,7 @@ namespace Microsoft.CodeAnalysis.ExpressionEvaluator
                 builder.Append(", ");
                 builder.Append(FormatEnumValue(result.Flags));
             }
-            builder.Append(")");
+            builder.Append(')');
             return pooledBuilder.ToStringAndFree();
         }
 
@@ -464,7 +463,7 @@ namespace Microsoft.CodeAnalysis.ExpressionEvaluator
                 builder.Append(", ");
                 builder.Append(FormatEnumValue(result.Flags));
             }
-            builder.Append(")");
+            builder.Append(')');
             return pooledBuilder.ToStringAndFree();
         }
 
@@ -553,7 +552,8 @@ namespace Microsoft.CodeAnalysis.ExpressionEvaluator
                     x.UISideVisualizerAssemblyName == y.UISideVisualizerAssemblyName &&
                     x.UISideVisualizerAssemblyLocation == y.UISideVisualizerAssemblyLocation &&
                     x.DebuggeeSideVisualizerTypeName == y.DebuggeeSideVisualizerTypeName &&
-                    x.DebuggeeSideVisualizerAssemblyName == y.DebuggeeSideVisualizerAssemblyName);
+                    x.DebuggeeSideVisualizerAssemblyName == y.DebuggeeSideVisualizerAssemblyName &&
+                    x.ExtensionPartId == y.ExtensionPartId);
             }
 
             int IEqualityComparer<DkmCustomUIVisualizerInfo>.GetHashCode(DkmCustomUIVisualizerInfo obj)

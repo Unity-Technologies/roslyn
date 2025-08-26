@@ -2,11 +2,11 @@
 ' The .NET Foundation licenses this file to you under the MIT license.
 ' See the LICENSE file in the project root for more information.
 
-Imports Microsoft.CodeAnalysis.Remote.Testing
 Imports Microsoft.CodeAnalysis.Rename.ConflictEngine
 
 Namespace Microsoft.CodeAnalysis.Editor.UnitTests.Rename.VisualBasic
     <[UseExportProvider]>
+    <Trait(Traits.Feature, Traits.Features.Rename)>
     Public Class ImplicitReferenceConflictTests
         Private ReadOnly _outputHelper As Abstractions.ITestOutputHelper
 
@@ -14,9 +14,8 @@ Namespace Microsoft.CodeAnalysis.Editor.UnitTests.Rename.VisualBasic
             _outputHelper = outputHelper
         End Sub
 
-        <Theory>
-        <WorkItem(528966, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/528966")>
-        <CombinatorialData, Trait(Traits.Feature, Traits.Features.Rename)>
+        <Theory, WorkItem("http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/528966")>
+        <CombinatorialData>
         Public Sub RenameMoveNextCausesConflictInForEach(host As RenameTestHost)
             Using result = RenameEngineResult.Create(_outputHelper,
                 <Workspace>
@@ -51,9 +50,8 @@ End Class
             End Using
         End Sub
 
-        <Theory>
-        <WorkItem(528966, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/528966")>
-        <CombinatorialData, Trait(Traits.Feature, Traits.Features.Rename)>
+        <Theory, WorkItem("http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/528966")>
+        <CombinatorialData>
         Public Sub RenameMoveNextToChangeCasingDoesntCauseConflictInForEach(host As RenameTestHost)
             Using result = RenameEngineResult.Create(_outputHelper,
                 <Workspace>
@@ -87,9 +85,8 @@ End Class
             End Using
         End Sub
 
-        <Theory>
-        <WorkItem(528966, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/528966")>
-        <CombinatorialData, Trait(Traits.Feature, Traits.Features.Rename)>
+        <Theory, WorkItem("http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/528966")>
+        <CombinatorialData>
         Public Sub RenameMoveNextToChangeCasingInCSDoesntCauseConflictInForEach(host As RenameTestHost)
             Using result = RenameEngineResult.Create(_outputHelper,
                 <Workspace>
@@ -134,9 +131,8 @@ End Class
             End Using
         End Sub
 
-        <Theory>
-        <WorkItem(528966, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/528966")>
-        <CombinatorialData, Trait(Traits.Feature, Traits.Features.Rename)>
+        <Theory, WorkItem("http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/528966")>
+        <CombinatorialData>
         Public Sub RenameMoveNextInCSCauseConflictInForEach(host As RenameTestHost)
             Using result = RenameEngineResult.Create(_outputHelper,
                 <Workspace>

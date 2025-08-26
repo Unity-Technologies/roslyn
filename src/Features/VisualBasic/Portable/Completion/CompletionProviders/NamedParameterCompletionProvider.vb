@@ -3,16 +3,17 @@
 ' See the LICENSE file in the project root for more information.
 
 Imports System.Collections.Immutable
+Imports System.Composition
 Imports System.Threading
+Imports Microsoft.CodeAnalysis.Collections
 Imports Microsoft.CodeAnalysis.Completion
 Imports Microsoft.CodeAnalysis.Completion.Providers
-Imports Microsoft.CodeAnalysis.Text
-Imports Microsoft.CodeAnalysis.VisualBasic.Syntax
-Imports Microsoft.CodeAnalysis.Options
-Imports Microsoft.CodeAnalysis.VisualBasic.Extensions.ContextQuery
 Imports Microsoft.CodeAnalysis.ErrorReporting
-Imports System.Composition
 Imports Microsoft.CodeAnalysis.Host.Mef
+Imports Microsoft.CodeAnalysis.LanguageService
+Imports Microsoft.CodeAnalysis.Text
+Imports Microsoft.CodeAnalysis.VisualBasic.Extensions.ContextQuery
+Imports Microsoft.CodeAnalysis.VisualBasic.Syntax
 
 Namespace Microsoft.CodeAnalysis.VisualBasic.Completion.Providers
     <ExportCompletionProvider(NameOf(NamedParameterCompletionProvider), LanguageNames.VisualBasic)>
@@ -28,11 +29,17 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Completion.Providers
         Public Sub New()
         End Sub
 
-        Friend Overrides Function IsInsertionTrigger(text As SourceText, characterPosition As Integer, options As OptionSet) As Boolean
+        Friend Overrides ReadOnly Property Language As String
+            Get
+                Return LanguageNames.VisualBasic
+            End Get
+        End Property
+
+        Public Overrides Function IsInsertionTrigger(text As SourceText, characterPosition As Integer, options As CompletionOptions) As Boolean
             Return CompletionUtilities.IsDefaultTriggerCharacter(text, characterPosition, options)
         End Function
 
-        Friend Overrides ReadOnly Property TriggerCharacters As ImmutableHashSet(Of Char) = CompletionUtilities.CommonTriggerChars
+        Public Overrides ReadOnly Property TriggerCharacters As ImmutableHashSet(Of Char) = CompletionUtilities.CommonTriggerChars
 
         Public Overrides Async Function ProvideCompletionsAsync(context As CompletionContext) As Task
             Try
@@ -78,13 +85,14 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Completion.Providers
                 Dim unspecifiedParameters = parameterLists.SelectMany(Function(pl) pl).
                                                            Where(Function(p) Not existingNamedParameters.Contains(p.Name))
 
-                Dim text = Await document.GetTextAsync(cancellationToken).ConfigureAwait(False)
+                Dim rightToken = syntaxTree.FindTokenOnRightOfPosition(position, cancellationToken)
+                Dim textSuffix = If(rightToken.IsKind(SyntaxKind.ColonEqualsToken), Nothing, s_colonEquals)
 
                 For Each parameter In unspecifiedParameters
                     context.AddItem(SymbolCompletionItem.CreateWithSymbolId(
                         displayText:=parameter.Name,
-                        displayTextSuffix:=s_colonEquals,
-                        insertionText:=parameter.Name.ToIdentifierToken().ToString() & s_colonEquals,
+                        displayTextSuffix:=textSuffix,
+                        insertionText:=parameter.Name.ToIdentifierToken().ToString() & textSuffix,
                         symbols:=ImmutableArray.Create(parameter),
                         contextPosition:=position,
                         rules:=s_itemRules))
@@ -99,8 +107,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Completion.Providers
             WithFilterCharacterRule(CharacterSetModificationRule.Create(CharacterSetModificationKind.Remove, ":"c, "="c)).
             WithCommitCharacterRule(CharacterSetModificationRule.Create(CharacterSetModificationKind.Add, ":"c, "="c))
 
-        Protected Overrides Function GetDescriptionWorkerAsync(document As Document, item As CompletionItem, cancellationToken As CancellationToken) As Task(Of CompletionDescription)
-            Return SymbolCompletionItem.GetDescriptionAsync(item, document, cancellationToken)
+        Friend Overrides Function GetDescriptionWorkerAsync(document As Document, item As CompletionItem, options As CompletionOptions, displayOptions As SymbolDescriptionOptions, cancellationToken As CancellationToken) As Task(Of CompletionDescription)
+            Return SymbolCompletionItem.GetDescriptionAsync(item, document, displayOptions, cancellationToken)
         End Function
 
         Private Shared Function IsValid(parameterList As ImmutableArray(Of ISymbol), existingNamedParameters As ISet(Of String)) As Boolean
@@ -186,39 +194,6 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Completion.Providers
             Return Nothing
         End Function
 
-        Private Shared Sub GetInvocableNode(token As SyntaxToken, ByRef invocableNode As SyntaxNode, ByRef argumentList As ArgumentListSyntax)
-            Dim current = token.Parent
-
-            While current IsNot Nothing
-                If TypeOf current Is AttributeSyntax Then
-                    invocableNode = current
-                    argumentList = (DirectCast(current, AttributeSyntax)).ArgumentList
-                    Return
-                End If
-
-                If TypeOf current Is InvocationExpressionSyntax Then
-                    invocableNode = current
-                    argumentList = (DirectCast(current, InvocationExpressionSyntax)).ArgumentList
-                    Return
-                End If
-
-                If TypeOf current Is ObjectCreationExpressionSyntax Then
-                    invocableNode = current
-                    argumentList = (DirectCast(current, ObjectCreationExpressionSyntax)).ArgumentList
-                    Return
-                End If
-
-                If TypeOf current Is TypeArgumentListSyntax Then
-                    Exit While
-                End If
-
-                current = current.Parent
-            End While
-
-            invocableNode = Nothing
-            argumentList = Nothing
-        End Sub
-
         Protected Overrides Function GetTextChangeAsync(selectedItem As CompletionItem, ch As Char?, cancellationToken As CancellationToken) As Task(Of TextChange?)
             Dim symbolItem = selectedItem
             Dim insertionText = SymbolCompletionItem.GetInsertionText(selectedItem)
@@ -230,6 +205,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Completion.Providers
             Else
                 change = New TextChange(symbolItem.Span, insertionText)
             End If
+
             Return Task.FromResult(Of TextChange?)(change)
         End Function
     End Class

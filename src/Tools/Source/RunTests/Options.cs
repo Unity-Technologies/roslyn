@@ -3,11 +3,9 @@
 // See the LICENSE file in the project root for more information.
 
 using System;
-using System.CodeDom.Compiler;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
-using System.Linq;
+using System.Runtime.InteropServices;
 using Mono.Options;
 
 namespace RunTests
@@ -20,6 +18,13 @@ namespace RunTests
         Failed,
     }
 
+    internal enum TestRuntime
+    {
+        Both,
+        Core,
+        Framework
+    }
+
     internal class Options
     {
         /// <summary>
@@ -28,50 +33,32 @@ namespace RunTests
         public bool IncludeHtml { get; set; }
 
         /// <summary>
-        /// Use the 64 bit test runner.
-        /// </summary>
-        public bool Test64 { get; set; }
-
-        /// <summary>
-        /// Target framework used to run the tests, e.g. "net472".
-        /// This is currently only used to name the test result files.
-        /// </summary>
-        public string TargetFramework { get; set; }
-
-        /// <summary>
-        /// Use the open integration test runner.
-        /// </summary>
-        public bool TestVsi { get; set; }
-
-        /// <summary>
         /// Display the results files.
         /// </summary>
         public Display Display { get; set; }
 
         /// <summary>
-        /// Trait string to pass to xunit.
+        /// Filter string to pass to xunit.
         /// </summary>
-        public string? Trait { get; set; }
+        public string? TestFilter { get; set; }
+
+        public string Configuration { get; set; }
 
         /// <summary>
-        /// The no-trait string to pass to xunit.
+        /// The set of target frameworks that should be probed for test assemblies.
         /// </summary>
-        public string? NoTrait { get; set; }
+        public TestRuntime TestRuntime { get; set; } = TestRuntime.Both;
 
-        /// <summary>
-        /// Set of assemblies to test.
-        /// </summary>
-        public List<string> Assemblies { get; set; } = new List<string>();
+        public List<string> IncludeFilter { get; set; } = new List<string>();
+
+        public List<string> ExcludeFilter { get; set; } = new List<string>();
+
+        public string ArtifactsDirectory { get; }
 
         /// <summary>
         /// Time after which the runner should kill the xunit process and exit with a failure.
         /// </summary>
         public TimeSpan? Timeout { get; set; }
-
-        /// <summary>
-        /// Retry tests on failure 
-        /// </summary>
-        public bool Retry { get; set; }
 
         /// <summary>
         /// Whether or not to collect dumps on crashes and timeouts.
@@ -89,6 +76,22 @@ namespace RunTests
         public bool Sequential { get; set; }
 
         /// <summary>
+        /// Whether to run test partitions as Helix work items.
+        /// </summary>
+        public bool UseHelix { get; set; }
+
+        /// <summary>
+        /// Name of the Helix queue to run tests on (only valid when <see cref="UseHelix" /> is <see langword="true" />).
+        /// </summary>
+        public string? HelixQueueName { get; set; }
+
+        /// <summary>
+        /// Access token to send jobs to helix (only valid when <see cref="UseHelix" /> is <see langword="true" />).
+        /// This should only be set when using internal helix queues.
+        /// </summary>
+        public string? HelixApiAccessToken { get; set; }
+
+        /// <summary>
         /// Path to the dotnet executable we should use for running dotnet test
         /// </summary>
         public string DotnetFilePath { get; set; }
@@ -103,56 +106,86 @@ namespace RunTests
         /// </summary>
         public string LogFilesDirectory { get; set; }
 
-        public string Platform { get; set; }
+        public string Architecture { get; set; }
+
+        public string? AccessToken { get; set; }
+
+        public string? ProjectUri { get; set; }
+
+        public string? PipelineDefinitionId { get; set; }
+
+        public string? PhaseName { get; set; }
+
+        public string? TargetBranchName { get; set; }
 
         public Options(
             string dotnetFilePath,
+            string artifactsDirectory,
+            string configuration,
             string testResultsDirectory,
             string logFilesDirectory,
-            string targetFramework,
-            string platform)
+            string architecture)
         {
             DotnetFilePath = dotnetFilePath;
+            ArtifactsDirectory = artifactsDirectory;
+            Configuration = configuration;
             TestResultsDirectory = testResultsDirectory;
             LogFilesDirectory = logFilesDirectory;
-            TargetFramework = targetFramework;
-            Platform = platform;
+            Architecture = architecture;
         }
 
         internal static Options? Parse(string[] args)
         {
             string? dotnetFilePath = null;
-            var platform = "x64";
-            var testVsi = false;
+            var architecture = Microsoft.CodeAnalysis.Test.Utilities.IlasmUtilities.Architecture;
             var includeHtml = false;
-            var targetFramework = "net472";
+            var testRuntime = TestRuntime.Both;
+            var configuration = "Debug";
+            var includeFilter = new List<string>();
+            var excludeFilter = new List<string>();
             var sequential = false;
-            var retry = false;
-            string? traits = null;
-            string? noTraits = null;
+            var helix = false;
+            var helixQueueName = "Windows.10.Amd64.Open";
+            string? helixApiAccessToken = null;
+            string? testFilter = null;
             int? timeout = null;
-            string resultFileDirectory = Path.Combine(Directory.GetCurrentDirectory(), "TestResults");
+            string? resultFileDirectory = null;
             string? logFileDirectory = null;
             var display = Display.None;
             var collectDumps = false;
             string? procDumpFilePath = null;
+            string? artifactsPath = null;
+            string? accessToken = null;
+            string? projectUri = null;
+            string? pipelineDefinitionId = null;
+            string? phaseName = null;
+            string? targetBranchName = null;
             var optionSet = new OptionSet()
             {
-                { "dotnet=", "Path to dotnet", (string s) => dotnetFilePath = s },
-                { "platform=", "Platform to test: x86 or x64", (string s) => platform = s },
-                { "tfm=", "Target framework to test", (string s) => targetFramework = s },
-                { "testvsi", "Test Visual Studio", o => testVsi = o is object },
+                { "dotnet=", "Path to dotnet", s => dotnetFilePath = s },
+                { "configuration=", "Configuration to test: Debug or Release", s => configuration = s },
+                { "runtime=", "The runtime to test: both, core or framework", (TestRuntime t) => testRuntime = t},
+                { "include=", "Expression for including unit test dlls: default *.UnitTests.dll", s => includeFilter.Add(s) },
+                { "exclude=", "Expression for excluding unit test dlls: default is empty", s => excludeFilter.Add(s) },
+                { "arch=", "Architecture to test on: x86, x64 or arm64", s => architecture = s },
                 { "html", "Include HTML file output", o => includeHtml = o is object },
                 { "sequential", "Run tests sequentially", o => sequential = o is object },
-                { "traits=", "xUnit traits to include (semicolon delimited)", (string s) => traits = s },
-                { "notraits=", "xUnit traits to exclude (semicolon delimited)", (string s) => noTraits = s },
+                { "helix", "Run tests on Helix", o => helix = o is object },
+                { "helixQueueName=", "Name of the Helix queue to run tests on", s => helixQueueName = s },
+                { "helixApiAccessToken=", "Access token for internal helix queues", s => helixApiAccessToken = s },
+                { "testfilter=", "xUnit string to pass to --filter, e.g. FullyQualifiedName~TestClass1|Category=CategoryA", s => testFilter = s },
                 { "timeout=", "Minute timeout to limit the tests to", (int i) => timeout = i },
-                { "out=", "Test result file directory", (string s) => resultFileDirectory = s },
-                { "logs=", "Log file directory", (string s) => logFileDirectory = s },
+                { "out=", "Test result file directory (when running on Helix, this is relative to the Helix work item directory)", s => resultFileDirectory = s },
+                { "logs=", "Log file directory (when running on Helix, this is relative to the Helix work item directory)", s => logFileDirectory = s },
                 { "display=", "Display", (Display d) => display = d },
-                { "procdumppath=", "Path to procdump", (string s) => procDumpFilePath = s },
+                { "artifactspath=", "Path to the artifacts directory", s => artifactsPath = s },
+                { "procdumppath=", "Path to procdump", s => procDumpFilePath = s },
                 { "collectdumps", "Whether or not to gather dumps on timeouts and crashes", o => collectDumps = o is object },
-                { "retry", "Retry failed test a few times", o => retry = o is object },
+                { "accessToken=", "Pipeline access token with permissions to view test history", s => accessToken = s },
+                { "projectUri=", "ADO project containing the pipeline", s => projectUri = s },
+                { "pipelineDefinitionId=", "Pipeline definition id", s => pipelineDefinitionId = s },
+                { "phaseName=", "Pipeline phase name associated with this test run", s => phaseName = s },
+                { "targetBranchName=", "Target branch of this pipeline run", s => targetBranchName = s },
             };
 
             List<string> assemblyList;
@@ -162,52 +195,92 @@ namespace RunTests
             }
             catch (OptionException e)
             {
-                Console.WriteLine($"Error parsing command line arguments: {e.Message}");
+                ConsoleUtil.WriteLine($"Error parsing command line arguments: {e.Message}");
                 optionSet.WriteOptionDescriptions(Console.Out);
                 return null;
             }
 
-            if (dotnetFilePath is null || !File.Exists(dotnetFilePath))
+            if (includeFilter.Count == 0)
             {
-                Console.WriteLine($"Did not find 'dotnet' at {dotnetFilePath}");
+                includeFilter.Add(".*UnitTests.*");
+            }
+
+            artifactsPath ??= TryGetArtifactsPath();
+            if (artifactsPath is null || !Directory.Exists(artifactsPath))
+            {
+                ConsoleUtil.WriteLine($"Did not find artifacts directory at {artifactsPath}");
                 return null;
             }
 
-            if (retry && includeHtml)
+            resultFileDirectory ??= helix
+                ? "."
+                : Path.Combine(artifactsPath, "TestResults", configuration);
+
+            logFileDirectory ??= resultFileDirectory;
+
+            dotnetFilePath ??= TryGetDotNetPath();
+            if (dotnetFilePath is null || !File.Exists(dotnetFilePath))
             {
-                Console.WriteLine($"Cannot specify both --retry and --html");
+                ConsoleUtil.WriteLine($"Did not find 'dotnet' at {dotnetFilePath}");
                 return null;
             }
 
             if (procDumpFilePath is { } && !collectDumps)
             {
-                Console.WriteLine($"procdumppath was specified without collectdumps hence it will not be used");
-            }
-
-            if (logFileDirectory is null)
-            {
-                logFileDirectory = resultFileDirectory;
+                ConsoleUtil.WriteLine($"procdumppath was specified without collectdumps hence it will not be used");
             }
 
             return new Options(
                 dotnetFilePath: dotnetFilePath,
+                artifactsDirectory: artifactsPath,
+                configuration: configuration,
                 testResultsDirectory: resultFileDirectory,
                 logFilesDirectory: logFileDirectory,
-                targetFramework: targetFramework,
-                platform: platform)
+                architecture: architecture)
             {
-                Assemblies = assemblyList,
-                TestVsi = testVsi,
+                TestRuntime = testRuntime,
+                IncludeFilter = includeFilter,
+                ExcludeFilter = excludeFilter,
                 Display = display,
                 ProcDumpFilePath = procDumpFilePath,
                 CollectDumps = collectDumps,
                 Sequential = sequential,
+                UseHelix = helix,
+                HelixQueueName = helixQueueName,
+                HelixApiAccessToken = helixApiAccessToken,
                 IncludeHtml = includeHtml,
-                Trait = traits,
-                NoTrait = noTraits,
+                TestFilter = testFilter,
                 Timeout = timeout is { } t ? TimeSpan.FromMinutes(t) : null,
-                Retry = retry,
+                AccessToken = accessToken,
+                ProjectUri = projectUri,
+                PipelineDefinitionId = pipelineDefinitionId,
+                PhaseName = phaseName,
+                TargetBranchName = targetBranchName,
             };
+
+            static string? TryGetArtifactsPath()
+            {
+                var path = AppContext.BaseDirectory;
+                while (path is object && Path.GetFileName(path) != "artifacts")
+                {
+                    path = Path.GetDirectoryName(path);
+                }
+
+                return path;
+            }
+
+            static string? TryGetDotNetPath()
+            {
+                var dir = RuntimeEnvironment.GetRuntimeDirectory();
+                var programName = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? "dotnet.exe" : "dotnet";
+
+                while (dir != null && !File.Exists(Path.Combine(dir, programName)))
+                {
+                    dir = Path.GetDirectoryName(dir);
+                }
+
+                return dir == null ? null : Path.Combine(dir, programName);
+            }
         }
     }
 }

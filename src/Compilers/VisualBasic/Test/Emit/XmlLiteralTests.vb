@@ -2,8 +2,8 @@
 ' The .NET Foundation licenses this file to you under the MIT license.
 ' See the LICENSE file in the project root for more information.
 
-Imports System.IO
 Imports System.Text
+Imports Basic.Reference.Assemblies
 Imports Microsoft.Cci
 Imports Microsoft.CodeAnalysis.PooledObjects
 Imports Microsoft.CodeAnalysis.VisualBasic.Symbols
@@ -4313,16 +4313,16 @@ End Class
             VerifyIL("scen1(Of T).goo(T)",
             <![CDATA[
 {
-  // Code size       30 (0x1e)
-  .maxstack  3
-  IL_0000:  ldarga.s   V_1
-  IL_0002:  ldstr      "moo"
-  IL_0007:  ldstr      ""
-  IL_000c:  call       "Function System.Xml.Linq.XName.Get(String, String) As System.Xml.Linq.XName"
-  IL_0011:  constrained. "T"
-  IL_0017:  callvirt   "Function System.Xml.Linq.XContainer.Elements(System.Xml.Linq.XName) As System.Collections.Generic.IEnumerable(Of System.Xml.Linq.XElement)"
-  IL_001c:  pop
-  IL_001d:  ret
+  // Code size       28 (0x1c)
+      .maxstack  3
+  IL_0000:  ldarg.1
+  IL_0001:  box        "T"
+  IL_0006:  ldstr      "moo"
+  IL_000b:  ldstr      ""
+  IL_0010:  call       "Function System.Xml.Linq.XName.Get(String, String) As System.Xml.Linq.XName"
+  IL_0015:  callvirt   "Function System.Xml.Linq.XContainer.Elements(System.Xml.Linq.XName) As System.Collections.Generic.IEnumerable(Of System.Xml.Linq.XElement)"
+  IL_001a:  pop
+  IL_001b:  ret
 }
 ]]>)
         End Sub
@@ -4961,9 +4961,9 @@ End Class
             Dim tree = VisualBasicSyntaxTree.ParseText(source)
 
             Dim refBuilder = ArrayBuilder(Of MetadataReference).GetInstance()
-            refBuilder.Add(TestMetadata.Net40.mscorlib)
-            refBuilder.Add(TestMetadata.Net40.System)
-            refBuilder.Add(TestMetadata.Net40.MicrosoftVisualBasic)
+            refBuilder.Add(Net40.References.mscorlib)
+            refBuilder.Add(Net40.References.System)
+            refBuilder.Add(Net40.References.MicrosoftVisualBasic)
             refBuilder.AddRange(Net40XmlReferences)
             Dim refs = refBuilder.ToImmutableAndFree()
 

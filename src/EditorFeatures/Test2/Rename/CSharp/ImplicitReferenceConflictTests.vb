@@ -2,11 +2,11 @@
 ' The .NET Foundation licenses this file to you under the MIT license.
 ' See the LICENSE file in the project root for more information.
 
-Imports Microsoft.CodeAnalysis.Remote.Testing
 Imports Microsoft.CodeAnalysis.Rename.ConflictEngine
 
 Namespace Microsoft.CodeAnalysis.Editor.UnitTests.Rename.CSharp
     <[UseExportProvider]>
+    <Trait(Traits.Feature, Traits.Features.Rename)>
     Public Class ImplicitReferenceConflictTests
 
         Private ReadOnly _outputHelper As Abstractions.ITestOutputHelper
@@ -15,8 +15,8 @@ Namespace Microsoft.CodeAnalysis.Editor.UnitTests.Rename.CSharp
             _outputHelper = outputHelper
         End Sub
 
-        <WorkItem(528966, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/528966")>
-        <Theory, CombinatorialData, Trait(Traits.Feature, Traits.Features.Rename)>
+        <Theory, CombinatorialData>
+        <WorkItem("http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/528966")>
         Public Sub RenameMoveNextCausesConflictInForEach(host As RenameTestHost)
             Using result = RenameEngineResult.Create(_outputHelper,
                     <Workspace>
@@ -52,7 +52,7 @@ class C
             End Using
         End Sub
 
-        <Theory, CombinatorialData, Trait(Traits.Feature, Traits.Features.Rename)>
+        <Theory, CombinatorialData>
         Public Sub RenameDeconstructCausesConflictInDeconstructionAssignment(host As RenameTestHost)
             Using result = RenameEngineResult.Create(_outputHelper,
                     <Workspace>
@@ -75,7 +75,7 @@ class C
             End Using
         End Sub
 
-        <Theory, CombinatorialData, Trait(Traits.Feature, Traits.Features.Rename)>
+        <Theory, CombinatorialData>
         Public Sub RenameDeconstructCausesConflictInDeconstructionForEach(host As RenameTestHost)
             Using result = RenameEngineResult.Create(_outputHelper,
                     <Workspace>
@@ -100,7 +100,7 @@ class C
             End Using
         End Sub
 
-        <Theory, CombinatorialData, Trait(Traits.Feature, Traits.Features.Rename)>
+        <Theory, CombinatorialData>
         Public Sub RenameGetAwaiterCausesConflict(host As RenameTestHost)
             Using result = RenameEngineResult.Create(_outputHelper,
                     <Workspace>
@@ -125,8 +125,8 @@ public class C
             End Using
         End Sub
 
-        <WorkItem(528966, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/528966")>
-        <Theory, CombinatorialData, Trait(Traits.Feature, Traits.Features.Rename)>
+        <Theory, CombinatorialData>
+        <WorkItem("http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/528966")>
         Public Sub RenameMoveNextInVBCausesConflictInForEach(host As RenameTestHost)
             Using result = RenameEngineResult.Create(_outputHelper,
                     <Workspace>
@@ -169,8 +169,8 @@ class D
             End Using
         End Sub
 
-        <WorkItem(528966, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/528966")>
-        <Theory, CombinatorialData, Trait(Traits.Feature, Traits.Features.Rename)>
+        <Theory, CombinatorialData>
+        <WorkItem("http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/528966")>
         Public Sub RenameMoveNextInVBToUpperCaseOnlyCausesConflictInCSForEach(host As RenameTestHost)
             Using result = RenameEngineResult.Create(_outputHelper,
                     <Workspace>

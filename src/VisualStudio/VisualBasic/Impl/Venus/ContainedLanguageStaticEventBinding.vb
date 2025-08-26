@@ -4,7 +4,7 @@
 
 Imports System.Threading
 Imports Microsoft.CodeAnalysis
-Imports Microsoft.CodeAnalysis.LanguageServices
+Imports Microsoft.CodeAnalysis.Collections
 Imports Microsoft.CodeAnalysis.Shared.Extensions
 Imports Microsoft.CodeAnalysis.Text
 Imports Microsoft.CodeAnalysis.VisualBasic
@@ -19,7 +19,6 @@ Namespace Microsoft.VisualStudio.LanguageServices.VisualBasic.Venus
         ''' <summary>
         ''' Find all the methods that handle events (though "Handles" clauses).
         ''' </summary>
-        ''' <returns></returns>
         Public Function GetStaticEventBindings(document As Document,
                                                className As String,
                                                objectName As String,
@@ -77,7 +76,7 @@ Namespace Microsoft.VisualStudio.LanguageServices.VisualBasic.Venus
                 End Using
             Else
                 Dim memberStatement = GetMemberBlockOrBegin(memberSymbol)
-                Dim codeModel = targetDocument.Project.LanguageServices.GetService(Of ICodeModelService)()
+                Dim codeModel = targetDocument.Project.Services.GetService(Of ICodeModelService)()
                 codeModel.AddHandlesClause(targetDocument, objectName & "." & nameOfEvent, memberStatement, cancellationToken)
             End If
         End Sub
@@ -105,7 +104,7 @@ Namespace Microsoft.VisualStudio.LanguageServices.VisualBasic.Venus
                 End Using
             Else
                 Dim memberStatement = GetMemberBlockOrBegin(memberSymbol)
-                Dim codeModel = targetDocument.Project.LanguageServices.GetService(Of ICodeModelService)()
+                Dim codeModel = targetDocument.Project.Services.GetService(Of ICodeModelService)()
                 codeModel.RemoveHandlesClause(targetDocument, objectName & "." & nameOfEvent, memberStatement, cancellationToken)
             End If
 

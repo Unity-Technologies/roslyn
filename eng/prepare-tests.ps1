@@ -8,8 +8,10 @@ try {
   . (Join-Path $PSScriptRoot "build-utils.ps1")
   Push-Location $RepoRoot
 
-  $dotnet = Ensure-DotnetSdk
-  Exec-Console $dotnet "run --project src\Tools\PrepareTests\PrepareTests.csproj $RepoRoot\artifacts\bin $RepoRoot\artifacts\testPayload"
+  # permissions issues make this a pain to do in PrepareTests itself.
+  Remove-Item -Recurse -Force "$RepoRoot\artifacts\testPayload" -ErrorAction SilentlyContinue
+  $dotnet = Ensure-DotNetSdk
+  Exec-Command $dotnet "exec $RepoRoot\artifacts\bin\PrepareTests\$configuration\net9.0\PrepareTests.dll --source $RepoRoot --destination $RepoRoot\artifacts\testPayload --dotnetPath `"$dotnet`""
   exit 0
 }
 catch {

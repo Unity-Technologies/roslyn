@@ -100,26 +100,31 @@ namespace Microsoft.CodeAnalysis.CSharp
             }
         }
 
-        public static void ValidateIteratorMethod(CSharpCompilation compilation, MethodSymbol iterator, DiagnosticBag diagnostics)
+        public static void ValidateIteratorMethod(CSharpCompilation compilation, MethodSymbol iterator, BindingDiagnosticBag diagnostics)
         {
             if (!iterator.IsIterator)
             {
                 return;
             }
 
-            foreach (var parameter in iterator.Parameters)
+            var parameters = iterator.GetParametersIncludingExtensionParameter(skipExtensionIfStatic: true);
+
+            foreach (var parameter in parameters)
             {
+                bool isReceiverParameter = parameter.IsExtensionParameter();
                 if (parameter.RefKind != RefKind.None)
                 {
-                    diagnostics.Add(ErrorCode.ERR_BadIteratorArgType, parameter.Locations[0]);
+                    var location = isReceiverParameter ? iterator.GetFirstLocation() : parameter.GetFirstLocation();
+                    diagnostics.Add(ErrorCode.ERR_BadIteratorArgType, location);
                 }
-                else if (parameter.Type.IsUnsafe())
+                else if (parameter.Type.IsPointerOrFunctionPointer() && !isReceiverParameter)
                 {
-                    diagnostics.Add(ErrorCode.ERR_UnsafeIteratorArgType, parameter.Locations[0]);
+                    // We already reported an error elsewhere if the receiver parameter of an extension is a pointer type.
+                    diagnostics.Add(ErrorCode.ERR_UnsafeIteratorArgType, parameter.GetFirstLocation());
                 }
             }
 
-            Location errorLocation = (iterator as SynthesizedSimpleProgramEntryPointSymbol)?.ReturnTypeSyntax.GetLocation() ?? iterator.Locations[0];
+            Location errorLocation = (iterator as SynthesizedSimpleProgramEntryPointSymbol)?.ReturnTypeSyntax.GetLocation() ?? iterator.GetFirstLocation();
             if (iterator.IsVararg)
             {
                 // error CS1636: __arglist is not allowed in the parameter list of iterators
@@ -129,7 +134,7 @@ namespace Microsoft.CodeAnalysis.CSharp
             if (((iterator as SourceMemberMethodSymbol)?.IsUnsafe == true || (iterator as LocalFunctionSymbol)?.IsUnsafe == true)
                 && compilation.Options.AllowUnsafe) // Don't cascade
             {
-                diagnostics.Add(ErrorCode.ERR_IllegalInnerUnsafe, errorLocation);
+                MessageID.IDS_FeatureRefUnsafeInIteratorAsync.CheckFeatureAvailability(diagnostics, compilation, errorLocation);
             }
 
             var returnType = iterator.ReturnType;
@@ -146,6 +151,10 @@ namespace Microsoft.CodeAnalysis.CSharp
                 {
                     Error(diagnostics, ErrorCode.ERR_BadIteratorReturn, errorLocation, iterator, returnType);
                 }
+            }
+            else if (elementType.IsRefLikeOrAllowsRefLikeType())
+            {
+                Error(diagnostics, ErrorCode.ERR_IteratorRefLikeElementType, errorLocation);
             }
 
             bool asyncInterface = InMethodBinder.IsAsyncStreamInterface(compilation, refKind, returnType);

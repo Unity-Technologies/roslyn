@@ -4,21 +4,18 @@
 
 #nullable disable
 
-using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics;
-using System.Globalization;
 using System.Linq;
-using System.Threading;
-using Microsoft.CodeAnalysis.Collections;
-using Microsoft.CodeAnalysis.PooledObjects;
+using Roslyn.Utilities;
 
 namespace Microsoft.CodeAnalysis.CSharp.Symbols.PublicModel
 {
     internal abstract class AssemblySymbol : Symbol, IAssemblySymbol
     {
+        private IEnumerable<IModuleSymbol> _lazyModules;
+
         internal abstract Symbols.AssemblySymbol UnderlyingAssemblySymbol { get; }
 
         INamespaceSymbol IAssemblySymbol.GlobalNamespace
@@ -33,10 +30,10 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols.PublicModel
         {
             get
             {
-                foreach (var module in UnderlyingAssemblySymbol.Modules)
-                {
-                    yield return module.GetPublicSymbol();
-                }
+                return InterlockedOperations.Initialize(
+                    ref _lazyModules,
+                    static self => self.UnderlyingAssemblySymbol.Modules.SelectAsArray(static module => module.GetPublicSymbol()),
+                    this);
             }
         }
 
@@ -84,9 +81,15 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols.PublicModel
 
                 AssemblyIdentity identity = UnderlyingAssemblySymbol.Identity;
 
+                // Avoid using the identity to obtain the public key if possible to avoid the allocations associated
+                // with identity creation
+                ImmutableArray<byte> publicKey = (assemblyWantingAccess is AssemblySymbol assemblyWantingAccessAssemblySymbol)
+                    ? assemblyWantingAccessAssemblySymbol.UnderlyingAssemblySymbol.PublicKey.NullToEmpty()
+                    : assemblyWantingAccess.Identity.PublicKey;
+
                 foreach (var key in myKeys)
                 {
-                    IVTConclusion conclusion = identity.PerformIVTCheck(assemblyWantingAccess.Identity.PublicKey, key);
+                    IVTConclusion conclusion = identity.PerformIVTCheck(publicKey, key);
                     Debug.Assert(conclusion != IVTConclusion.NoRelationshipClaimed);
                     if (conclusion == IVTConclusion.Match || conclusion == IVTConclusion.OneSignedOneNot)
                     {
@@ -98,10 +101,12 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols.PublicModel
             return false;
         }
 
-        INamedTypeSymbol IAssemblySymbol.GetTypeByMetadataName(string metadataName)
+#nullable enable
+        INamedTypeSymbol? IAssemblySymbol.GetTypeByMetadataName(string metadataName)
         {
             return UnderlyingAssemblySymbol.GetTypeByMetadataName(metadataName).GetPublicSymbol();
         }
+#nullable disable
 
         #region ISymbol Members
 
@@ -113,6 +118,11 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols.PublicModel
         protected override TResult Accept<TResult>(SymbolVisitor<TResult> visitor)
         {
             return visitor.VisitAssembly(this);
+        }
+
+        protected override TResult Accept<TArgument, TResult>(SymbolVisitor<TArgument, TResult> visitor, TArgument argument)
+        {
+            return visitor.VisitAssembly(this, argument);
         }
 
         #endregion

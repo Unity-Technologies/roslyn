@@ -7,7 +7,7 @@ Imports Microsoft.CodeAnalysis.Editor.VisualBasic.UnitTests.Diagnostics
 
 Namespace Microsoft.CodeAnalysis.Editor.VisualBasic.UnitTests.QualifyMemberAccess
     Partial Public Class QualifyMemberAccessTests
-        Inherits AbstractVisualBasicDiagnosticProviderBasedUserDiagnosticTest
+        Inherits AbstractVisualBasicDiagnosticProviderBasedUserDiagnosticTest_NoEditor
 
         <Fact>
         <Trait(Traits.Feature, Traits.Features.CodeActionsQualifyMemberAccess)>
@@ -80,7 +80,7 @@ End Class]]>
             Await TestInRegularAndScriptAsync(
                 initialMarkup:=input,
                 expectedMarkup:=expected,
-                options:=[Option](CodeStyleOptions2.QualifyPropertyAccess, True, NotificationOption2.Suggestion))
+                New TestParameters(options:=[Option](CodeStyleOptions2.QualifyPropertyAccess, True, NotificationOption2.Suggestion)))
         End Function
     End Class
 End Namespace

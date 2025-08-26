@@ -3,14 +3,14 @@
 // See the LICENSE file in the project root for more information.
 
 using System;
-using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Diagnostics;
 using System.IO;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.CodeAnalysis.ErrorReporting;
 using Newtonsoft.Json;
-using Roslyn.Utilities;
 using StreamJsonRpc;
 
 namespace Microsoft.CodeAnalysis.Interactive
@@ -23,7 +23,16 @@ namespace Microsoft.CodeAnalysis.Interactive
     /// </remarks>
     internal sealed partial class InteractiveHost : IDisposable
     {
-        internal const InteractiveHostPlatform DefaultPlatform = InteractiveHostPlatform.Desktop32;
+        internal const InteractiveHostPlatform DefaultPlatform = InteractiveHostPlatform.Core;
+
+        /// <summary>
+        /// Use Unicode encoding for STDOUT and STDERR of the InteractiveHost process.
+        /// Ideally, we would use UTF8 but SetConsoleOutputCP Windows API fails with "Invalid Handle" when Console.OutputEncoding is set to UTF8.
+        /// (issue tracked by https://github.com/dotnet/roslyn/issues/47571, https://devdiv.visualstudio.com/DevDiv/_workitems/edit/1253106)
+        /// Unicode is not ideal since the message printed directly to STDOUT/STDERR from native code that do not encode the output are going to be garbled
+        /// (e.g. messages reported by CLR stack overflow and OOM exception handlers: https://github.com/dotnet/runtime/issues/45503).
+        /// </summary>
+        internal static readonly Encoding OutputEncoding = Encoding.Unicode;
 
         private static readonly JsonRpcTargetOptions s_jsonRpcTargetOptions = new JsonRpcTargetOptions()
         {
@@ -251,7 +260,7 @@ namespace Microsoft.CodeAnalysis.Interactive
             }
             catch (Exception e) when (FatalError.ReportAndPropagate(e))
             {
-                throw ExceptionUtilities.Unreachable;
+                throw ExceptionUtilities.Unreachable();
             }
 
             return default;
@@ -296,6 +305,7 @@ namespace Microsoft.CodeAnalysis.Interactive
             var rpc = new JsonRpc(new HeaderDelimitedMessageHandler(stream, jsonFormatter))
             {
                 CancelLocallyInvokedMethodsWhenConnectionIsClosed = true,
+                ExceptionStrategy = ExceptionProcessing.ISerializable,
             };
 
             if (incomingCallTarget != null)
@@ -325,10 +335,7 @@ namespace Microsoft.CodeAnalysis.Interactive
                 var newService = CreateRemoteService(options, skipInitialization: false);
 
                 var oldService = Interlocked.Exchange(ref _lazyRemoteService, newService);
-                if (oldService != null)
-                {
-                    oldService.Dispose();
-                }
+                oldService?.Dispose();
 
                 var initializedService = await TryGetOrCreateRemoteServiceAsync().ConfigureAwait(false);
                 if (initializedService.Service == null)
@@ -340,7 +347,7 @@ namespace Microsoft.CodeAnalysis.Interactive
             }
             catch (Exception e) when (FatalError.ReportAndPropagate(e))
             {
-                throw ExceptionUtilities.Unreachable;
+                throw ExceptionUtilities.Unreachable();
             }
         }
 
@@ -390,10 +397,10 @@ namespace Microsoft.CodeAnalysis.Interactive
         /// <summary>
         /// Sets the current session's search paths and base directory.
         /// </summary>
-        public Task<RemoteExecutionResult> SetPathsAsync(string[] referenceSearchPaths, string[] sourceSearchPaths, string baseDirectory)
+        public Task<RemoteExecutionResult> SetPathsAsync(ImmutableArray<string> referenceSearchPaths, ImmutableArray<string> sourceSearchPaths, string baseDirectory)
         {
-            Contract.ThrowIfNull(referenceSearchPaths);
-            Contract.ThrowIfNull(sourceSearchPaths);
+            Contract.ThrowIfTrue(referenceSearchPaths.IsDefault);
+            Contract.ThrowIfTrue(sourceSearchPaths.IsDefault);
             Contract.ThrowIfNull(baseDirectory);
 
             return ExecuteRemoteAsync(nameof(Service.SetPathsAsync), referenceSearchPaths, sourceSearchPaths, baseDirectory);

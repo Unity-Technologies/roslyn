@@ -4,25 +4,19 @@
 
 #nullable disable
 
-using System;
-using System.Linq;
-using System.Threading.Tasks;
-using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.Text;
+using Microsoft.CodeAnalysis.Test.Utilities;
 using Microsoft.CodeAnalysis.VisualBasic;
-using Microsoft.VisualStudio.Composition;
 
-namespace Microsoft.CodeAnalysis.Editor.UnitTests.Workspaces
+namespace Microsoft.CodeAnalysis.Editor.UnitTests.Workspaces;
+
+public sealed class VisualBasicTestWorkspaceFixture : TestWorkspaceFixture
 {
-    public class VisualBasicTestWorkspaceFixture : TestWorkspaceFixture
+    protected override EditorTestWorkspace CreateWorkspace(TestComposition composition = null)
     {
-        protected override TestWorkspace CreateWorkspace(ExportProvider exportProvider = null)
-        {
-            return TestWorkspace.CreateVisualBasic(
-                new string[] { string.Empty },
-                new VisualBasicParseOptions[] { new VisualBasicParseOptions(kind: SourceCodeKind.Regular) },
-                new VisualBasicCompilationOptions(OutputKind.DynamicallyLinkedLibrary),
-                exportProvider: exportProvider);
-        }
+        return EditorTestWorkspace.CreateWithSingleEmptySourceFile(
+            LanguageNames.VisualBasic,
+            compilationOptions: new VisualBasicCompilationOptions(OutputKind.DynamicallyLinkedLibrary),
+            parseOptions: new VisualBasicParseOptions(kind: SourceCodeKind.Regular),
+            composition: composition);
     }
 }

@@ -24,7 +24,7 @@ namespace Microsoft.CodeAnalysis.CSharp.UnitTests.CodeGen
         {
         }
 
-        private CompilationVerifier CompileAndVerify(string source, string expectedOutput = null, IEnumerable<MetadataReference> references = null, CSharpCompilationOptions options = null, Verification verify = Verification.Passes)
+        private CompilationVerifier CompileAndVerify(string source, string expectedOutput = null, IEnumerable<MetadataReference> references = null, CSharpCompilationOptions options = null, Verification verify = default)
         {
             references = (references != null) ? references.Concat(s_asyncRefs) : s_asyncRefs;
             return base.CompileAndVerify(source, targetFramework: TargetFramework.Empty, expectedOutput: expectedOutput, references: references, options: options, verify: verify);
@@ -260,7 +260,7 @@ class C
             });
         }
 
-        [ConditionalFact(typeof(WindowsOnly), Reason = ConditionalSkipReason.NativePdbRequiresDesktop)]
+        [Fact]
         public void SynthesizedVariables1()
         {
             var source =
@@ -334,41 +334,49 @@ class C
                 }, module.GetFieldNames("C.<M>d__3"));
             });
 
-            vd.VerifyPdb("C.M", @"
-    <symbols>
-      <files>
-        <file id=""1"" name="""" language=""C#"" />
-      </files>
-      <methods>
-        <method containingType=""C"" name=""M"" parameterNames=""disposable"">
-          <customDebugInfo>
-            <forwardIterator name=""&lt;M&gt;d__3"" />
-            <encLocalSlotMap>
-              <slot kind=""6"" offset=""11"" />
-              <slot kind=""8"" offset=""11"" />
-              <slot kind=""0"" offset=""11"" />
-              <slot kind=""4"" offset=""53"" />
-              <slot kind=""6"" offset=""98"" />
-              <slot kind=""8"" offset=""98"" />
-              <slot kind=""0"" offset=""98"" />
-              <slot kind=""4"" offset=""151"" />
-              <slot kind=""4"" offset=""220"" />
-              <slot kind=""28"" offset=""261"" />
-              <slot kind=""28"" offset=""261"" ordinal=""1"" />
-              <slot kind=""28"" offset=""261"" ordinal=""2"" />
-              <slot kind=""28"" offset=""281"" />
-              <slot kind=""28"" offset=""281"" ordinal=""1"" />
-              <slot kind=""28"" offset=""281"" ordinal=""2"" />
-              <slot kind=""4"" offset=""307"" />
-              <slot kind=""4"" offset=""376"" />
-              <slot kind=""3"" offset=""410"" />
-              <slot kind=""2"" offset=""410"" />
-            </encLocalSlotMap>
-          </customDebugInfo>
-        </method>
-      </methods>
-    </symbols>
-");
+            if (ExecutionConditionUtil.IsWindows)
+            {
+                vd.VerifyPdb("C.M", @"
+<symbols>
+  <methods>
+    <method containingType=""C"" name=""M"" parameterNames=""disposable"">
+      <customDebugInfo>
+        <forwardIterator name=""&lt;M&gt;d__3"" />
+        <encLocalSlotMap>
+          <slot kind=""6"" offset=""11"" />
+          <slot kind=""8"" offset=""11"" />
+          <slot kind=""0"" offset=""11"" />
+          <slot kind=""4"" offset=""53"" />
+          <slot kind=""6"" offset=""98"" />
+          <slot kind=""8"" offset=""98"" />
+          <slot kind=""0"" offset=""98"" />
+          <slot kind=""4"" offset=""151"" />
+          <slot kind=""4"" offset=""220"" />
+          <slot kind=""28"" offset=""261"" />
+          <slot kind=""28"" offset=""261"" ordinal=""1"" />
+          <slot kind=""28"" offset=""261"" ordinal=""2"" />
+          <slot kind=""28"" offset=""281"" />
+          <slot kind=""28"" offset=""281"" ordinal=""1"" />
+          <slot kind=""28"" offset=""281"" ordinal=""2"" />
+          <slot kind=""4"" offset=""307"" />
+          <slot kind=""4"" offset=""376"" />
+          <slot kind=""3"" offset=""410"" />
+          <slot kind=""2"" offset=""410"" />
+        </encLocalSlotMap>
+        <encStateMachineStateMap>
+          <state number=""0"" offset=""74"" />
+          <state number=""1"" offset=""172"" />
+          <state number=""4"" offset=""241"" />
+          <state number=""3"" offset=""261"" />
+          <state number=""2"" offset=""281"" />
+          <state number=""5"" offset=""328"" />
+        </encStateMachineStateMap>
+      </customDebugInfo>
+    </method>
+  </methods>
+</symbols>
+", options: PdbValidationOptions.ExcludeDocuments);
+            }
         }
 
         [Fact]
@@ -472,6 +480,13 @@ class Test
 42
 ";
             CompileAndVerify(source, expectedOutput: expected, references: new[] { CSharpRef });
+
+            var comp = CreateRuntimeAsyncCompilation(source);
+            comp.VerifyEmitDiagnostics(
+                // (9,16): error CS9328: Method 'Test.F(dynamic)' uses a feature that is not supported by runtime async currently. Opt the method out of runtime async by attributing it with 'System.Runtime.CompilerServices.RuntimeAsyncMethodGenerationAttribute(false)'.
+                //         return await t;
+                Diagnostic(ErrorCode.ERR_UnsupportedFeatureInRuntimeAsync, "await t").WithArguments("Test.F(dynamic)").WithLocation(9, 16)
+            );
         }
 
         [Fact]
@@ -953,8 +968,8 @@ class Test
         Run();
     }
 }";
-            var reference = CreateCompilationWithMscorlib45(source, references: new MetadataReference[] { SystemRef_v4_0_30319_17929 }).EmitToImageReference();
-            var comp = CreateCompilationWithMscorlib45("", new[] { reference }, options: TestOptions.ReleaseDll.WithMetadataImportOptions(MetadataImportOptions.Internal));
+            var reference = CreateCompilationWithMscorlib461(source, references: new MetadataReference[] { SystemRef_v4_0_30319_17929 }).EmitToImageReference();
+            var comp = CreateCompilationWithMscorlib461("", new[] { reference }, options: TestOptions.ReleaseDll.WithMetadataImportOptions(MetadataImportOptions.Internal));
             var testClass = comp.GlobalNamespace.GetMember<NamedTypeSymbol>("Test");
             var stateMachineClass = (NamedTypeSymbol)testClass.GetMembers().Single(s => s.Name.StartsWith("<Run>", StringComparison.Ordinal));
             IEnumerable<IGrouping<TypeSymbol, FieldSymbol>> spillFieldsByType = stateMachineClass.GetMembers().Where(m => m.Kind == SymbolKind.Field && m.Name.StartsWith("<>7__wrap", StringComparison.Ordinal)).Cast<FieldSymbol>().GroupBy(x => x.Type);

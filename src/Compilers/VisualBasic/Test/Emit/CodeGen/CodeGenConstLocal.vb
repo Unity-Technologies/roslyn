@@ -3,12 +3,7 @@
 ' See the LICENSE file in the project root for more information.
 
 Imports Microsoft.CodeAnalysis
-Imports Microsoft.CodeAnalysis.Test.Utilities
-Imports Microsoft.CodeAnalysis.Text
 Imports Microsoft.CodeAnalysis.VisualBasic
-Imports Microsoft.CodeAnalysis.VisualBasic.Symbols
-Imports Microsoft.CodeAnalysis.VisualBasic.Syntax
-Imports Microsoft.CodeAnalysis.VisualBasic.UnitTests.Emit
 Imports Roslyn.Test.Utilities
 
 Namespace Microsoft.CodeAnalysis.VisualBasic.UnitTests
@@ -795,17 +790,18 @@ End Module
 <compilation>
     <file name="a.vb">
 Imports System
+Imports System.Globalization
 Module C
     Sub Main()
         const temp1 as single = 23334800f / 5.5f
         console.WriteLine(Microsoft.VisualBasic.Int(temp1))
         console.WriteLine(Microsoft.VisualBasic.Int(23334800f / 5.5f))
-        console.WriteLine(temp1 * 5.5)
+        console.WriteLine((temp1 * 5.5).ToString(CultureInfo.InvariantCulture))
 
         const temp2 as double = 23334800.0 / 5.5
         console.WriteLine(Microsoft.VisualBasic.Int(temp2))
         console.WriteLine(Microsoft.VisualBasic.Int(23334800.0 / 5.5))
-        console.WriteLine(temp2 * 5.5)
+        console.WriteLine((temp2 * 5.5).ToString(CultureInfo.InvariantCulture))
     End Sub
 End Module
     </file>
@@ -817,6 +813,109 @@ End Module
 4242690
 23334800
             ]]>)
+        End Sub
+
+        <Fact()>
+        <WorkItem(49902, "https://github.com/dotnet/roslyn/issues/49902")>
+        Public Sub BadConstantValue_1()
+            Dim compilation = CreateCompilation(
+<compilation>
+    <file name="c.vb">
+Class Test
+
+    Shared Sub Main()
+        Dim z As Integer = 2
+        Const w As Integer = 2 ^ z
+    End Sub
+
+End Class
+    </file>
+</compilation>)
+
+            compilation.AssertTheseEmitDiagnostics(
+<expected>
+BC30059: Constant expression is required.
+        Const w As Integer = 2 ^ z
+                                 ~
+</expected>)
+        End Sub
+
+        <Fact()>
+        <WorkItem(49902, "https://github.com/dotnet/roslyn/issues/49902")>
+        Public Sub BadConstantValue_2()
+            Dim compilation = CreateCompilation(
+<compilation>
+    <file name="c.vb">
+Class Test
+
+    Shared Sub Main()
+        Dim z As Integer = 2
+        Const w As Integer = z
+    End Sub
+
+End Class
+    </file>
+</compilation>)
+
+            compilation.AssertTheseEmitDiagnostics(
+<expected>
+BC30059: Constant expression is required.
+        Const w As Integer = z
+                             ~
+</expected>)
+        End Sub
+
+        <Fact()>
+        <WorkItem(49902, "https://github.com/dotnet/roslyn/issues/49902")>
+        Public Sub BadConstantValue_3()
+            Dim compilation = CreateCompilation(
+<compilation>
+    <file name="c.vb">
+Class Test
+
+    Shared Sub Main()
+        Dim z As Integer = 2
+        Const w As Integer = z ^ 2
+    End Sub
+
+End Class
+    </file>
+</compilation>)
+
+            compilation.AssertTheseEmitDiagnostics(
+<expected>
+BC30059: Constant expression is required.
+        Const w As Integer = z ^ 2
+                             ~
+</expected>)
+        End Sub
+
+        <Fact()>
+        <WorkItem(49902, "https://github.com/dotnet/roslyn/issues/49902")>
+        Public Sub BadConstantValue_4()
+            Dim compilation = CreateCompilation(
+<compilation>
+    <file name="c.vb">
+Class Test
+
+    Shared Sub Main()
+        Dim z As Integer = 2
+        Const w As Integer = z ^ z
+    End Sub
+
+End Class
+    </file>
+</compilation>)
+
+            compilation.AssertTheseEmitDiagnostics(
+<expected>
+BC30059: Constant expression is required.
+        Const w As Integer = z ^ z
+                             ~
+BC30059: Constant expression is required.
+        Const w As Integer = z ^ z
+                                 ~
+</expected>)
         End Sub
     End Class
 

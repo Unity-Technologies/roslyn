@@ -2,7 +2,6 @@
 ' The .NET Foundation licenses this file to you under the MIT license.
 ' See the LICENSE file in the project root for more information.
 
-Imports Microsoft.CodeAnalysis.Test.Extensions
 Imports Microsoft.CodeAnalysis.Test.Utilities
 Imports Microsoft.CodeAnalysis.VisualBasic.Symbols
 Imports Microsoft.CodeAnalysis.VisualBasic.Syntax
@@ -783,7 +782,6 @@ End Structure
     ]]>)
         End Sub
 
-
         <Fact()>
         Public Sub SimpleRaiseHandlerWithImplementedEvent()
             CompileAndVerify(
@@ -1481,7 +1479,6 @@ End Module]]>,
                 Diagnostic(ERRID.ERR_EventHandlerSignatureIncompatible2, "ev").WithArguments("Goo2", "ev"),
                 Diagnostic(ERRID.ERR_EventHandlerSignatureIncompatible2, "ev").WithArguments("Goo2", "ev"))
         End Sub
-
 
         <Fact()>
         Public Sub WithEventsProperty()

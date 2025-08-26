@@ -2,32 +2,33 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
-#nullable disable
-
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Diagnostics;
 using System.Reflection.Emit;
 using System.Reflection.Metadata;
 using System.Text;
-using Microsoft.CodeAnalysis.PooledObjects;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CodeGen;
+using Microsoft.CodeAnalysis.Emit;
+using Microsoft.CodeAnalysis.PooledObjects;
+using Microsoft.CodeAnalysis.Symbols;
 using Microsoft.Metadata.Tools;
 using Roslyn.Utilities;
 using Cci = Microsoft.Cci;
-using Microsoft.CodeAnalysis.Symbols;
-using System.Diagnostics;
 
 namespace Roslyn.Test.Utilities
 {
     internal sealed class ILBuilderVisualizer : ILVisualizer
     {
-        private readonly ITokenDeferral _tokenDeferral;
+        private readonly CommonPEModuleBuilder _module;
+        private readonly SymbolDisplayFormat _symbolDisplayFormat;
 
-        public ILBuilderVisualizer(ITokenDeferral tokenDeferral)
+        public ILBuilderVisualizer(CommonPEModuleBuilder module, SymbolDisplayFormat? symbolDisplayFormat = null)
         {
-            _tokenDeferral = tokenDeferral;
+            _module = module;
+            _symbolDisplayFormat = symbolDisplayFormat ?? SymbolDisplayFormat.ILVisualizationFormat;
         }
 
         public override string VisualizeUserString(uint token)
@@ -38,49 +39,42 @@ namespace Roslyn.Test.Utilities
                 return "##MVID##";
             }
 
-            return "\"" + _tokenDeferral.GetStringFromToken(token) + "\"";
+            return "\"" + _module.GetStringFromToken(token) + "\"";
         }
 
         public override string VisualizeSymbol(uint token, OperandType operandType)
         {
             if (operandType == OperandType.InlineTok)
             {
-                // Check for an encoding of the maximum method token index value.
-                if ((token & 0xff000000) == 0x40000000)
+                switch ((Cci.MetadataWriter.RawTokenEncoding)(token >> 24))
                 {
-                    return "Max Method Token Index";
+                    case Cci.MetadataWriter.RawTokenEncoding.GreatestMethodDefinitionRowId:
+                        return "Max Method Token Index";
+
+                    case Cci.MetadataWriter.RawTokenEncoding.DocumentRowId:
+                        return "Source Document " + (token & 0x00ffffff).ToString();
                 }
 
-                // Check for an encoding of a source document index.
-                if ((token & 0xff000000) == 0x20000000)
-                {
-                    return "Source Document " + (token & 0x00ffffff).ToString();
-                }
-
-                // Check for a raw token value, encoded with a 1 high-order bit.
-                if ((token & 0x80000000) != 0 && token != 0xffffffff)
-                {
-                    token &= 0x7fffffff;
-                }
+                token &= 0xffffff;
             }
 
-            object reference = _tokenDeferral.GetReferenceFromToken(token);
-            ISymbol symbol = ((reference as ISymbolInternal) ?? (reference as Cci.IReference)?.GetInternalSymbol())?.GetISymbol();
-            return string.Format("\"{0}\"", symbol == null ? (object)reference : symbol.ToDisplayString(SymbolDisplayFormat.ILVisualizationFormat));
+            object reference = _module.GetReferenceFromToken(token);
+            ISymbol? symbol = ((reference as ISymbolInternal) ?? (reference as Cci.IReference)?.GetInternalSymbol())?.GetISymbol();
+            return string.Format("\"{0}\"", symbol == null ? (object)reference : symbol.ToDisplayString(_symbolDisplayFormat));
         }
 
-        public override string VisualizeLocalType(object type)
+        public override string? VisualizeLocalType(object type)
         {
-            return (((type as ISymbolInternal) ?? (type as Cci.IReference)?.GetInternalSymbol()) is ISymbolInternal symbol) ? symbol.GetISymbol().ToDisplayString(SymbolDisplayFormat.ILVisualizationFormat) : type.ToString();
+            return (((type as ISymbolInternal) ?? (type as Cci.IReference)?.GetInternalSymbol()) is ISymbolInternal symbol) ? symbol.GetISymbol().ToDisplayString(_symbolDisplayFormat) : type.ToString();
         }
 
         /// <summary>
         /// Determine the list of spans ordered by handler
         /// block start, with outer handlers before inner.
         /// </summary>
-        private static List<HandlerSpan> GetHandlerSpans(ImmutableArray<Cci.ExceptionHandlerRegion> regions)
+        private static List<HandlerSpan>? GetHandlerSpans(ImmutableArray<Cci.ExceptionHandlerRegion> regions)
         {
-            if (regions.Length == 0)
+            if (regions.IsDefaultOrEmpty)
             {
                 return null;
             }
@@ -142,9 +136,12 @@ namespace Roslyn.Test.Utilities
         /// </remarks>
         internal static string ILBuilderToString(
             ILBuilder builder,
-            Func<Cci.ILocalDefinition, LocalInfo> mapLocal = null,
-            IReadOnlyDictionary<int, string> markers = null)
+            Func<Cci.ILocalDefinition, LocalInfo>? mapLocal = null,
+            IReadOnlyDictionary<int, string>? markers = null,
+            SymbolDisplayFormat? ilFormat = null)
         {
+            Debug.Assert(builder.LocalSlotManager != null);
+
             var sb = new StringBuilder();
 
             var ilStream = builder.RealizedIL;
@@ -154,7 +151,7 @@ namespace Roslyn.Test.Utilities
             }
 
             var locals = builder.LocalSlotManager.LocalsInOrder().SelectAsArray(mapLocal);
-            var visualizer = new ILBuilderVisualizer(builder.module);
+            var visualizer = new ILBuilderVisualizer(builder.module, ilFormat);
 
             if (!ilStream.IsDefault)
             {
@@ -181,8 +178,10 @@ namespace Roslyn.Test.Utilities
 
         internal static string LocalSignatureToString(
             ILBuilder builder,
-            Func<Cci.ILocalDefinition, LocalInfo> mapLocal = null)
+            Func<Cci.ILocalDefinition, LocalInfo>? mapLocal = null)
         {
+            Debug.Assert(builder.LocalSlotManager != null);
+
             var sb = new StringBuilder();
 
             if (mapLocal == null)
@@ -194,13 +193,6 @@ namespace Roslyn.Test.Utilities
             var visualizer = new ILBuilderVisualizer(builder.module);
 
             visualizer.VisualizeHeader(sb, -1, -1, locals);
-            return sb.ToString();
-        }
-
-        private static string BasicBlockToString(ILBuilder.BasicBlock block)
-        {
-            StringBuilder sb = new StringBuilder();
-            DumpBlockIL(block, sb);
             return sb.ToString();
         }
 

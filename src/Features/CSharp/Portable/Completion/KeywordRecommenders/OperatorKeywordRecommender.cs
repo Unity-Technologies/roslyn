@@ -2,30 +2,21 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
-#nullable disable
-
 using System.Threading;
 using Microsoft.CodeAnalysis.CSharp.Extensions.ContextQuery;
 
-namespace Microsoft.CodeAnalysis.CSharp.Completion.KeywordRecommenders
+namespace Microsoft.CodeAnalysis.CSharp.Completion.KeywordRecommenders;
+
+internal sealed class OperatorKeywordRecommender() : AbstractSyntacticSingleKeywordRecommender(SyntaxKind.OperatorKeyword)
 {
-    internal class OperatorKeywordRecommender : AbstractSyntacticSingleKeywordRecommender
+    protected override bool IsValidContext(int position, CSharpSyntaxContext context, CancellationToken cancellationToken)
     {
-        public OperatorKeywordRecommender()
-            : base(SyntaxKind.OperatorKeyword)
-        {
-        }
+        // cases:
+        //   public static implicit |
+        //   public static explicit |
+        var token = context.TargetToken;
 
-        protected override bool IsValidContext(int position, CSharpSyntaxContext context, CancellationToken cancellationToken)
-        {
-            // cases:
-            //   public static implicit |
-            //   public static explicit |
-            var token = context.TargetToken;
-
-            return
-                token.Kind() == SyntaxKind.ImplicitKeyword ||
-                token.Kind() == SyntaxKind.ExplicitKeyword;
-        }
+        return
+            token.Kind() is SyntaxKind.ImplicitKeyword or SyntaxKind.ExplicitKeyword;
     }
 }

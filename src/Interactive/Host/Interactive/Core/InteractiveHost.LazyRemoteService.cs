@@ -3,20 +3,16 @@
 // See the LICENSE file in the project root for more information.
 
 extern alias Scripting;
-
 using System;
-using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Globalization;
-using System.IO;
 using System.IO.Pipes;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.CodeAnalysis.ErrorReporting;
 using Roslyn.Utilities;
-using StreamJsonRpc;
 using Scripting::Microsoft.CodeAnalysis.Scripting.Hosting;
+using StreamJsonRpc;
 
 namespace Microsoft.CodeAnalysis.Interactive
 {
@@ -34,7 +30,7 @@ namespace Microsoft.CodeAnalysis.Interactive
 
             public LazyRemoteService(InteractiveHost host, InteractiveHostOptions options, int instanceId, bool skipInitialization)
             {
-                _lazyInitializedService = new AsyncLazy<InitializedRemoteService>(TryStartAndInitializeProcessAsync, cacheResult: true);
+                _lazyInitializedService = AsyncLazy.Create(static (self, cancellationToken) => self.TryStartAndInitializeProcessAsync(cancellationToken), this);
                 _cancellationSource = new CancellationTokenSource();
                 InstanceId = instanceId;
                 Options = options;
@@ -65,7 +61,7 @@ namespace Microsoft.CodeAnalysis.Interactive
             {
                 try
                 {
-                    var remoteService = await TryStartProcessAsync(Options.HostPath, Options.Culture, cancellationToken).ConfigureAwait(false);
+                    var remoteService = await TryStartProcessAsync(Options.HostPath, Options.Culture, Options.UICulture, cancellationToken).ConfigureAwait(false);
                     if (remoteService == null)
                     {
                         return default;
@@ -77,13 +73,13 @@ namespace Microsoft.CodeAnalysis.Interactive
                     {
                         result = new RemoteExecutionResult(
                             success: true,
-                            sourcePaths: ImmutableArray<string>.Empty,
-                            referencePaths: ImmutableArray<string>.Empty,
+                            sourcePaths: [],
+                            referencePaths: [],
                             workingDirectory: Host._initialWorkingDirectory,
                             initializationResult: new RemoteInitializationResult(
                                 initializationScript: null,
-                                metadataReferencePaths: ImmutableArray.Create(typeof(object).Assembly.Location, typeof(InteractiveScriptGlobals).Assembly.Location),
-                                imports: ImmutableArray<string>.Empty));
+                                metadataReferencePaths: [typeof(object).Assembly.Location, typeof(InteractiveScriptGlobals).Assembly.Location],
+                                imports: []));
 
                         Host.ProcessInitialized?.Invoke(remoteService.PlatformInfo, Options, result);
                         return new InitializedRemoteService(remoteService, result);
@@ -123,13 +119,18 @@ namespace Microsoft.CodeAnalysis.Interactive
 
                     return new InitializedRemoteService(remoteService, result);
                 }
+#pragma warning disable CA2016 // Forward the 'CancellationToken' parameter to methods
+                // await ExecuteRemoteAsync above does not take cancellationToken
+                // - we don't currently support cancellation of the RPC call,
+                // but JsonRpc.InvokeAsync that we use still claims it may throw OperationCanceledException..
                 catch (Exception e) when (FatalError.ReportAndPropagateUnlessCanceled(e))
+#pragma warning restore CA2016
                 {
-                    throw ExceptionUtilities.Unreachable;
+                    throw ExceptionUtilities.Unreachable();
                 }
             }
 
-            private async Task<RemoteService?> TryStartProcessAsync(string hostPath, CultureInfo culture, CancellationToken cancellationToken)
+            private async Task<RemoteService?> TryStartProcessAsync(string hostPath, CultureInfo culture, CultureInfo uiCulture, CancellationToken cancellationToken)
             {
                 int currentProcessId = Process.GetCurrentProcess().Id;
                 var pipeName = typeof(InteractiveHost).FullName + Guid.NewGuid();
@@ -138,14 +139,14 @@ namespace Microsoft.CodeAnalysis.Interactive
                 {
                     StartInfo = new ProcessStartInfo(hostPath)
                     {
-                        Arguments = pipeName + " " + currentProcessId,
+                        Arguments = $"{pipeName} {currentProcessId} \"{culture.Name}\" \"{uiCulture.Name}\"",
                         WorkingDirectory = Host._initialWorkingDirectory,
                         CreateNoWindow = true,
                         UseShellExecute = false,
                         RedirectStandardOutput = true,
                         RedirectStandardError = true,
-                        StandardErrorEncoding = Encoding.UTF8,
-                        StandardOutputEncoding = Encoding.UTF8
+                        StandardErrorEncoding = OutputEncoding,
+                        StandardOutputEncoding = OutputEncoding
                     },
 
                     // enables Process.Exited event to be raised:
@@ -206,7 +207,7 @@ namespace Microsoft.CodeAnalysis.Interactive
 
                     platformInfo = (await jsonRpc.InvokeWithCancellationAsync<InteractiveHostPlatformInfo.Data>(
                         nameof(Service.InitializeAsync),
-                        new object[] { Host._replServiceProviderType.AssemblyQualifiedName, culture.Name },
+                        new object[] { Host._replServiceProviderType.AssemblyQualifiedName },
                         cancellationToken).ConfigureAwait(false)).Deserialize();
                 }
                 catch (Exception e)
@@ -226,7 +227,7 @@ namespace Microsoft.CodeAnalysis.Interactive
                     newProcess.Exited -= ProcessExitedBeforeEstablishingConnection;
                 }
 
-                return new RemoteService(Host, newProcess, newProcessId, jsonRpc, platformInfo);
+                return new RemoteService(Host, newProcess, newProcessId, jsonRpc, platformInfo, Options);
             }
 
             private bool CheckAlive(Process process, string hostPath)

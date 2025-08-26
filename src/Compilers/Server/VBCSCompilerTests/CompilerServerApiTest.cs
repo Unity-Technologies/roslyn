@@ -19,74 +19,17 @@ using System.Diagnostics;
 using System.IO;
 using Microsoft.CodeAnalysis.Test.Utilities;
 using static Microsoft.CodeAnalysis.CommandLine.BuildResponse;
+using Xunit.Abstractions;
 
 namespace Microsoft.CodeAnalysis.CompilerServer.UnitTests
 {
     public class CompilerServerApiTest : TestBase
     {
-        private const string HelloWorldSourceText = @"
-using System;
-class Hello
-{
-    static void Main()
-    {
-        Console.WriteLine(""Hello, world.""); 
-    }
-}";
+        internal ICompilerServerLogger Logger { get; }
 
-        private static Task TaskFromException(Exception e)
+        public CompilerServerApiTest(ITestOutputHelper testOutputHelper)
         {
-            return TaskFromException<bool>(e);
-        }
-
-        private static Task<T> TaskFromException<T>(Exception e)
-        {
-            var source = new TaskCompletionSource<T>();
-            source.SetException(e);
-            return source.Task;
-        }
-
-        private async Task<BuildRequest> CreateBuildRequest(string sourceText, TimeSpan? keepAlive = null)
-        {
-            var directory = Temp.CreateDirectory();
-            var file = directory.CreateFile("temp.cs");
-            await file.WriteAllTextAsync(sourceText).ConfigureAwait(false);
-
-            var builder = ImmutableArray.CreateBuilder<BuildRequest.Argument>();
-            if (keepAlive.HasValue)
-            {
-                builder.Add(new BuildRequest.Argument(BuildProtocolConstants.ArgumentId.KeepAlive, argumentIndex: 0, value: keepAlive.Value.TotalSeconds.ToString()));
-            }
-
-            builder.Add(new BuildRequest.Argument(BuildProtocolConstants.ArgumentId.CurrentDirectory, argumentIndex: 0, value: directory.Path));
-            builder.Add(new BuildRequest.Argument(BuildProtocolConstants.ArgumentId.CommandLineArgument, argumentIndex: 0, value: file.Path));
-
-            return new BuildRequest(
-                BuildProtocolConstants.ProtocolVersion,
-                RequestLanguage.CSharpCompile,
-                BuildProtocolConstants.GetCommitHash(),
-                builder.ToImmutable());
-        }
-
-        /// <summary>
-        /// Run a C# compilation against the given source text using the provided named pipe name.
-        /// </summary>
-        private async Task<BuildResponse> RunCSharpCompile(string pipeName, string sourceText, TimeSpan? keepAlive = null)
-        {
-            using (var namedPipe = new NamedPipeClientStream(".", pipeName, PipeDirection.InOut))
-            {
-                var buildRequest = await CreateBuildRequest(sourceText, keepAlive).ConfigureAwait(false);
-                namedPipe.Connect(Timeout.Infinite);
-                await buildRequest.WriteAsync(namedPipe, default(CancellationToken)).ConfigureAwait(false);
-                return await BuildResponse.ReadAsync(namedPipe, default(CancellationToken)).ConfigureAwait(false);
-            }
-        }
-
-        private static Task<T> FromException<T>(Exception ex)
-        {
-            var source = new TaskCompletionSource<T>();
-            source.SetException(ex);
-            return source.Task;
+            Logger = new XunitCompilerServerLogger(testOutputHelper);
         }
 
         [Fact]
@@ -96,7 +39,7 @@ class Hello
             var mutexName = BuildServerConnection.GetServerMutexName(pipeName);
 
             bool holdsMutex;
-            using (var mutex = new Mutex(initiallyOwned: true,
+            using (var mutex = BuildServerConnection.OpenOrCreateMutex(
                                          name: mutexName,
                                          createdNew: out holdsMutex))
             {
@@ -112,7 +55,7 @@ class Hello
                 }
                 finally
                 {
-                    mutex.ReleaseMutex();
+                    mutex.Dispose();
                 }
             }
         }
@@ -168,25 +111,17 @@ class Hello
         public async Task RejectEmptyTempPath()
         {
             using var temp = new TempRoot();
-            using var serverData = await ServerUtil.CreateServer().ConfigureAwait(false);
+            using var serverData = await ServerUtil.CreateServer(Logger);
             var request = BuildRequest.Create(RequestLanguage.CSharpCompile, workingDirectory: temp.CreateDirectory().Path, tempDirectory: null, compilerHash: BuildProtocolConstants.GetCommitHash(), libDirectory: null, args: Array.Empty<string>());
-            var response = await serverData.SendAsync(request).ConfigureAwait(false);
+            var response = await serverData.SendAsync(request);
             Assert.Equal(ResponseType.Rejected, response.Type);
-        }
-
-        [Fact]
-        public async Task IncorrectProtocolReturnsMismatchedVersionResponse()
-        {
-            using var serverData = await ServerUtil.CreateServer().ConfigureAwait(false);
-            var buildResponse = await serverData.SendAsync(new BuildRequest(1, RequestLanguage.CSharpCompile, "abc", new List<BuildRequest.Argument> { })).ConfigureAwait(false);
-            Assert.Equal(BuildResponse.ResponseType.MismatchedVersion, buildResponse.Type);
         }
 
         [Fact]
         public async Task IncorrectServerHashReturnsIncorrectHashResponse()
         {
-            using var serverData = await ServerUtil.CreateServer().ConfigureAwait(false);
-            var buildResponse = await serverData.SendAsync(new BuildRequest(BuildProtocolConstants.ProtocolVersion, RequestLanguage.CSharpCompile, "abc", new List<BuildRequest.Argument> { })).ConfigureAwait(false);
+            using var serverData = await ServerUtil.CreateServer(Logger);
+            var buildResponse = await serverData.SendAsync(new BuildRequest(RequestLanguage.CSharpCompile, "abc", new List<BuildRequest.Argument> { }));
             Assert.Equal(BuildResponse.ResponseType.IncorrectHash, buildResponse.Type);
         }
 
@@ -195,9 +130,9 @@ class Hello
         public void QuotePipeName_Desktop()
         {
             var serverInfo = BuildServerConnection.GetServerProcessInfo(@"q:\tools", "name with space");
-            Assert.Equal(@"q:\tools\VBCSCompiler.exe", serverInfo.processFilePath);
-            Assert.Equal(@"q:\tools\VBCSCompiler.exe", serverInfo.toolFilePath);
-            Assert.Equal(@"""-pipename:name with space""", serverInfo.commandLineArguments);
+            // Because q:\tools\VBCSCompiler.exe does not exist, the fallback 'dotnet exec VBCSCompiler.dll' is returned.
+            Assert.EndsWith(@"\dotnet.exe", serverInfo.processFilePath);
+            Assert.Equal(@"exec ""q:\tools\VBCSCompiler.dll"" ""-pipename:name with space""", serverInfo.commandLineArguments);
         }
 
         [ConditionalFact(typeof(CoreClrOnly))]
@@ -209,7 +144,6 @@ class Hello
                 : "/tools";
             var serverInfo = BuildServerConnection.GetServerProcessInfo(toolDir, "name with space");
             var vbcsFilePath = Path.Combine(toolDir, "VBCSCompiler.dll");
-            Assert.Equal(vbcsFilePath, serverInfo.toolFilePath);
             Assert.Equal($@"exec ""{vbcsFilePath}"" ""-pipename:name with space""", serverInfo.commandLineArguments);
         }
 

@@ -5,14 +5,10 @@
 #nullable disable
 
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace BuildBoss
 {
-    internal struct ProjectReferenceEntry
+    internal readonly struct ProjectReferenceEntry
     {
         internal string FileName { get; }
         internal Guid? Project { get; }

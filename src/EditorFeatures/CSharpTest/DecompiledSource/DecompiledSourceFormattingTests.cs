@@ -7,229 +7,243 @@
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using Microsoft.CodeAnalysis.Editor.CSharp.DecompiledSource;
-using Microsoft.CodeAnalysis.Editor.UnitTests.Workspaces;
+using Microsoft.CodeAnalysis.CSharp.DecompiledSource;
+using Microsoft.CodeAnalysis.CSharp.Formatting;
 using Microsoft.CodeAnalysis.Test.Utilities;
 using Roslyn.Test.Utilities;
 using Xunit;
 
-namespace Microsoft.CodeAnalysis.Editor.CSharp.UnitTests.DecompiledSource
-{
-    [UseExportProvider]
-    public class DecompiledSourceFormattingTests
-    {
-        [Fact, Trait(Traits.Feature, Traits.Features.DecompiledSource)]
-        public async Task TestIfFormatting1()
-        {
-            await TestAsync(
-@"class C {
-  void M() {
-    if (true) {
-    }
-  }
-}",
-@"class C
-{
-    void M()
-    {
-        if (true)
-        {
-        }
-    }
-}");
-        }
+namespace Microsoft.CodeAnalysis.Editor.CSharp.UnitTests.DecompiledSource;
 
-        [Fact, Trait(Traits.Feature, Traits.Features.DecompiledSource)]
-        public async Task TestIfFormatting2()
-        {
-            await TestAsync(
-@"class C {
-  void M() {
-    if (true) {
-    }
-    return;
-  }
-}",
-@"class C
+[UseExportProvider]
+[Trait(Traits.Feature, Traits.Features.DecompiledSource)]
+public sealed class DecompiledSourceFormattingTests
 {
-    void M()
-    {
-        if (true)
-        {
-        }
-
-        return;
-    }
-}");
-        }
-
-        [Fact, Trait(Traits.Feature, Traits.Features.DecompiledSource)]
-        public async Task TestIfFormatting3()
-        {
-            await TestAsync(
-@"class C {
-  void M() {
-    if (true) {
-    } else {
-    return;
-}
-  }
-}",
-@"class C
-{
-    void M()
-    {
-        if (true)
-        {
-        }
-        else
-        {
-            return;
-        }
-    }
-}");
-        }
-
-        [Fact, Trait(Traits.Feature, Traits.Features.DecompiledSource)]
-        public async Task TestTryCatchFinally()
-        {
-            await TestAsync(
-@"class C {
-  void M() {
-    try {
-    } catch {
-    } finally {
-    }
-  }
-}",
-@"class C
-{
-    void M()
-    {
-        try
-        {
-        }
-        catch
-        {
-        }
-        finally
-        {
-        }
-    }
-}");
-        }
-
-        [Fact, Trait(Traits.Feature, Traits.Features.DecompiledSource)]
-        public async Task TestDoWhile()
-        {
-            await TestAsync(
-@"class C {
-  void M() {
-    do {
-    } while(true);
-  }
-}",
-@"class C
-{
-    void M()
-    {
-        do
-        {
-        } while (true);
-    }
-}");
-        }
-
-        [Fact, Trait(Traits.Feature, Traits.Features.DecompiledSource)]
-        public async Task TestNestedIf()
-        {
-            await TestAsync(
-@"class C {
-  void M() {
-    if (true) {
-        if (true) {
-        }
-    }
-  }
-}",
-@"class C
-{
-    void M()
-    {
-        if (true)
-        {
-            if (true)
-            {
+    [Fact]
+    public Task TestIfFormatting1()
+        => TestAsync(
+            """
+            class C {
+              void M() {
+                if (true) {
+                }
+              }
             }
-        }
-    }
-}");
-        }
+            """,
+            """
+            class C
+            {
+                void M()
+                {
+                    if (true)
+                    {
+                    }
+                }
+            }
+            """);
 
-        [Fact, Trait(Traits.Feature, Traits.Features.DecompiledSource)]
-        public async Task TestBraces()
-        {
-            await TestAsync(
-@"class C {
-  void M() {
-    if (true) {
-    }
-    while (true) {
-    }
-    switch (true) {
-    }
-    try {
-    } finally {
-    }
-    using (null) {
-    }
-    foreach (var x in y) {
-    }
-  }
-}",
-@"class C
-{
-    void M()
+    [Fact]
+    public Task TestIfFormatting2()
+        => TestAsync(
+            """
+            class C {
+              void M() {
+                if (true) {
+                }
+                return;
+              }
+            }
+            """,
+            """
+            class C
+            {
+                void M()
+                {
+                    if (true)
+                    {
+                    }
+
+                    return;
+                }
+            }
+            """);
+
+    [Fact]
+    public Task TestIfFormatting3()
+        => TestAsync(
+            """
+            class C {
+              void M() {
+                if (true) {
+                } else {
+                return;
+            }
+              }
+            }
+            """,
+            """
+            class C
+            {
+                void M()
+                {
+                    if (true)
+                    {
+                    }
+                    else
+                    {
+                        return;
+                    }
+                }
+            }
+            """);
+
+    [Fact]
+    public Task TestTryCatchFinally()
+        => TestAsync(
+            """
+            class C {
+              void M() {
+                try {
+                } catch {
+                } finally {
+                }
+              }
+            }
+            """,
+            """
+            class C
+            {
+                void M()
+                {
+                    try
+                    {
+                    }
+                    catch
+                    {
+                    }
+                    finally
+                    {
+                    }
+                }
+            }
+            """);
+
+    [Fact]
+    public Task TestDoWhile()
+        => TestAsync(
+            """
+            class C {
+              void M() {
+                do {
+                } while(true);
+              }
+            }
+            """,
+            """
+            class C
+            {
+                void M()
+                {
+                    do
+                    {
+                    } while (true);
+                }
+            }
+            """);
+
+    [Fact]
+    public Task TestNestedIf()
+        => TestAsync(
+            """
+            class C {
+              void M() {
+                if (true) {
+                    if (true) {
+                    }
+                }
+              }
+            }
+            """,
+            """
+            class C
+            {
+                void M()
+                {
+                    if (true)
+                    {
+                        if (true)
+                        {
+                        }
+                    }
+                }
+            }
+            """);
+
+    [Fact]
+    public Task TestBraces()
+        => TestAsync(
+            """
+            class C {
+              void M() {
+                if (true) {
+                }
+                while (true) {
+                }
+                switch (true) {
+                }
+                try {
+                } finally {
+                }
+                using (null) {
+                }
+                foreach (var x in y) {
+                }
+              }
+            }
+            """,
+            """
+            class C
+            {
+                void M()
+                {
+                    if (true)
+                    {
+                    }
+
+                    while (true)
+                    {
+                    }
+
+                    switch (true)
+                    {
+                    }
+
+                    try
+                    {
+                    }
+                    finally
+                    {
+                    }
+
+                    using (null)
+                    {
+                    }
+
+                    foreach (var x in y)
+                    {
+                    }
+                }
+            }
+            """);
+
+    private static async Task TestAsync(string input, string expected)
     {
-        if (true)
-        {
-        }
+        using var workspace = EditorTestWorkspace.CreateCSharp(input);
+        var document = workspace.CurrentSolution.Projects.Single().Documents.Single();
 
-        while (true)
-        {
-        }
+        var formatted = await CSharpDecompiledSourceService.FormatDocumentAsync(document, CSharpSyntaxFormattingOptions.Default, CancellationToken.None);
+        var test = await formatted.GetTextAsync();
 
-        switch (true)
-        {
-        }
-
-        try
-        {
-        }
-        finally
-        {
-        }
-
-        using (null)
-        {
-        }
-
-        foreach (var x in y)
-        {
-        }
-    }
-}");
-        }
-
-        private static async Task TestAsync(string input, string expected)
-        {
-            using var workspace = TestWorkspace.CreateCSharp(input);
-            var document = workspace.CurrentSolution.Projects.Single().Documents.Single();
-
-            var formatted = await CSharpDecompiledSourceService.FormatDocumentAsync(document, CancellationToken.None);
-            var test = await formatted.GetTextAsync();
-
-            AssertEx.Equal(expected, test.ToString());
-        }
+        AssertEx.Equal(expected, test.ToString());
     }
 }

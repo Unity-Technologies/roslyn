@@ -2,727 +2,668 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
-#nullable disable
-
-using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.CSharp.UseIndexOrRangeOperator;
+using Microsoft.CodeAnalysis.Editor.UnitTests.CodeActions;
 using Microsoft.CodeAnalysis.Test.Utilities;
 using Microsoft.CodeAnalysis.Testing;
 using Roslyn.Test.Utilities;
 using Xunit;
-using VerifyCS = Microsoft.CodeAnalysis.Editor.UnitTests.CodeActions.CSharpCodeFixVerifier<
-    Microsoft.CodeAnalysis.CSharp.UseIndexOrRangeOperator.CSharpUseIndexOperatorDiagnosticAnalyzer,
-    Microsoft.CodeAnalysis.CSharp.UseIndexOrRangeOperator.CSharpUseIndexOperatorCodeFixProvider>;
 
-namespace Microsoft.CodeAnalysis.Editor.CSharp.UnitTests.UseIndexOrRangeOperator
+namespace Microsoft.CodeAnalysis.Editor.CSharp.UnitTests.UseIndexOrRangeOperator;
+
+using VerifyCS = CSharpCodeFixVerifier<
+    CSharpUseIndexOperatorDiagnosticAnalyzer,
+    CSharpUseIndexOperatorCodeFixProvider>;
+
+[Trait(Traits.Feature, Traits.Features.CodeActionsUseIndexOperator)]
+public sealed class UseIndexOperatorTests
 {
-    public class UseIndexOperatorTests
-    {
-        [Fact, Trait(Traits.Feature, Traits.Features.CodeActionsUseIndexOperator)]
-        public async Task TestNotInCSharp7()
+    [Fact]
+    public Task TestNotInCSharp7()
+        => new VerifyCS.Test
         {
-            var source =
-@"
-class C
-{
-    void Goo(string s)
-    {
-        var v = s[s.Length - 1];
-    }
-}";
-
-            await new VerifyCS.Test
+            ReferenceAssemblies = ReferenceAssemblies.NetCore.NetCoreApp31,
+            TestCode = """
+            class C
             {
-                ReferenceAssemblies = ReferenceAssemblies.NetCore.NetCoreApp31,
-                TestCode = source,
-                FixedCode = source,
-                LanguageVersion = LanguageVersion.CSharp7,
-            }.RunAsync();
-        }
-
-        [Fact, Trait(Traits.Feature, Traits.Features.CodeActionsUseRangeOperator)]
-        public async Task TestWithMissingReference()
-        {
-            var source =
-@"class {|#0:C|}
-{
-    {|#1:void|} Goo({|#2:string|} s)
-    {
-        var v = s[s.Length - {|#3:1|}];
-    }
-}";
-
-            await new VerifyCS.Test
-            {
-                ReferenceAssemblies = new ReferenceAssemblies("custom"),
-                TestCode = source,
-                ExpectedDiagnostics =
+                void Goo(string s)
                 {
-                    // /0/Test0.cs(1,7): error CS0518: Predefined type 'System.Object' is not defined or imported
-                    DiagnosticResult.CompilerError("CS0518").WithLocation(0).WithArguments("System.Object"),
-                    // /0/Test0.cs(1,7): error CS1729: 'object' does not contain a constructor that takes 0 arguments
-                    DiagnosticResult.CompilerError("CS1729").WithLocation(0).WithArguments("object", "0"),
-                    // /0/Test0.cs(3,5): error CS0518: Predefined type 'System.Void' is not defined or imported
-                    DiagnosticResult.CompilerError("CS0518").WithLocation(1).WithArguments("System.Void"),
-                    // /0/Test0.cs(3,14): error CS0518: Predefined type 'System.String' is not defined or imported
-                    DiagnosticResult.CompilerError("CS0518").WithLocation(2).WithArguments("System.String"),
-                    // /0/Test0.cs(5,30): error CS0518: Predefined type 'System.Int32' is not defined or imported
-                    DiagnosticResult.CompilerError("CS0518").WithLocation(3).WithArguments("System.Int32"),
-                },
-                FixedCode = source,
-            }.RunAsync();
-        }
+                    var v = s[s.Length - 1];
+                }
+            }
+            """,
+            LanguageVersion = LanguageVersion.CSharp7,
+        }.RunAsync();
 
-        [Fact, Trait(Traits.Feature, Traits.Features.CodeActionsUseIndexOperator)]
-        public async Task TestSimple()
-        {
-            var source =
-@"
-class C
-{
-    void Goo(string s)
+    [Fact, Trait(Traits.Feature, Traits.Features.CodeActionsUseRangeOperator)]
+    public async Task TestWithMissingReference()
     {
-        var v = s[[|s.Length - 1|]];
-    }
-}";
-            var fixedSource =
-@"
-class C
-{
-    void Goo(string s)
-    {
-        var v = s[^1];
-    }
-}";
-
-            await new VerifyCS.Test
+        var source =
+            """
+            class {|#0:C|}
             {
-                ReferenceAssemblies = ReferenceAssemblies.NetCore.NetCoreApp31,
-                TestCode = source,
-                FixedCode = fixedSource,
-            }.RunAsync();
-        }
-
-        [Fact, Trait(Traits.Feature, Traits.Features.CodeActionsUseIndexOperator)]
-        public async Task TestMultipleDefinitions()
-        {
-            var source =
-@"
-class C
-{
-    void Goo(string s)
-    {
-        var v = s[[|s.Length - 1|]];
-    }
-}";
-            var fixedSource =
-@"
-class C
-{
-    void Goo(string s)
-    {
-        var v = s[^1];
-    }
-}";
-
-            // Adding a dependency with internal definitions of Index and Range should not break the feature
-            var source1 = "namespace System { internal struct Index { } internal struct Range { } }";
-            var dependencyReferences = await ReferenceAssemblies.NetStandard.NetStandard20.ResolveAsync(null, CancellationToken.None);
-
-            await new VerifyCS.Test
-            {
-                ReferenceAssemblies = ReferenceAssemblies.NetCore.NetCoreApp31,
-                TestCode = source,
-                SolutionTransforms =
+                {|#1:void|} Goo({|#2:string|} s)
                 {
-                    (solution, projectId) =>
+                    var v = s[s.Length - {|#3:1|}];
+                }
+            }
+            """;
+
+        await new VerifyCS.Test
+        {
+            ReferenceAssemblies = new ReferenceAssemblies("custom"),
+            TestCode = source,
+            ExpectedDiagnostics =
+            {
+                // /0/Test0.cs(1,7): error CS0518: Predefined type 'System.Object' is not defined or imported
+                DiagnosticResult.CompilerError("CS0518").WithLocation(0).WithArguments("System.Object"),
+                // /0/Test0.cs(1,7): error CS1729: 'object' does not contain a constructor that takes 0 arguments
+                DiagnosticResult.CompilerError("CS1729").WithLocation(0).WithArguments("object", "0"),
+                // /0/Test0.cs(3,5): error CS0518: Predefined type 'System.Void' is not defined or imported
+                DiagnosticResult.CompilerError("CS0518").WithLocation(1).WithArguments("System.Void"),
+                // /0/Test0.cs(3,14): error CS0518: Predefined type 'System.String' is not defined or imported
+                DiagnosticResult.CompilerError("CS0518").WithLocation(2).WithArguments("System.String"),
+                // /0/Test0.cs(5,30): error CS0518: Predefined type 'System.Int32' is not defined or imported
+                DiagnosticResult.CompilerError("CS0518").WithLocation(3).WithArguments("System.Int32"),
+            },
+            FixedCode = source,
+        }.RunAsync();
+    }
+
+    [Fact]
+    public Task TestSimple()
+        => new VerifyCS.Test
+        {
+            ReferenceAssemblies = ReferenceAssemblies.NetCore.NetCoreApp31,
+            TestCode = """
+            class C
+            {
+                void Goo(string s)
+                {
+                    var v = s[[|s.Length - 1|]];
+                }
+            }
+            """,
+            FixedCode = """
+            class C
+            {
+                void Goo(string s)
+                {
+                    var v = s[^1];
+                }
+            }
+            """,
+        }.RunAsync();
+
+    [Fact]
+    public async Task TestMultipleDefinitions()
+    {
+        var source =
+            """
+            class C
+            {
+                void Goo(string s)
+                {
+                    var v = s[[|s.Length - 1|]];
+                }
+            }
+            """;
+
+        // Adding a dependency with internal definitions of Index and Range should not break the feature
+        var source1 = "namespace System { internal struct Index { } internal struct Range { } }";
+
+        await new VerifyCS.Test
+        {
+            ReferenceAssemblies = ReferenceAssemblies.NetCore.NetCoreApp31,
+            TestState =
+            {
+                Sources = { source },
+                AdditionalProjects =
+                {
+                    ["DependencyProject"] =
                     {
-                        var dependencyProject = solution.AddProject("DependencyProject", "DependencyProject", LanguageNames.CSharp)
-                            .WithCompilationOptions(solution.GetProject(projectId).CompilationOptions)
-                            .WithParseOptions(solution.GetProject(projectId).ParseOptions)
-                            .WithMetadataReferences(dependencyReferences)
-                            .AddDocument("Test0.cs", source1, filePath: "Test0.cs").Project;
-
-                        return dependencyProject.Solution.AddProjectReference(projectId, new ProjectReference(dependencyProject.Id));
+                        ReferenceAssemblies = ReferenceAssemblies.NetStandard.NetStandard20,
+                        Sources = { source1 },
                     },
                 },
-                FixedCode = fixedSource,
-            }.RunAsync();
-        }
-
-        [Fact, Trait(Traits.Feature, Traits.Features.CodeActionsUseIndexOperator)]
-        public async Task TestComplexSubtaction()
-        {
-            var source =
-@"
-class C
-{
-    void Goo(string s)
-    {
-        var v = s[[|s.Length - (1 + 1)|]];
-    }
-}";
-            var fixedSource =
-@"
-class C
-{
-    void Goo(string s)
-    {
-        var v = s[^(1 + 1)];
-    }
-}";
-
-            await new VerifyCS.Test
+                AdditionalProjectReferences = { "DependencyProject" },
+            },
+            FixedCode = """
+            class C
             {
-                ReferenceAssemblies = ReferenceAssemblies.NetCore.NetCoreApp31,
-                TestCode = source,
-                FixedCode = fixedSource,
-            }.RunAsync();
-        }
+                void Goo(string s)
+                {
+                    var v = s[^1];
+                }
+            }
+            """,
+        }.RunAsync();
+    }
 
-        [Fact, Trait(Traits.Feature, Traits.Features.CodeActionsUseIndexOperator)]
-        public async Task TestComplexInstance()
+    [Fact]
+    public Task TestComplexSubtaction()
+        => new VerifyCS.Test
         {
-            var source =
-@"
-using System.Linq;
-
-class C
-{
-    void Goo(string[] ss)
-    {
-        var v = ss.Last()[[|ss.Last().Length - 3|]];
-    }
-}";
-            var fixedSource =
-@"
-using System.Linq;
-
-class C
-{
-    void Goo(string[] ss)
-    {
-        var v = ss.Last()[^3];
-    }
-}";
-
-            await new VerifyCS.Test
+            ReferenceAssemblies = ReferenceAssemblies.NetCore.NetCoreApp31,
+            TestCode = """
+            class C
             {
-                ReferenceAssemblies = ReferenceAssemblies.NetCore.NetCoreApp31,
-                TestCode = source,
-                FixedCode = fixedSource,
-            }.RunAsync();
-        }
+                void Goo(string s)
+                {
+                    var v = s[[|s.Length - (1 + 1)|]];
+                }
+            }
+            """,
+            FixedCode = """
+            class C
+            {
+                void Goo(string s)
+                {
+                    var v = s[^(1 + 1)];
+                }
+            }
+            """,
+        }.RunAsync();
 
-        [Fact, Trait(Traits.Feature, Traits.Features.CodeActionsUseIndexOperator)]
-        public async Task TestNotWithoutSubtraction1()
+    [Fact]
+    public Task TestComplexInstance()
+        => new VerifyCS.Test
         {
-            var source =
-@"
-class C
-{
-    void Goo(string s)
-    {
-        var v = s[s.Length];
-    }
-}";
+            ReferenceAssemblies = ReferenceAssemblies.NetCore.NetCoreApp31,
+            TestCode = """
+            using System.Linq;
 
-            await new VerifyCS.Test
+            class C
             {
-                ReferenceAssemblies = ReferenceAssemblies.NetCore.NetCoreApp31,
-                TestCode = source,
-                FixedCode = source,
-            }.RunAsync();
-        }
+                void Goo(string[] ss)
+                {
+                    var v = ss.Last()[[|ss.Last().Length - 3|]];
+                }
+            }
+            """,
+            FixedCode = """
+            using System.Linq;
 
-        [Fact, Trait(Traits.Feature, Traits.Features.CodeActionsUseIndexOperator)]
-        public async Task TestNotWithoutSubtraction2()
+            class C
+            {
+                void Goo(string[] ss)
+                {
+                    var v = ss.Last()[^3];
+                }
+            }
+            """,
+        }.RunAsync();
+
+    [Fact]
+    public Task TestNotWithoutSubtraction1()
+        => new VerifyCS.Test
         {
-            var source =
-@"
-class C
-{
-    void Goo(string s)
-    {
-        var v = s[s.Length + 1];
-    }
-}";
-
-            await new VerifyCS.Test
+            ReferenceAssemblies = ReferenceAssemblies.NetCore.NetCoreApp31,
+            TestCode = """
+            class C
             {
-                ReferenceAssemblies = ReferenceAssemblies.NetCore.NetCoreApp31,
-                TestCode = source,
-                FixedCode = source,
-            }.RunAsync();
-        }
+                void Goo(string s)
+                {
+                    var v = s[s.Length];
+                }
+            }
+            """,
+        }.RunAsync();
 
-        [Fact, Trait(Traits.Feature, Traits.Features.CodeActionsUseIndexOperator)]
-        public async Task TestNotWithMultipleArgs()
+    [Fact]
+    public Task TestNotWithoutSubtraction2()
+        => new VerifyCS.Test
         {
-            var source =
-@"
-struct S { public int Length { get; } public int this[int i] { get => 0; } public int this[int i, int j] { get => 0; } public int this[System.Index i] { get => 0; } }
-class C
-{
-    void Goo(S s)
-    {
-        var v = s[s.Length - 1, 2];
-    }
-}";
-
-            await new VerifyCS.Test
+            ReferenceAssemblies = ReferenceAssemblies.NetCore.NetCoreApp31,
+            TestCode = """
+            class C
             {
-                ReferenceAssemblies = ReferenceAssemblies.NetCore.NetCoreApp31,
-                TestCode = source,
-                FixedCode = source,
-            }.RunAsync();
-        }
+                void Goo(string s)
+                {
+                    var v = s[s.Length + 1];
+                }
+            }
+            """,
+        }.RunAsync();
 
-        [Fact, Trait(Traits.Feature, Traits.Features.CodeActionsUseIndexOperator)]
-        public async Task TestUserDefinedTypeWithLength()
+    [Fact]
+    public Task TestNotWithMultipleArgs()
+        => new VerifyCS.Test
         {
-            var source =
-@"
-struct S { public int Length { get; } public int this[int i] { get => 0; } public int this[System.Index i] { get => 0; } }
-class C
-{
-    void Goo(S s)
-    {
-        var v = s[[|s.Length - 2|]];
-    }
-}";
-            var fixedSource =
-@"
-struct S { public int Length { get; } public int this[int i] { get => 0; } public int this[System.Index i] { get => 0; } }
-class C
-{
-    void Goo(S s)
-    {
-        var v = s[^2];
-    }
-}";
-
-            await new VerifyCS.Test
+            ReferenceAssemblies = ReferenceAssemblies.NetCore.NetCoreApp31,
+            TestCode = """
+            struct S { public int Length { get; } public int this[int i] { get => 0; } public int this[int i, int j] { get => 0; } public int this[System.Index i] { get => 0; } }
+            class C
             {
-                ReferenceAssemblies = ReferenceAssemblies.NetCore.NetCoreApp31,
-                TestCode = source,
-                FixedCode = fixedSource,
-            }.RunAsync();
-        }
+                void Goo(S s)
+                {
+                    var v = s[s.Length - 1, 2];
+                }
+            }
+            """,
+        }.RunAsync();
 
-        [Fact, Trait(Traits.Feature, Traits.Features.CodeActionsUseIndexOperator)]
-        public async Task TestUserDefinedTypeWithCount()
+    [Fact]
+    public Task TestUserDefinedTypeWithLength()
+        => new VerifyCS.Test
         {
-            var source =
-@"
-struct S { public int Count { get; } public int this[int i] { get => 0; } public int this[System.Index i] { get => 0; } }
-class C
-{
-    void Goo(S s)
-    {
-        var v = s[[|s.Count - 2|]];
-    }
-}";
-            var fixedSource =
-@"
-struct S { public int Count { get; } public int this[int i] { get => 0; } public int this[System.Index i] { get => 0; } }
-class C
-{
-    void Goo(S s)
-    {
-        var v = s[^2];
-    }
-}";
-
-            await new VerifyCS.Test
+            ReferenceAssemblies = ReferenceAssemblies.NetCore.NetCoreApp31,
+            TestCode = """
+            struct S { public int Length { get; } public int this[int i] { get => 0; } public int this[System.Index i] { get => 0; } }
+            class C
             {
-                ReferenceAssemblies = ReferenceAssemblies.NetCore.NetCoreApp31,
-                TestCode = source,
-                FixedCode = fixedSource,
-            }.RunAsync();
-        }
+                void Goo(S s)
+                {
+                    var v = s[[|s.Length - 2|]];
+                }
+            }
+            """,
+            FixedCode = """
+            struct S { public int Length { get; } public int this[int i] { get => 0; } public int this[System.Index i] { get => 0; } }
+            class C
+            {
+                void Goo(S s)
+                {
+                    var v = s[^2];
+                }
+            }
+            """,
+        }.RunAsync();
 
-        [Fact, Trait(Traits.Feature, Traits.Features.CodeActionsUseIndexOperator)]
-        public async Task TestUserDefinedTypeWithNoLengthOrCount()
+    [Fact]
+    public Task TestUserDefinedTypeWithCount()
+        => new VerifyCS.Test
         {
-            var source =
-@"
-struct S { public int this[int i] { get => 0; } public int this[System.Index i] { get => 0; } }
-class C
-{
-    void Goo(S s)
-    {
-        var v = s[s.{|CS1061:Count|} - 2];
-    }
-}";
-
-            await new VerifyCS.Test
+            ReferenceAssemblies = ReferenceAssemblies.NetCore.NetCoreApp31,
+            TestCode = """
+            struct S { public int Count { get; } public int this[int i] { get => 0; } public int this[System.Index i] { get => 0; } }
+            class C
             {
-                ReferenceAssemblies = ReferenceAssemblies.NetCore.NetCoreApp31,
-                TestCode = source,
-                FixedCode = source,
-            }.RunAsync();
-        }
+                void Goo(S s)
+                {
+                    var v = s[[|s.Count - 2|]];
+                }
+            }
+            """,
+            FixedCode = """
+            struct S { public int Count { get; } public int this[int i] { get => 0; } public int this[System.Index i] { get => 0; } }
+            class C
+            {
+                void Goo(S s)
+                {
+                    var v = s[^2];
+                }
+            }
+            """,
+        }.RunAsync();
 
-        [Fact, Trait(Traits.Feature, Traits.Features.CodeActionsUseIndexOperator)]
-        public async Task TestUserDefinedTypeWithNoInt32Indexer()
+    [Fact]
+    public Task TestUserDefinedTypeWithNoLengthOrCount()
+        => new VerifyCS.Test
         {
-            var source =
-@"
-struct S { public int Length { get; } public int this[System.Index i] { get => 0; } }
-class C
-{
-    void Goo(S s)
-    {
-        var v = s[s.Length - 2];
-    }
-}";
-
-            await new VerifyCS.Test
+            ReferenceAssemblies = ReferenceAssemblies.NetCore.NetCoreApp31,
+            TestCode = """
+            struct S { public int this[int i] { get => 0; } public int this[System.Index i] { get => 0; } }
+            class C
             {
-                ReferenceAssemblies = ReferenceAssemblies.NetCore.NetCoreApp31,
-                TestCode = source,
-                FixedCode = source,
-            }.RunAsync();
-        }
+                void Goo(S s)
+                {
+                    var v = s[s.{|CS1061:Count|} - 2];
+                }
+            }
+            """,
+        }.RunAsync();
 
-        [Fact, Trait(Traits.Feature, Traits.Features.CodeActionsUseIndexOperator)]
-        public async Task TestUserDefinedTypeWithNoIndexIndexer()
+    [Fact]
+    public Task TestUserDefinedTypeWithNoInt32Indexer()
+        => new VerifyCS.Test
         {
-            var source =
-@"
-struct S { public int Count { get; } public int this[int i] { get => 0; } }
-class C
-{
-    void Goo(S s)
-    {
-        var v = s[[|s.Count - 2|]];
-    }
-}";
-            var fixedSource =
-@"
-struct S { public int Count { get; } public int this[int i] { get => 0; } }
-class C
-{
-    void Goo(S s)
-    {
-        var v = s[^2];
-    }
-}";
-
-            await new VerifyCS.Test
+            ReferenceAssemblies = ReferenceAssemblies.NetCore.NetCoreApp31,
+            TestCode = """
+            struct S { public int Length { get; } public int this[System.Index i] { get => 0; } }
+            class C
             {
-                ReferenceAssemblies = ReferenceAssemblies.NetCore.NetCoreApp31,
-                TestCode = source,
-                FixedCode = fixedSource,
-            }.RunAsync();
-        }
+                void Goo(S s)
+                {
+                    var v = s[s.Length - 2];
+                }
+            }
+            """,
+        }.RunAsync();
 
-        [Fact, Trait(Traits.Feature, Traits.Features.CodeActionsUseIndexOperator)]
-        public async Task TestMethodToMethod()
+    [Fact]
+    public Task TestUserDefinedTypeWithNoIndexIndexer()
+        => new VerifyCS.Test
         {
-            var source =
-@"
-struct S { public int Length { get; } public int Get(int i) => 0; public int Get(System.Index i) => 0; }
-class C
-{
-    void Goo(S s)
-    {
-        var v = s.Get([|s.Length - 1|]);
-    }
-}";
-            var fixedSource =
-@"
-struct S { public int Length { get; } public int Get(int i) => 0; public int Get(System.Index i) => 0; }
-class C
-{
-    void Goo(S s)
-    {
-        var v = s.Get(^1);
-    }
-}";
-
-            await new VerifyCS.Test
+            ReferenceAssemblies = ReferenceAssemblies.NetCore.NetCoreApp31,
+            TestCode = """
+            struct S { public int Count { get; } public int this[int i] { get => 0; } }
+            class C
             {
-                ReferenceAssemblies = ReferenceAssemblies.NetCore.NetCoreApp31,
-                TestCode = source,
-                FixedCode = fixedSource,
-            }.RunAsync();
-        }
+                void Goo(S s)
+                {
+                    var v = s[[|s.Count - 2|]];
+                }
+            }
+            """,
+            FixedCode = """
+            struct S { public int Count { get; } public int this[int i] { get => 0; } }
+            class C
+            {
+                void Goo(S s)
+                {
+                    var v = s[^2];
+                }
+            }
+            """,
+        }.RunAsync();
 
-        [Fact, Trait(Traits.Feature, Traits.Features.CodeActionsUseIndexOperator)]
-        public async Task TestMethodToMethodMissingIndexIndexer()
+    [Fact]
+    public Task TestMethodToMethod()
+        => new VerifyCS.Test
         {
-            var source =
-@"
-struct S { public int Length { get; } public int Get(int i) => 0; }
-class C
-{
-    void Goo(S s)
-    {
-        var v = s.Get(s.Length - 1);
-    }
-}";
-
-            await new VerifyCS.Test
+            ReferenceAssemblies = ReferenceAssemblies.NetCore.NetCoreApp31,
+            TestCode = """
+            struct S { public int Length { get; } public int Get(int i) => 0; public int Get(System.Index i) => 0; }
+            class C
             {
-                ReferenceAssemblies = ReferenceAssemblies.NetCore.NetCoreApp31,
-                TestCode = source,
-                FixedCode = source,
-            }.RunAsync();
-        }
+                void Goo(S s)
+                {
+                    var v = s.Get([|s.Length - 1|]);
+                }
+            }
+            """,
+            FixedCode = """
+            struct S { public int Length { get; } public int Get(int i) => 0; public int Get(System.Index i) => 0; }
+            class C
+            {
+                void Goo(S s)
+                {
+                    var v = s.Get(^1);
+                }
+            }
+            """,
+        }.RunAsync();
 
-        [Fact, Trait(Traits.Feature, Traits.Features.CodeActionsUseIndexOperator)]
-        public async Task TestMethodToMethodWithIntIndexer()
+    [Fact]
+    public Task TestMethodToMethodMissingIndexIndexer()
+        => new VerifyCS.Test
         {
-            var source =
-@"
-struct S { public int Length { get; } public int Get(int i) => 0; public int this[int i] { get => 0; } }
-class C
-{
-    void Goo(S s)
-    {
-        var v = s.Get(s.Length - 1);
-    }
-}";
-
-            await new VerifyCS.Test
+            ReferenceAssemblies = ReferenceAssemblies.NetCore.NetCoreApp31,
+            TestCode = """
+            struct S { public int Length { get; } public int Get(int i) => 0; }
+            class C
             {
-                ReferenceAssemblies = ReferenceAssemblies.NetCore.NetCoreApp31,
-                TestCode = source,
-                FixedCode = source,
-            }.RunAsync();
-        }
+                void Goo(S s)
+                {
+                    var v = s.Get(s.Length - 1);
+                }
+            }
+            """,
+        }.RunAsync();
 
-        [WorkItem(36909, "https://github.com/dotnet/roslyn/issues/36909")]
-        [Fact, Trait(Traits.Feature, Traits.Features.CodeActionsUseIndexOperator)]
-        public async Task TestMissingWithNoSystemIndex()
+    [Fact]
+    public Task TestMethodToMethodWithIntIndexer()
+        => new VerifyCS.Test
         {
-            var source =
-@"
-class C
-{
-    void Goo(string[] s)
-    {
-        var v = s[s.Length - 1];
-    }
-}";
-
-            await new VerifyCS.Test
+            ReferenceAssemblies = ReferenceAssemblies.NetCore.NetCoreApp31,
+            TestCode = """
+            struct S { public int Length { get; } public int Get(int i) => 0; public int this[int i] { get => 0; } }
+            class C
             {
-                ReferenceAssemblies = ReferenceAssemblies.NetCore.NetCoreApp20,
-                TestCode = source,
-                FixedCode = source,
-            }.RunAsync();
-        }
+                void Goo(S s)
+                {
+                    var v = s.Get(s.Length - 1);
+                }
+            }
+            """,
+        }.RunAsync();
 
-        [Fact, Trait(Traits.Feature, Traits.Features.CodeActionsUseIndexOperator)]
-        public async Task TestArray()
+    [Fact, WorkItem("https://github.com/dotnet/roslyn/issues/36909")]
+    public Task TestMissingWithNoSystemIndex()
+        => new VerifyCS.Test
         {
-            var source =
-@"
-class C
-{
-    void Goo(string[] s)
-    {
-        var v = s[[|s.Length - 1|]];
-    }
-}";
-            var fixedSource =
-@"
-class C
-{
-    void Goo(string[] s)
-    {
-        var v = s[^1];
-    }
-}";
-
-            await new VerifyCS.Test
+            ReferenceAssemblies = ReferenceAssemblies.NetCore.NetCoreApp20,
+            TestCode = """
+            class C
             {
-                ReferenceAssemblies = ReferenceAssemblies.NetCore.NetCoreApp31,
-                TestCode = source,
-                FixedCode = fixedSource,
-            }.RunAsync();
-        }
+                void Goo(string[] s)
+                {
+                    var v = s[s.Length - 1];
+                }
+            }
+            """,
+            LanguageVersion = LanguageVersion.CSharp8,
+        }.RunAsync();
 
-        [Fact, Trait(Traits.Feature, Traits.Features.CodeActionsUseIndexOperator)]
-        public async Task TestFixAll1()
+    [Fact]
+    public async Task TestMissingWithInaccessibleSystemIndex()
+    {
+        var source =
+            """
+            class C
+            {
+                void Goo(string[] s)
+                {
+                    var v = s[s.Length - 1];
+                }
+            }
+            """;
+
+        await new VerifyCS.Test
         {
-            var source =
-@"
-class C
-{
-    void Goo(string s)
-    {
-        var v1 = s[[|s.Length - 1|]];
-        var v2 = s[[|s.Length - 1|]];
-    }
-}";
-            var fixedSource =
-@"
-class C
-{
-    void Goo(string s)
-    {
-        var v1 = s[^1];
-        var v2 = s[^1];
-    }
-}";
-
-            await new VerifyCS.Test
+            ReferenceAssemblies = ReferenceAssemblies.NetCore.NetCoreApp20,
+            TestState =
             {
-                ReferenceAssemblies = ReferenceAssemblies.NetCore.NetCoreApp31,
-                TestCode = source,
-                FixedCode = fixedSource,
-            }.RunAsync();
-        }
+                Sources = { source },
+                AdditionalProjects =
+                {
+                    ["AdditionalProject"] =
+                    {
+                        Sources =
+                        {
+                            "namespace System { internal struct Index { } }"
+                        }
+                    }
+                },
+                AdditionalProjectReferences = { "AdditionalProject" },
+            },
+            FixedCode = source,
+            LanguageVersion = LanguageVersion.CSharp8,
+        }.RunAsync();
+    }
 
-        [Fact, Trait(Traits.Feature, Traits.Features.CodeActionsUseIndexOperator)]
-        public async Task TestNestedFixAll1()
+    [Fact]
+    public Task TestArray()
+        => new VerifyCS.Test
         {
-            var source =
-@"
-class C
-{
-    void Goo(string[] s)
-    {
-        var v1 = s[[|s.Length - 2|]][[|s[[|s.Length - 2|]].Length - 1|]];
-    }
-}";
-            var fixedSource =
-@"
-class C
-{
-    void Goo(string[] s)
-    {
-        var v1 = s[^2][^1];
-    }
-}";
-
-            await new VerifyCS.Test
+            ReferenceAssemblies = ReferenceAssemblies.NetCore.NetCoreApp31,
+            TestCode = """
+            class C
             {
-                ReferenceAssemblies = ReferenceAssemblies.NetCore.NetCoreApp31,
-                TestCode = source,
-                FixedCode = fixedSource,
-            }.RunAsync();
-        }
+                void Goo(string[] s)
+                {
+                    var v = s[[|s.Length - 1|]];
+                }
+            }
+            """,
+            FixedCode = """
+            class C
+            {
+                void Goo(string[] s)
+                {
+                    var v = s[^1];
+                }
+            }
+            """,
+        }.RunAsync();
 
-        [Fact, Trait(Traits.Feature, Traits.Features.CodeActionsUseIndexOperator)]
-        public async Task TestNestedFixAll2()
+    [Fact]
+    public Task TestFixAll1()
+        => new VerifyCS.Test
         {
-            var source =
-@"
-class C
-{
-    void Goo(string[] s)
-    {
-        var v1 = s[[|s.Length - 2|]][[|s[[|s.Length - 2|]].Length - 1|]];
-    }
-}";
-            var fixedSource =
-@"
-class C
-{
-    void Goo(string[] s)
-    {
-        var v1 = s[^2][^1];
-    }
-}";
-
-            await new VerifyCS.Test
+            ReferenceAssemblies = ReferenceAssemblies.NetCore.NetCoreApp31,
+            TestCode = """
+            class C
             {
-                ReferenceAssemblies = ReferenceAssemblies.NetCore.NetCoreApp31,
-                TestCode = source,
-                FixedCode = fixedSource,
-            }.RunAsync();
-        }
+                void Goo(string s)
+                {
+                    var v1 = s[[|s.Length - 1|]];
+                    var v2 = s[[|s.Length - 1|]];
+                }
+            }
+            """,
+            FixedCode = """
+            class C
+            {
+                void Goo(string s)
+                {
+                    var v1 = s[^1];
+                    var v2 = s[^1];
+                }
+            }
+            """,
+        }.RunAsync();
 
-        [Fact, Trait(Traits.Feature, Traits.Features.CodeActionsUseIndexOperator)]
-        public async Task TestSimple_NoIndexIndexer_SupportsIntIndexer()
+    [Fact]
+    public Task TestNestedFixAll1()
+        => new VerifyCS.Test
         {
-            var source =
-@"
-using System.Collections.Generic;
-class C
-{
-    void Goo(List<int> s)
-    {
-        var v = s[[|s.Count - 1|]];
-    }
-}";
-            var fixedSource =
-@"
-using System.Collections.Generic;
-class C
-{
-    void Goo(List<int> s)
-    {
-        var v = s[^1];
-    }
-}";
-
-            await new VerifyCS.Test
+            ReferenceAssemblies = ReferenceAssemblies.NetCore.NetCoreApp31,
+            TestCode = """
+            class C
             {
-                ReferenceAssemblies = ReferenceAssemblies.NetCore.NetCoreApp31,
-                TestCode = source,
-                FixedCode = fixedSource,
-            }.RunAsync();
-        }
+                void Goo(string[] s)
+                {
+                    var v1 = s[[|s.Length - 2|]][[|s[[|s.Length - 2|]].Length - 1|]];
+                }
+            }
+            """,
+            FixedCode = """
+            class C
+            {
+                void Goo(string[] s)
+                {
+                    var v1 = s[^2][^1];
+                }
+            }
+            """,
+        }.RunAsync();
 
-        [Fact, Trait(Traits.Feature, Traits.Features.CodeActionsUseIndexOperator)]
-        public async Task TestSimple_NoIndexIndexer_SupportsIntIndexer_Set()
+    [Fact]
+    public Task TestNestedFixAll2()
+        => new VerifyCS.Test
         {
-            var source =
-@"
-using System.Collections.Generic;
-class C
-{
-    void Goo(List<int> s)
-    {
-        s[[|s.Count - 1|]] = 1;
-    }
-}";
-            var fixedSource =
-@"
-using System.Collections.Generic;
-class C
-{
-    void Goo(List<int> s)
-    {
-        s[^1] = 1;
-    }
-}";
-
-            await new VerifyCS.Test
+            ReferenceAssemblies = ReferenceAssemblies.NetCore.NetCoreApp31,
+            TestCode = """
+            class C
             {
-                ReferenceAssemblies = ReferenceAssemblies.NetCore.NetCoreApp31,
-                TestCode = source,
-                FixedCode = fixedSource,
-            }.RunAsync();
-        }
+                void Goo(string[] s)
+                {
+                    var v1 = s[[|s.Length - 2|]][[|s[[|s.Length - 2|]].Length - 1|]];
+                }
+            }
+            """,
+            FixedCode = """
+            class C
+            {
+                void Goo(string[] s)
+                {
+                    var v1 = s[^2][^1];
+                }
+            }
+            """,
+        }.RunAsync();
 
-        [Fact, Trait(Traits.Feature, Traits.Features.CodeActionsUseIndexOperator)]
-        public async Task NotOnConstructedIndexer()
+    [Fact]
+    public Task TestSimple_NoIndexIndexer_SupportsIntIndexer()
+        => new VerifyCS.Test
         {
-            var source =
-@"
-using System.Collections.Generic;
-class C
-{
-    void Goo(Dictionary<int, string> s)
-    {
-        var v = s[s.Count - 1];
-    }
-}";
-
-            await new VerifyCS.Test
+            ReferenceAssemblies = ReferenceAssemblies.NetCore.NetCoreApp31,
+            TestCode = """
+            using System.Collections.Generic;
+            class C
             {
-                ReferenceAssemblies = ReferenceAssemblies.NetCore.NetCoreApp31,
-                TestCode = source,
-                FixedCode = source,
-            }.RunAsync();
-        }
-    }
+                void Goo(List<int> s)
+                {
+                    var v = s[[|s.Count - 1|]];
+                }
+            }
+            """,
+            FixedCode = """
+            using System.Collections.Generic;
+            class C
+            {
+                void Goo(List<int> s)
+                {
+                    var v = s[^1];
+                }
+            }
+            """,
+        }.RunAsync();
+
+    [Fact]
+    public Task TestSimple_NoIndexIndexer_SupportsIntIndexer_Set()
+        => new VerifyCS.Test
+        {
+            ReferenceAssemblies = ReferenceAssemblies.NetCore.NetCoreApp31,
+            TestCode = """
+            using System.Collections.Generic;
+            class C
+            {
+                void Goo(List<int> s)
+                {
+                    s[[|s.Count - 1|]] = 1;
+                }
+            }
+            """,
+            FixedCode = """
+            using System.Collections.Generic;
+            class C
+            {
+                void Goo(List<int> s)
+                {
+                    s[^1] = 1;
+                }
+            }
+            """,
+        }.RunAsync();
+
+    [Fact]
+    public Task NotOnConstructedIndexer()
+        => new VerifyCS.Test
+        {
+            ReferenceAssemblies = ReferenceAssemblies.NetCore.NetCoreApp31,
+            TestCode = """
+            using System.Collections.Generic;
+            class C
+            {
+                void Goo(Dictionary<int, string> s)
+                {
+                    var v = s[s.Count - 1];
+                }
+            }
+            """,
+        }.RunAsync();
+
+    [Fact, WorkItem("https://github.com/dotnet/roslyn/issues/49347")]
+    public Task TestNotInExpressionTree()
+        => new VerifyCS.Test
+        {
+            ReferenceAssemblies = ReferenceAssemblies.NetCore.NetCoreApp31,
+            TestCode = """
+            using System;
+            using System.Collections.Generic;
+            using System.Linq.Expressions;
+            class C
+            {
+                void Goo(List<int> s)
+                {
+                    Expression<Func<int>> f = () => s[s.Count - 1];
+                }
+            }
+            """,
+        }.RunAsync();
 }

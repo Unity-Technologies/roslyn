@@ -25,8 +25,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.UseIsNotExpression
 
         Public Sub New()
             MyBase.New(IDEDiagnosticIds.UseIsNotExpressionDiagnosticId,
+                   EnforceOnBuildValues.UseIsNotExpression,
                    VisualBasicCodeStyleOptions.PreferIsNotExpression,
-                   LanguageNames.VisualBasic,
                    New LocalizableResourceString(
                         NameOf(VisualBasicAnalyzersResources.Use_IsNot_expression), VisualBasicAnalyzersResources.ResourceManager, GetType(VisualBasicAnalyzersResources)))
         End Sub
@@ -49,12 +49,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.UseIsNotExpression
                 Return
             End If
 
-            Dim options = syntaxContext.Options
-            Dim cancellationToken = syntaxContext.CancellationToken
-
             ' Bail immediately if the user has disabled this feature.
-            Dim styleOption = options.GetOption(VisualBasicCodeStyleOptions.PreferIsNotExpression, syntaxTree, cancellationToken)
-            If Not styleOption.Value Then
+            Dim styleOption = syntaxContext.GetVisualBasicAnalyzerOptions().PreferIsNotExpression
+            If Not styleOption.Value OrElse ShouldSkipAnalysis(syntaxContext, styleOption.Notification) Then
                 Return
             End If
 
@@ -74,7 +71,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.UseIsNotExpression
             syntaxContext.ReportDiagnostic(DiagnosticHelper.Create(
                 Descriptor,
                 isKeyword.GetLocation(),
-                styleOption.Notification.Severity,
+                styleOption.Notification,
+                syntaxContext.Options,
                 ImmutableArray.Create(notExpression.GetLocation()),
                 properties:=Nothing))
         End Sub

@@ -10,7 +10,7 @@ using System.Collections.Immutable;
 
 namespace Microsoft.CodeAnalysis.ExpressionEvaluator.UnitTests
 {
-    internal struct Address
+    internal readonly struct Address
     {
         internal readonly Module Module;
         internal readonly int Token;
@@ -35,7 +35,7 @@ namespace Microsoft.CodeAnalysis.ExpressionEvaluator.UnitTests
             ModuleName = moduleName;
             Signature = signature;
             LanguageId = languageId;
-            _resolvedAddresses = new List<Address>();
+            _resolvedAddresses = [];
         }
 
         internal readonly string ModuleName;

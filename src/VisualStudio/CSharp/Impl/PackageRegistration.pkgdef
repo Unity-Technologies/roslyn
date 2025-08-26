@@ -18,17 +18,20 @@
 @="{694dd9b6-b865-4c5b-ad85-86356e9c88dc}"
 "Package"="{13c3bbb4-f18f-4111-9f54-a0fb010d9194}"
 "LangResID"=dword:00000065
+
+"DefaultToInsertSpaces"=dword:00000001
+"EnableAdvancedMembersOption"=dword:00000001
 "RequestStockColors"=dword:00000001
+"ShowBraceCompletion"=dword:00000001
+"ShowCompletion"=dword:00000001
 "ShowDropdownBarOption"=dword:00000001
+"ShowSmartIndent"=dword:00000001
+"SupportsImageCaching"=dword:00000001
+// DesignerLoader is still set in the VS Repo since it contains a VS version number
 
 [$RootKey$\Services\{694dd9b6-b865-4c5b-ad85-86356e9c88dc}]
 @="{13c3bbb4-f18f-4111-9f54-a0fb010d9194}"
 "Name"="C# Language Service"
-"IsAsyncQueryable"=dword:00000001
-
-[$RootKey$\Services\{dba64c84-56df-4e20-8aa6-02332a97f474}]
-@="{13c3bbb4-f18f-4111-9f54-a0fb010d9194}"
-"Name"="C# TempPE Compiler Service"
 "IsAsyncQueryable"=dword:00000001
 
 [$RootKey$\AutomationProperties\TextEditor\CSharp-Specific]
@@ -184,3 +187,10 @@
 "Package"="{13C3BBB4-F18F-4111-9F54-A0FB010D9194}"
 "SortPriority"=dword:00000064
 @="Microsoft Visual C#"
+
+// CacheTag value should be changed when registration file changes
+// See https://devdiv.visualstudio.com/DevDiv/_wiki/wikis/DevDiv.wiki/39345/Manifest-Build-Deployment-and-Setup-Authoring-In-Depth?anchor=example-pkgdef-key for more infomation
+[$RootKey$\SettingsManifests\{13c3bbb4-f18f-4111-9f54-a0fb010d9194}]
+@="Microsoft.VisualStudio.LanguageServices.CSharp.LanguageService.CSharpPackage"
+"ManifestPath"="$PackageFolder$\UnifiedSettings\csharpSettings.registration.json"
+"CacheTag"=qword:18C11F0A543B8AD0

@@ -862,7 +862,7 @@ class DeclaringClass2 : NonDeclaringClass2, Interface
             var assemblies = MetadataTestHelpers.GetSymbolsForReferences(
                 new[]
                 {
-                    TestMetadata.Net451.mscorlib,
+                    NetFramework.mscorlib,
                     TestReferences.SymbolsTests.ExplicitInterfaceImplementation.Methods.IL,
                 });
 
@@ -939,7 +939,7 @@ public class Derived : Base, Interface
             Assert.True(((Cci.IMethodDefinition)baseClassPropertyGetter.GetCciAdapter()).IsVirtual);
             Assert.True(((Cci.IMethodDefinition)baseClassPropertySetter.GetCciAdapter()).IsVirtual);
 
-            Assert.False(derivedClass.GetSynthesizedExplicitImplementations(CancellationToken.None).Any());
+            Assert.False(derivedClass.GetSynthesizedExplicitImplementations(CancellationToken.None).ForwardingMethods.Any());
         }
 
         [Fact]
@@ -1010,7 +1010,7 @@ public class Derived : Base, Interface
 
             // GetSynthesizedExplicitImplementations doesn't guarantee order, so sort to make the asserts easier to write.
 
-            var synthesizedExplicitImpls = (from m in derivedClass.GetSynthesizedExplicitImplementations(CancellationToken.None) orderby m.MethodKind select m).ToArray();
+            var synthesizedExplicitImpls = (from m in derivedClass.GetSynthesizedExplicitImplementations(CancellationToken.None).ForwardingMethods orderby m.MethodKind select m).ToArray();
             Assert.Equal(3, synthesizedExplicitImpls.Length);
             Assert.True(synthesizedExplicitImpls.All(s => ReferenceEquals(derivedClass, s.ContainingType)));
 
@@ -1079,7 +1079,7 @@ class Class : CustomModifierOverridingD, Interface
 
             // GetSynthesizedExplicitImplementations doesn't guarantee order, so sort to make the asserts easier to write.
 
-            var synthesizedExplicitImpls = (from m in @class.GetSynthesizedExplicitImplementations(CancellationToken.None) orderby m.Name select m).ToArray();
+            var synthesizedExplicitImpls = (from m in @class.GetSynthesizedExplicitImplementations(CancellationToken.None).ForwardingMethods orderby m.Name select m).ToArray();
             Assert.Equal(2, synthesizedExplicitImpls.Length);
 
             var synthesizedExplicitMethod1Impl = synthesizedExplicitImpls[0];
@@ -1652,7 +1652,7 @@ class C : B, I { }
 
             Assert.Equal(classBMethod, classC.FindImplementationForInterfaceMember(interfaceMethod));
 
-            var synthesizedExplicitImpl = classC.GetSynthesizedExplicitImplementations(CancellationToken.None).Single();
+            var synthesizedExplicitImpl = classC.GetSynthesizedExplicitImplementations(CancellationToken.None).ForwardingMethods.Single();
             Assert.Equal(classC, synthesizedExplicitImpl.ContainingType);
             Assert.Equal(interfaceMethod, synthesizedExplicitImpl.ExplicitInterfaceImplementations.Single());
             Assert.Equal(classBMethod, synthesizedExplicitImpl.ImplementingMethod);
@@ -1712,7 +1712,7 @@ class C : B, I { }
 
             Assert.Equal(classBMethod, classC.FindImplementationForInterfaceMember(interfaceMethod));
 
-            Assert.Equal(0, classC.GetSynthesizedExplicitImplementations(CancellationToken.None).Length);
+            Assert.Equal(0, classC.GetSynthesizedExplicitImplementations(CancellationToken.None).ForwardingMethods.Length);
         }
 
         [Fact]
@@ -1864,7 +1864,7 @@ class Base
             Assert.Equal(SpecialType.System_Void, returnType.SpecialType);
 
             // Force completion of entire symbol.  Calls EnsureMetadataVirtual on Base.Finalize.
-            derived.ForceComplete(locationOpt: null, cancellationToken: CancellationToken.None);
+            derived.ForceComplete(locationOpt: null, filter: null, cancellationToken: CancellationToken.None);
         }
 
         [Fact]
@@ -1897,7 +1897,7 @@ class D : B, I
             comp2.VerifyDiagnostics();
 
             var derivedType = comp2.GlobalNamespace.GetMember<SourceNamedTypeSymbol>("D");
-            var bridgeMethod = derivedType.GetSynthesizedExplicitImplementations(CancellationToken.None).Single();
+            var bridgeMethod = derivedType.GetSynthesizedExplicitImplementations(CancellationToken.None).ForwardingMethods.Single();
             Assert.Equal("NonVirtual", bridgeMethod.ImplementingMethod.Name);
         }
 
@@ -2033,10 +2033,9 @@ public class D : B, I
             Assert.Equal(RefKind.Ref, baseMethod.RefKind);
             Assert.Equal(baseMethod, derivedType.FindImplementationForInterfaceMember(interfaceMethod));
 
-            var synthesized = derivedType.GetSynthesizedExplicitImplementations(CancellationToken.None).Single();
+            var synthesized = derivedType.GetSynthesizedExplicitImplementations(CancellationToken.None).ForwardingMethods.Single();
             Assert.Equal(baseMethod, synthesized.ImplementingMethod);
             Assert.Equal(interfaceMethod, synthesized.ExplicitInterfaceImplementations.Single());
-
 
             // Still get a use site error if you actually call the method.
             var source2 = @"
@@ -2554,12 +2553,12 @@ class B<T> : A<T>, I where T : class
         [InlineData("object", "dynamic", "dynamic", "System.Object", false)]
         [InlineData("(int X, int Y)", "(int X, int Y)", "(System.Int32 X, System.Int32 Y)", "System.ValueTuple`2[System.Int32,System.Int32]", true)]
         [InlineData("(int X, int Y)", "(int X, int Y)", "(System.Int32 X, System.Int32 Y)", "System.ValueTuple`2[System.Int32,System.Int32]", false)]
-        [InlineData("nint", "nint", "nint", "System.IntPtr", true)]
-        [InlineData("nint", "nint", "nint", "System.IntPtr", false)]
+        [InlineData("nint", "nint", "System.IntPtr", "System.IntPtr", true)]
+        [InlineData("nint", "nint", "System.IntPtr", "System.IntPtr", false)]
         [InlineData("nint", "System.IntPtr", "System.IntPtr", "System.IntPtr", true)]
         [InlineData("nint", "System.IntPtr", "System.IntPtr", "System.IntPtr", false)]
-        [InlineData("System.IntPtr", "nint", "nint", "System.IntPtr", true)]
-        [InlineData("System.IntPtr", "nint", "nint", "System.IntPtr", false)]
+        [InlineData("System.IntPtr", "nint", "System.IntPtr", "System.IntPtr", true)]
+        [InlineData("System.IntPtr", "nint", "System.IntPtr", "System.IntPtr", false)]
         public void ExplicitImplementationInBaseType_02(string interfaceTypeArg, string baseTypeArg, string expectedTypeArg, string expectedOutput, bool useCompilationReference)
         {
             var source0 =
@@ -2646,12 +2645,12 @@ class B<T> : A<T>, I
         [InlineData("object", "dynamic", "dynamic", false)]
         [InlineData("(int X, int Y)", "(int X, int Y)", "(System.Int32 X, System.Int32 Y)", true)]
         [InlineData("(int X, int Y)", "(int X, int Y)", "(System.Int32 X, System.Int32 Y)", false)]
-        [InlineData("nint", "nint", "nint", true)]
-        [InlineData("nint", "nint", "nint", false)]
+        [InlineData("nint", "nint", "System.IntPtr", true)]
+        [InlineData("nint", "nint", "System.IntPtr", false)]
         [InlineData("nint", "System.IntPtr", "System.IntPtr", true)]
         [InlineData("nint", "System.IntPtr", "System.IntPtr", false)]
-        [InlineData("System.IntPtr", "nint", "nint", true)]
-        [InlineData("System.IntPtr", "nint", "nint", false)]
+        [InlineData("System.IntPtr", "nint", "System.IntPtr", true)]
+        [InlineData("System.IntPtr", "nint", "System.IntPtr", false)]
         public void ExplicitImplementationInBaseType_04(string interfaceTypeArg, string baseTypeArg, string expectedTypeArg, bool useCompilationReference)
         {
             var source0 =
@@ -2705,11 +2704,59 @@ $@"public class A<T> : I
             CompileAndVerify(comp, expectedOutput: expectedOutput);
 
             var derivedType = comp.GetMember<SourceNamedTypeSymbol>(derivedTypeName);
-            Assert.True(derivedType.GetSynthesizedExplicitImplementations(cancellationToken: default).IsEmpty);
+            Assert.True(derivedType.GetSynthesizedExplicitImplementations(cancellationToken: default).ForwardingMethods.IsEmpty);
 
             var interfaceMember = comp.GetMember<MethodSymbol>(interfaceMemberName);
             var implementingMember = derivedType.FindImplementationForInterfaceMember(interfaceMember);
             Assert.Equal(expectedImplementingMember, implementingMember.ToTestDisplayString());
+        }
+
+        [Fact]
+        [WorkItem(50713, "https://github.com/dotnet/roslyn/issues/50713")]
+        public void Issue50713_1()
+        {
+            var text1 = @"
+public interface I1
+{
+    void M();
+}
+
+public interface I2 : I1
+{
+    new void M();
+}
+";
+
+            var comp1 = CreateCompilation(text1);
+            comp1.VerifyDiagnostics();
+
+            var i1M = comp1.GetMember("I1.M");
+            var i2 = comp1.GetMember<NamedTypeSymbol>("I2");
+            Assert.Null(i2.FindImplementationForInterfaceMember(i1M));
+        }
+
+        [Fact]
+        [WorkItem(50713, "https://github.com/dotnet/roslyn/issues/50713")]
+        public void Issue50713_2()
+        {
+            var text0 = @"
+public interface I1
+{
+    void M();
+}
+
+public interface I2 : I1
+{
+    new void M();
+}
+";
+            var comp0 = CreateCompilation(text0);
+
+            var comp1 = CreateCompilation("", references: new[] { comp0.EmitToImageReference() });
+
+            var i1M = comp1.GetMember("I1.M");
+            var i2 = comp1.GetMember<NamedTypeSymbol>("I2");
+            Assert.Null(i2.FindImplementationForInterfaceMember(i1M));
         }
     }
 }

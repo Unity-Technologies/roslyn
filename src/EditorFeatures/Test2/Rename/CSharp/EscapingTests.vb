@@ -2,11 +2,11 @@
 ' The .NET Foundation licenses this file to you under the MIT license.
 ' See the LICENSE file in the project root for more information.
 
-Imports Microsoft.CodeAnalysis.Remote.Testing
 Imports Microsoft.CodeAnalysis.Rename.ConflictEngine
 
 Namespace Microsoft.CodeAnalysis.Editor.UnitTests.Rename.CSharp
     <[UseExportProvider]>
+    <Trait(Traits.Feature, Traits.Features.Rename)>
     Public Class EscapingTests
         Private ReadOnly _outputHelper As Abstractions.ITestOutputHelper
 
@@ -15,7 +15,7 @@ Namespace Microsoft.CodeAnalysis.Editor.UnitTests.Rename.CSharp
         End Sub
 
         <Theory>
-        <CombinatorialData, Trait(Traits.Feature, Traits.Features.Rename)>
+        <CombinatorialData>
         Public Sub EscapeWhenRenamingToEscapedKeyword1(host As RenameTestHost)
             Using result = RenameEngineResult.Create(_outputHelper,
                 <Workspace>
@@ -33,7 +33,7 @@ class [|$$Goo|]
         End Sub
 
         <Theory>
-        <CombinatorialData, Trait(Traits.Feature, Traits.Features.Rename)>
+        <CombinatorialData>
         Public Sub EscapeWhenRenamingToEscapedKeyword2(host As RenameTestHost)
             Using result = RenameEngineResult.Create(_outputHelper,
                 <Workspace>
@@ -52,7 +52,7 @@ class {|escaped:$$Goo|}
         End Sub
 
         <Theory>
-        <CombinatorialData, Trait(Traits.Feature, Traits.Features.Rename)>
+        <CombinatorialData>
         Public Sub UseFullAttributeNameWhenShortNameIsKeyword(host As RenameTestHost)
             Using result = RenameEngineResult.Create(_outputHelper,
                 <Workspace>
@@ -78,7 +78,7 @@ class [|$$MainAttribute|] : System.Attribute
         End Sub
 
         <Theory>
-        <CombinatorialData, Trait(Traits.Feature, Traits.Features.Rename)>
+        <CombinatorialData>
         Public Sub EscapeAttributeIfKeyword(host As RenameTestHost)
             Using result = RenameEngineResult.Create(_outputHelper,
                 <Workspace>
@@ -103,9 +103,8 @@ class {|escaped:$$MainAttribute|} : System.Attribute
             End Using
         End Sub
 
-        <WorkItem(527603, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/527603")>
-        <Theory>
-        <CombinatorialData, Trait(Traits.Feature, Traits.Features.Rename)>
+        <Theory, WorkItem("http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/527603")>
+        <CombinatorialData>
         Public Sub DoNotStickTokensTogetherForRefParameter_1(host As RenameTestHost)
             Using result = RenameEngineResult.Create(_outputHelper,
                 <Workspace>
@@ -123,9 +122,8 @@ class {|escaped:$$MainAttribute|} : System.Attribute
             End Using
         End Sub
 
-        <WorkItem(527603, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/527603")>
-        <Theory>
-        <CombinatorialData, Trait(Traits.Feature, Traits.Features.Rename)>
+        <Theory, WorkItem("http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/527603")>
+        <CombinatorialData>
         Public Sub DoNotStickTokensTogetherForRefParameter_2(host As RenameTestHost)
             Using result = RenameEngineResult.Create(_outputHelper,
                 <Workspace>
@@ -144,7 +142,7 @@ class {|escaped:$$MainAttribute|} : System.Attribute
         End Sub
 
         <Theory>
-        <CombinatorialData, Trait(Traits.Feature, Traits.Features.Rename)>
+        <CombinatorialData>
         Public Sub RenameEscapedIdentifierUnescapes(host As RenameTestHost)
             Using result = RenameEngineResult.Create(_outputHelper,
                 <Workspace>
@@ -165,7 +163,7 @@ class {|escaped:$$MainAttribute|} : System.Attribute
         End Sub
 
         <Theory>
-        <CombinatorialData, Trait(Traits.Feature, Traits.Features.Rename)>
+        <CombinatorialData>
         Public Sub RenameEscapedIdentifierUnescapes_2(host As RenameTestHost)
             Using result = RenameEngineResult.Create(_outputHelper,
                 <Workspace>
@@ -187,7 +185,7 @@ class {|escaped:$$MainAttribute|} : System.Attribute
         End Sub
 
         <Theory>
-        <CombinatorialData, Trait(Traits.Feature, Traits.Features.Rename)>
+        <CombinatorialData>
         Public Sub RenameEscapedIdentifierUnescapes_3(host As RenameTestHost)
             Using result = RenameEngineResult.Create(_outputHelper,
                 <Workspace>

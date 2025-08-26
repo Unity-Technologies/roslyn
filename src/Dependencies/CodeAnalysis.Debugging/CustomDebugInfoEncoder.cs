@@ -2,7 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
-#nullable disable
+#nullable enable
 
 using System;
 using System.Collections.Generic;
@@ -37,10 +37,10 @@ namespace Microsoft.CodeAnalysis.Debugging
             builder.WriteInt16(0);
         }
 
-        public int RecordCount => _recordCount;
+        public readonly int RecordCount => _recordCount;
 
         /// <exception cref="InvalidOperationException">More than <see cref="byte.MaxValue"/> records added.</exception>
-        public byte[] ToArray()
+        public readonly byte[]? ToArray()
         {
             if (_recordCount == 0)
             {
@@ -54,8 +54,6 @@ namespace Microsoft.CodeAnalysis.Debugging
 
         public void AddStateMachineTypeName(string typeName)
         {
-            Debug.Assert(typeName != null);
-
             AddRecord(
                 CustomDebugInfoKind.StateMachineTypeName,
                 typeName,
@@ -142,8 +140,6 @@ namespace Microsoft.CodeAnalysis.Debugging
 
         public void AddDynamicLocals(IReadOnlyCollection<(string LocalName, byte[] Flags, int Count, int SlotIndex)> dynamicLocals)
         {
-            Debug.Assert(dynamicLocals != null);
-
             AddRecord(
                 CustomDebugInfoKind.DynamicLocals,
                 dynamicLocals,
@@ -168,8 +164,6 @@ namespace Microsoft.CodeAnalysis.Debugging
 
         public void AddTupleElementNames(IReadOnlyCollection<(string LocalName, int SlotIndex, int ScopeStart, int ScopeEnd, ImmutableArray<string> Names)> tupleLocals)
         {
-            Debug.Assert(tupleLocals != null);
-
             AddRecord(
                 CustomDebugInfoKind.TupleElementNames,
                 tupleLocals,
@@ -202,6 +196,7 @@ namespace Microsoft.CodeAnalysis.Debugging
                         {
                             builder.WriteUTF8(info.LocalName);
                         }
+
                         builder.WriteByte(0);
                     }
                 });

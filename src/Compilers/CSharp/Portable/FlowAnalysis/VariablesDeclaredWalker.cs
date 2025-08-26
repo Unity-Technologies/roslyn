@@ -5,12 +5,13 @@
 #nullable disable
 
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
+using Microsoft.CodeAnalysis.Collections;
 using Microsoft.CodeAnalysis.CSharp.Symbols;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Text;
 using Roslyn.Utilities;
-using System.Diagnostics;
 
 namespace Microsoft.CodeAnalysis.CSharp
 {
@@ -72,22 +73,14 @@ namespace Microsoft.CodeAnalysis.CSharp
             {
                 switch (pattern)
                 {
-                    case BoundDeclarationPattern decl:
+                    case BoundObjectPattern p:
                         {
                             // The variable may be null if it is a discard designation `_`.
-                            if (decl.Variable?.Kind == SymbolKind.Local)
+                            if (p.Variable?.Kind == SymbolKind.Local)
                             {
                                 // Because this API only returns local symbols and parameters,
                                 // we exclude pattern variables that have become fields in scripts.
-                                _variablesDeclared.Add(decl.Variable);
-                            }
-                        }
-                        break;
-                    case BoundRecursivePattern recur:
-                        {
-                            if (recur.Variable?.Kind == SymbolKind.Local)
-                            {
-                                _variablesDeclared.Add(recur.Variable);
+                                _variablesDeclared.Add(p.Variable);
                             }
                         }
                         break;

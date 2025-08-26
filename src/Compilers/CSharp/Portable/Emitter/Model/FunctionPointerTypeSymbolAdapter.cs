@@ -7,6 +7,7 @@ using System.Collections.Immutable;
 using System.Reflection.Metadata;
 using System.Threading;
 using Microsoft.Cci;
+using Microsoft.CodeAnalysis.Collections;
 using Microsoft.CodeAnalysis.Emit;
 using Microsoft.CodeAnalysis.Symbols;
 using Roslyn.Utilities;
@@ -82,11 +83,11 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
             public override bool Equals(object? obj)
             {
                 // It is not supported to rely on default equality of these Cci objects, an explicit way to compare and hash them should be used.
-                throw ExceptionUtilities.Unreachable;
+                throw ExceptionUtilities.Unreachable();
             }
 
             // It is not supported to rely on default equality of these Cci objects, an explicit way to compare and hash them should be used.
-            public override int GetHashCode() => throw ExceptionUtilities.Unreachable;
+            public override int GetHashCode() => throw ExceptionUtilities.Unreachable();
 
             public override string ToString() => _underlying.ToDisplayString(SymbolDisplayFormat.ILVisualizationFormat);
         }

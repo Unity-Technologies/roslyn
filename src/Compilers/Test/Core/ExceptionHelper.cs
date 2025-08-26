@@ -2,34 +2,40 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
-#nullable disable
-
 using System;
 using System.Collections.Generic;
 using System.Text;
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.Test.Utilities;
 
 namespace Roslyn.Test.Utilities
 {
     internal static class ExceptionHelper
     {
-        internal static string GetMessageFromResult(IEnumerable<Diagnostic> diagnostics, string directory)
+        internal static string GetMessageFromResult(IEnumerable<Diagnostic> diagnostics, string? directory)
         {
             StringBuilder sb = new StringBuilder();
-            sb.AppendLine("Emit Failed, binaries saved to: ");
-            sb.AppendLine(directory);
-            foreach (var d in diagnostics)
+            if (directory is not null)
             {
-                sb.AppendLine(d.ToString());
+                sb.AppendLine("Emit Failed, binaries saved to: ");
+                sb.AppendLine(directory);
             }
+            else
+            {
+                sb.AppendLine();
+            }
+
+            DiagnosticDescription.GetPrettyDiagnostics(sb, diagnostics, includeDiagnosticMessagesAsComments: true, indentDepth: 0, includeDefaultSeverity: false, includeEffectiveSeverity: false);
+
             return sb.ToString();
         }
 
-        internal static string GetMessageFromResult(string output, string exePath)
+        internal static string GetMessageFromResult(string output, string exePath, bool isIlVerify = false)
         {
             StringBuilder sb = new StringBuilder();
             sb.AppendLine();
-            sb.Append("PeVerify failed for assembly '");
+            string tool = isIlVerify ? "ILVerify" : "PEVerify";
+            sb.Append($"{tool} failed for assembly '");
             sb.Append(exePath);
             sb.AppendLine("':");
             sb.AppendLine(output);
@@ -58,7 +64,7 @@ namespace Roslyn.Test.Utilities
             {
                 sb.Append("Expected: ");
                 sb.AppendLine(expectedOutput);
-                sb.Append("Actual:   ");
+                sb.Append("Actual: ");
                 sb.AppendLine(actualOutput);
             }
             else

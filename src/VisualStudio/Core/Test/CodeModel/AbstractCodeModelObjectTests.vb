@@ -2,8 +2,7 @@
 ' The .NET Foundation licenses this file to you under the MIT license.
 ' See the LICENSE file in the project root for more information.
 
-Imports System.Threading.Tasks
-Imports Microsoft.CodeAnalysis.Options
+Imports Microsoft.CodeAnalysis.Editor.UnitTests.CodeActions
 Imports Microsoft.CodeAnalysis.Test.Utilities
 
 Namespace Microsoft.VisualStudio.LanguageServices.UnitTests.CodeModel
@@ -69,7 +68,7 @@ Namespace Microsoft.VisualStudio.LanguageServices.UnitTests.CodeModel
 
         Private Protected Overridable Function TestAddProperty(
                 code As XElement, expectedCode As XElement, data As PropertyData,
-                Optional options As IDictionary(Of OptionKey2, Object) = Nothing,
+                Optional options As OptionsCollection = Nothing,
                 Optional editorConfig As String = "") As Task
             Throw New NotImplementedException
         End Function

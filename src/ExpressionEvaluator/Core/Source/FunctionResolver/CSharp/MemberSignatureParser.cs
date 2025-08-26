@@ -4,10 +4,10 @@
 
 #nullable disable
 
-using Microsoft.CodeAnalysis.ExpressionEvaluator;
 using System;
 using System.Collections.Immutable;
 using System.Diagnostics;
+using Microsoft.CodeAnalysis.ExpressionEvaluator;
 
 namespace Microsoft.CodeAnalysis.CSharp.ExpressionEvaluator
 {
@@ -258,7 +258,7 @@ namespace Microsoft.CodeAnalysis.CSharp.ExpressionEvaluator
             if (CurrentToken.Kind == TokenKind.CloseParen)
             {
                 EatToken();
-                return ImmutableArray<ParameterSignature>.Empty;
+                return [];
             }
             var builder = ImmutableArray.CreateBuilder<ParameterSignature>();
             while (true)

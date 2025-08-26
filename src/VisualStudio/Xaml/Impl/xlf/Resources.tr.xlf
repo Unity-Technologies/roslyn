@@ -13,13 +13,13 @@
         <note />
       </trans-unit>
       <trans-unit id="Sort_Namespaces">
-        <source>&amp;Sort Namespaces</source>
-        <target state="translated">&amp;Ad Alanlarını Sırala</target>
+        <source>Sort Namespaces</source>
+        <target state="new">Sort Namespaces</target>
         <note />
       </trans-unit>
-      <trans-unit id="Xaml_Language_Server_Client">
-        <source>XAML Language Server Client</source>
-        <target state="translated">XAML Dil Sunucusu İstemcisi</target>
+      <trans-unit id="Sort_Namespaces_with_accelerator">
+        <source>&amp;Sort Namespaces</source>
+        <target state="new">&amp;Sort Namespaces</target>
         <note />
       </trans-unit>
     </body>

@@ -6,6 +6,7 @@ Imports System.Collections.Immutable
 Imports System.Composition
 Imports System.Diagnostics.CodeAnalysis
 Imports System.Threading
+Imports Microsoft.CodeAnalysis.Collections
 Imports Microsoft.CodeAnalysis.Text
 Imports Microsoft.CodeAnalysis.VisualBasic.Syntax
 
@@ -26,14 +27,14 @@ Namespace Microsoft.CodeAnalysis.CodeCleanup.Providers
             End Get
         End Property
 
-        Protected Overrides Async Function GetRewriterAsync(document As Document, root As SyntaxNode, spans As ImmutableArray(Of TextSpan), workspace As Workspace, cancellationToken As CancellationToken) As Task(Of Rewriter)
+        Protected Overrides Async Function GetRewriterAsync(document As Document, root As SyntaxNode, spans As ImmutableArray(Of TextSpan), cancellationToken As CancellationToken) As Task(Of Rewriter)
             Return Await AddMissingTokensRewriter.CreateAsync(document, spans, cancellationToken).ConfigureAwait(False)
         End Function
 
         Private Class AddMissingTokensRewriter
             Inherits AbstractTokensCodeCleanupProvider.Rewriter
 
-            Private ReadOnly _model As SemanticModel = Nothing
+            Private ReadOnly _model As SemanticModel
 
             Private Sub New(semanticModel As SemanticModel, spans As ImmutableArray(Of TextSpan), cancellationToken As CancellationToken)
                 MyBase.New(spans, cancellationToken)
@@ -121,7 +122,7 @@ Namespace Microsoft.CodeAnalysis.CodeCleanup.Providers
 
                 Dim symbols = Me._model.GetSymbolInfo(expression, _cancellationToken).GetAllSymbols()
                 Return symbols.Any() AndAlso symbols.All(
-                    Function(s) (TryCast(s, IMethodSymbol)?.MethodKind).GetValueOrDefault() = MethodKind.Ordinary)
+                    Function(s) If(TryCast(s, IMethodSymbol)?.MethodKind = MethodKind.Ordinary, False))
             End Function
 
             Private Function IsDelegateType(expression As ExpressionSyntax) As Boolean
@@ -141,9 +142,9 @@ Namespace Microsoft.CodeAnalysis.CodeCleanup.Providers
                     Return newNode
                 End If
 
-                If Not TypeOf node.Expression Is NameSyntax AndAlso
-                   Not TypeOf node.Expression Is ParenthesizedExpressionSyntax AndAlso
-                   Not TypeOf node.Expression Is MemberAccessExpressionSyntax Then
+                If TypeOf node.Expression IsNot NameSyntax AndAlso
+                   TypeOf node.Expression IsNot ParenthesizedExpressionSyntax AndAlso
+                   TypeOf node.Expression IsNot MemberAccessExpressionSyntax Then
                     Return newNode
                 End If
 
@@ -264,6 +265,7 @@ Namespace Microsoft.CodeAnalysis.CodeCleanup.Providers
                                                          If n.ParameterList.HasLeadingTrivia Then
                                                              newParamList = newParamList.WithLeadingTrivia(n.ParameterList.GetLeadingTrivia)
                                                          End If
+
                                                          If n.ParameterList.HasTrailingTrivia Then
                                                              newParamList = newParamList.WithTrailingTrivia(n.ParameterList.GetTrailingTrivia)
                                                          End If
@@ -280,6 +282,7 @@ Namespace Microsoft.CodeAnalysis.CodeCleanup.Providers
 
                                                      Return nodeWithParams
                                                  End Function
+
                 Return AddParenthesesTransform(node, newNode, nameChecker, Function(n) n.ParameterList, transform)
             End Function
 

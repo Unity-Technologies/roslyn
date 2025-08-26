@@ -32,7 +32,6 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols.PublicModel
         internal override Symbols.NamespaceOrTypeSymbol UnderlyingNamespaceOrTypeSymbol => _underlying;
         internal Symbols.TypeParameterSymbol UnderlyingTypeParameterSymbol => _underlying;
 
-#pragma warning disable IDE0055 // Fix formatting. This formatting is correct, need 16.1 for the updated formatter to not flag
         CodeAnalysis.NullableAnnotation ITypeParameterSymbol.ReferenceTypeConstraintNullableAnnotation =>
             _underlying.ReferenceTypeConstraintIsNullable switch
             {
@@ -41,7 +40,6 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols.PublicModel
                 true => CodeAnalysis.NullableAnnotation.Annotated,
                 null => CodeAnalysis.NullableAnnotation.None,
             };
-#pragma warning restore IDE0055 // Fix formatting
 
         TypeParameterKind ITypeParameterSymbol.TypeParameterKind
         {
@@ -90,6 +88,8 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols.PublicModel
 
         bool ITypeParameterSymbol.HasValueTypeConstraint => _underlying.HasValueTypeConstraint;
 
+        bool ITypeParameterSymbol.AllowsRefLikeType => _underlying.AllowsRefLikeType;
+
         bool ITypeParameterSymbol.HasUnmanagedTypeConstraint => _underlying.HasUnmanagedTypeConstraint;
 
         bool ITypeParameterSymbol.HasNotNullConstraint => _underlying.HasNotNullConstraint;
@@ -106,6 +106,11 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols.PublicModel
         protected override TResult Accept<TResult>(SymbolVisitor<TResult> visitor)
         {
             return visitor.VisitTypeParameter(this);
+        }
+
+        protected override TResult Accept<TArgument, TResult>(SymbolVisitor<TArgument, TResult> visitor, TArgument argument)
+        {
+            return visitor.VisitTypeParameter(this, argument);
         }
 
         #endregion

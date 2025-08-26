@@ -5,18 +5,14 @@
 #nullable disable
 
 using System;
-using System.Collections.Generic;
 using System.IO;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace BuildBoss
 {
     /// <summary>
     /// All of the project entry contained in a solution file.
     /// </summary>
-    internal struct ProjectEntry
+    internal readonly struct ProjectEntry
     {
         internal string RelativeFilePath { get; }
         internal string Name { get; }

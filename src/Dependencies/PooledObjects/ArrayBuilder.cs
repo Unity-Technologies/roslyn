@@ -2,17 +2,28 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+#nullable enable
+
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 
 namespace Microsoft.CodeAnalysis.PooledObjects
 {
     [DebuggerDisplay("Count = {Count,nq}")]
     [DebuggerTypeProxy(typeof(ArrayBuilder<>.DebuggerProxy))]
-    internal sealed partial class ArrayBuilder<T> : IReadOnlyCollection<T>, IReadOnlyList<T>
+    internal sealed partial class ArrayBuilder<T> : IReadOnlyCollection<T>, IReadOnlyList<T>, ICollection<T>
+#if !MICROSOFT_CODEANALYSIS_POOLEDOBJECTS_NO_POOLED_DISPOSER
+        , IPooled
+#endif
     {
+        /// <summary>
+        /// See <see cref="Free()"/> for an explanation of this constant value.
+        /// </summary>
+        public const int PooledArrayLengthLimitExclusive = 128;
+
         #region DebuggerProxy
 
         private sealed class DebuggerProxy
@@ -104,6 +115,19 @@ namespace Microsoft.CodeAnalysis.PooledObjects
             }
         }
 
+        public int Capacity
+        {
+            get
+            {
+                return _builder.Capacity;
+            }
+
+            set
+            {
+                _builder.Capacity = value;
+            }
+        }
+
         public T this[int index]
         {
             get
@@ -116,6 +140,12 @@ namespace Microsoft.CodeAnalysis.PooledObjects
                 _builder[index] = value;
             }
         }
+
+        public bool IsReadOnly
+            => false;
+
+        public bool IsEmpty
+            => Count == 0;
 
         /// <summary>
         /// Write <paramref name="value"/> to slot <paramref name="index"/>. 
@@ -201,6 +231,26 @@ namespace Microsoft.CodeAnalysis.PooledObjects
             return -1;
         }
 
+        public int FindIndex<TArg>(Func<T, TArg, bool> match, TArg arg)
+            => FindIndex(0, Count, match, arg);
+
+        public int FindIndex<TArg>(int startIndex, Func<T, TArg, bool> match, TArg arg)
+            => FindIndex(startIndex, Count - startIndex, match, arg);
+
+        public int FindIndex<TArg>(int startIndex, int count, Func<T, TArg, bool> match, TArg arg)
+        {
+            var endIndex = startIndex + count;
+            for (var i = startIndex; i < endIndex; i++)
+            {
+                if (match(_builder[i], arg))
+                {
+                    return i;
+                }
+            }
+
+            return -1;
+        }
+
         public bool Remove(T element)
         {
             return _builder.Remove(element);
@@ -211,9 +261,57 @@ namespace Microsoft.CodeAnalysis.PooledObjects
             _builder.RemoveAt(index);
         }
 
+        public void RemoveRange(int index, int length)
+        {
+            _builder.RemoveRange(index, length);
+        }
+
         public void RemoveLast()
         {
             _builder.RemoveAt(_builder.Count - 1);
+        }
+
+        public void RemoveAll(Predicate<T> match)
+        {
+            _builder.RemoveAll(match);
+        }
+
+        public void RemoveAll<TArg>(Func<T, TArg, bool> match, TArg arg)
+        {
+            var i = 0;
+            for (var j = 0; j < _builder.Count; j++)
+            {
+                if (!match(_builder[j], arg))
+                {
+                    if (i != j)
+                    {
+                        _builder[i] = _builder[j];
+                    }
+
+                    i++;
+                }
+            }
+
+            Clip(i);
+        }
+
+        public void RemoveAll<TArg>(Func<T, int, TArg, bool> match, TArg arg)
+        {
+            var i = 0;
+            for (var j = 0; j < _builder.Count; j++)
+            {
+                if (!match(_builder[j], i, arg))
+                {
+                    if (i != j)
+                    {
+                        _builder[i] = _builder[j];
+                    }
+
+                    i++;
+                }
+            }
+
+            Clip(i);
         }
 
         public void ReverseContents()
@@ -226,13 +324,18 @@ namespace Microsoft.CodeAnalysis.PooledObjects
             _builder.Sort();
         }
 
-        public void Sort(IComparer<T> comparer)
+        public void Sort(IComparer<T>? comparer)
         {
             _builder.Sort(comparer);
         }
 
         public void Sort(Comparison<T> compare)
-            => Sort(Comparer<T>.Create(compare));
+        {
+            if (this.Count <= 1)
+                return;
+
+            Sort(Comparer<T>.Create(compare));
+        }
 
         public void Sort(int startIndex, IComparer<T> comparer)
         {
@@ -250,9 +353,10 @@ namespace Microsoft.CodeAnalysis.PooledObjects
         }
 
         public T Last()
-        {
-            return _builder[_builder.Count - 1];
-        }
+            => _builder[_builder.Count - 1];
+
+        internal T? LastOrDefault()
+            => Count == 0 ? default : Last();
 
         public T First()
         {
@@ -297,6 +401,13 @@ namespace Microsoft.CodeAnalysis.PooledObjects
             return tmp.ToImmutableAndFree();
         }
 
+        public ImmutableArray<U> ToDowncastedImmutableAndFree<U>() where U : T
+        {
+            var result = ToDowncastedImmutable<U>();
+            this.Free();
+            return result;
+        }
+
         /// <summary>
         /// Realizes the array and disposes the builder in one operation.
         /// </summary>
@@ -329,6 +440,15 @@ namespace Microsoft.CodeAnalysis.PooledObjects
             return result;
         }
 
+        public void FreeAll(Func<T, ArrayBuilder<T>?> getNested)
+        {
+            foreach (var item in this)
+            {
+                getNested(item)?.FreeAll(getNested);
+            }
+            Free();
+        }
+
         #region Poolable
 
         // To implement Poolable, you need two things:
@@ -347,7 +467,7 @@ namespace Microsoft.CodeAnalysis.PooledObjects
                 // while the chance that we will need their size is diminishingly small.
                 // It makes sense to constrain the size to some "not too small" number. 
                 // Overall perf does not seem to be very sensitive to this number, so I picked 128 as a limit.
-                if (_builder.Capacity < 128)
+                if (_builder.Capacity < PooledArrayLengthLimitExclusive)
                 {
                     if (this.Count != 0)
                     {
@@ -471,9 +591,27 @@ namespace Microsoft.CodeAnalysis.PooledObjects
             _builder.AddRange(items._builder);
         }
 
+        public void AddRange<U>(ArrayBuilder<U> items, Func<U, T> selector)
+        {
+            foreach (var item in items)
+            {
+                _builder.Add(selector(item));
+            }
+        }
+
         public void AddRange<U>(ArrayBuilder<U> items) where U : T
         {
             _builder.AddRange(items._builder);
+        }
+
+        public void AddRange<U>(ArrayBuilder<U> items, int start, int length) where U : T
+        {
+            Debug.Assert(start >= 0 && length >= 0);
+            Debug.Assert(start + length <= items.Count);
+            for (int i = start, end = start + length; i < end; i++)
+            {
+                Add(items[i]);
+            }
         }
 
         public void AddRange(ImmutableArray<T> items)
@@ -486,6 +624,16 @@ namespace Microsoft.CodeAnalysis.PooledObjects
             _builder.AddRange(items, length);
         }
 
+        public void AddRange(ImmutableArray<T> items, int start, int length)
+        {
+            Debug.Assert(start >= 0 && length >= 0);
+            Debug.Assert(start + length <= items.Length);
+            for (int i = start, end = start + length; i < end; i++)
+            {
+                Add(items[i]);
+            }
+        }
+
         public void AddRange<S>(ImmutableArray<S> items) where S : class, T
         {
             AddRange(ImmutableArray<T>.CastUp(items));
@@ -493,6 +641,8 @@ namespace Microsoft.CodeAnalysis.PooledObjects
 
         public void AddRange(T[] items, int start, int length)
         {
+            Debug.Assert(start >= 0 && length >= 0);
+            Debug.Assert(start + length <= items.Length);
             for (int i = start, end = start + length; i < end; i++)
             {
                 Add(items[i]);
@@ -528,6 +678,8 @@ namespace Microsoft.CodeAnalysis.PooledObjects
 
         public void AddMany(T item, int count)
         {
+            EnsureCapacity(Count + count);
+
             for (var i = 0; i < count; i++)
             {
                 Add(item);
@@ -552,12 +704,14 @@ namespace Microsoft.CodeAnalysis.PooledObjects
             set.Free();
         }
 
-        public void SortAndRemoveDuplicates(IComparer<T> comparer)
+        public void SortAndRemoveDuplicates(IComparer<T>? comparer = null)
         {
             if (Count <= 1)
             {
                 return;
             }
+
+            comparer ??= Comparer<T>.Default;
 
             Sort(comparer);
 
@@ -591,5 +745,237 @@ namespace Microsoft.CodeAnalysis.PooledObjects
             set.Free();
             return result.ToImmutableAndFree();
         }
+
+        public bool Any(Func<T, bool> predicate)
+        {
+            foreach (var item in this)
+            {
+                if (predicate(item))
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        public bool Any<A>(Func<T, A, bool> predicate, A arg)
+        {
+            foreach (var item in this)
+            {
+                if (predicate(item, arg))
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        public bool All(Func<T, bool> predicate)
+        {
+            foreach (var item in this)
+            {
+                if (!predicate(item))
+                {
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        public bool All<A>(Func<T, A, bool> predicate, A arg)
+        {
+            foreach (var item in this)
+            {
+                if (!predicate(item, arg))
+                {
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        /// <summary>
+        /// Maps an array builder to immutable array.
+        /// </summary>
+        /// <typeparam name="TResult"></typeparam>
+        /// <param name="map">The mapping delegate</param>
+        /// <returns>If the items's length is 0, this will return an empty immutable array</returns>
+        public ImmutableArray<TResult> SelectAsArray<TResult>(Func<T, TResult> map)
+        {
+            switch (Count)
+            {
+                case 0:
+                    return [];
+
+                case 1:
+                    return [map(this[0])];
+
+                case 2:
+                    return [map(this[0]), map(this[1])];
+
+                case 3:
+                    return [map(this[0]), map(this[1]), map(this[2])];
+
+                case 4:
+                    return [map(this[0]), map(this[1]), map(this[2]), map(this[3])];
+
+                default:
+                    var builder = ArrayBuilder<TResult>.GetInstance(Count);
+                    foreach (var item in this)
+                    {
+                        builder.Add(map(item));
+                    }
+
+                    return builder.ToImmutableAndFree();
+            }
+        }
+
+        /// <summary>
+        /// Maps an array builder to immutable array.
+        /// </summary>
+        /// <typeparam name="TArg"></typeparam>
+        /// <typeparam name="TResult"></typeparam>
+        /// <param name="map">The mapping delegate</param>
+        /// <param name="arg">The extra input used by mapping delegate</param>
+        /// <returns>If the items's length is 0, this will return an empty immutable array.</returns>
+        public ImmutableArray<TResult> SelectAsArray<TArg, TResult>(Func<T, TArg, TResult> map, TArg arg)
+        {
+            switch (Count)
+            {
+                case 0:
+                    return [];
+
+                case 1:
+                    return [map(this[0], arg)];
+
+                case 2:
+                    return [map(this[0], arg), map(this[1], arg)];
+
+                case 3:
+                    return [map(this[0], arg), map(this[1], arg), map(this[2], arg)];
+
+                case 4:
+                    return [map(this[0], arg), map(this[1], arg), map(this[2], arg), map(this[3], arg)];
+
+                default:
+                    var builder = ArrayBuilder<TResult>.GetInstance(Count);
+                    foreach (var item in this)
+                    {
+                        builder.Add(map(item, arg));
+                    }
+
+                    return builder.ToImmutableAndFree();
+            }
+        }
+
+        /// <summary>
+        /// Maps an array builder to immutable array.
+        /// </summary>
+        /// <typeparam name="TArg"></typeparam>
+        /// <typeparam name="TResult"></typeparam>
+        /// <param name="map">The mapping delegate</param>
+        /// <param name="arg">The extra input used by mapping delegate</param>
+        /// <returns>If the items's length is 0, this will return an empty immutable array.</returns>
+        public ImmutableArray<TResult> SelectAsArrayWithIndex<TArg, TResult>(Func<T, int, TArg, TResult> map, TArg arg)
+        {
+            switch (Count)
+            {
+                case 0:
+                    return [];
+
+                case 1:
+                    return [map(this[0], 0, arg)];
+
+                case 2:
+                    return [map(this[0], 0, arg), map(this[1], 1, arg)];
+
+                case 3:
+                    return [map(this[0], 0, arg), map(this[1], 1, arg), map(this[2], 2, arg)];
+
+                case 4:
+                    return [map(this[0], 0, arg), map(this[1], 1, arg), map(this[2], 2, arg), map(this[3], 3, arg)];
+
+                default:
+                    var builder = ArrayBuilder<TResult>.GetInstance(Count);
+                    foreach (var item in this)
+                    {
+                        builder.Add(map(item, builder.Count, arg));
+                    }
+
+                    return builder.ToImmutableAndFree();
+            }
+        }
+
+        // The following extension methods allow an ArrayBuilder to be used as a stack. 
+        // Note that the order of an IEnumerable from a List is from bottom to top of stack. An IEnumerable 
+        // from the framework Stack is from top to bottom.
+        public void Push(T e)
+            => Add(e);
+
+        public T Pop()
+        {
+            var e = Peek();
+            RemoveAt(Count - 1);
+            return e;
+        }
+
+        public bool TryPop([MaybeNullWhen(false)] out T result)
+        {
+            if (Count > 0)
+            {
+                result = Pop();
+                return true;
+            }
+
+            result = default;
+            return false;
+        }
+
+        public T Peek()
+            => this[Count - 1];
+
+#if !MICROSOFT_CODEANALYSIS_POOLEDOBJECTS_NO_POOLED_DISPOSER
+
+        private static readonly ObjectPool<ArrayBuilder<T>> s_keepLargeInstancesPool = CreatePool();
+
+        public static PooledDisposer<ArrayBuilder<T>> GetInstance(out ArrayBuilder<T> instance)
+            => GetInstance(discardLargeInstances: true, out instance);
+
+        public static PooledDisposer<ArrayBuilder<T>> GetInstance(int capacity, out ArrayBuilder<T> instance)
+        {
+            instance = GetInstance(capacity);
+            return new PooledDisposer<ArrayBuilder<T>>(instance);
+        }
+
+        public static PooledDisposer<ArrayBuilder<T>> GetInstance(int capacity, T fillWithValue, out ArrayBuilder<T> instance)
+        {
+            instance = GetInstance(capacity, fillWithValue);
+            return new PooledDisposer<ArrayBuilder<T>>(instance);
+        }
+
+        public static PooledDisposer<ArrayBuilder<T>> GetInstance(bool discardLargeInstances, out ArrayBuilder<T> instance)
+        {
+            // If we're discarding large instances (the default behavior), then just use the normal pool.  If we're not, use
+            // a specific pool so that *other* normal callers don't accidentally get it and discard it.
+            instance = discardLargeInstances ? GetInstance() : s_keepLargeInstancesPool.Allocate();
+            return new PooledDisposer<ArrayBuilder<T>>(instance, discardLargeInstances);
+        }
+
+        void IPooled.Free(bool discardLargeInstances)
+        {
+            // If we're discarding large instances, use the default behavior (which already does that).  Otherwise, always
+            // clear and free the instance back to its originating pool.
+            if (discardLargeInstances)
+            {
+                Free();
+            }
+            else
+            {
+                this.Clear();
+                _pool?.Free(this);
+            }
+        }
+
+#endif
     }
 }

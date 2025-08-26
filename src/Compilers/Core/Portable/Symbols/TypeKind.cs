@@ -2,6 +2,9 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+using System.Diagnostics;
+using Roslyn.Utilities;
+
 namespace Microsoft.CodeAnalysis
 {
     /// <summary>
@@ -83,5 +86,26 @@ namespace Microsoft.CodeAnalysis
         /// Type is a function pointer.
         /// </summary>
         FunctionPointer = 13,
+
+        /// <summary>
+        /// Type is an extension container.
+        /// </summary>
+        Extension = 14,
+    }
+
+    internal static class TypeKindInternal
+    {
+        /// <summary>
+        /// Internal Symbol representing the inferred signature of
+        /// a lambda expression or method group.
+        /// </summary>
+        internal const TypeKind FunctionType = (TypeKind)255;
+
+#if DEBUG
+        static TypeKindInternal()
+        {
+            Debug.Assert(!EnumUtilities.ContainsValue(FunctionType));
+        }
+#endif
     }
 }

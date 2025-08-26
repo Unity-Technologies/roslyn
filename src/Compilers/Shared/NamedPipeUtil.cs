@@ -2,6 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+#nullable enable
+
 using System;
 using System.IO;
 using System.IO.Pipes;
@@ -55,18 +57,18 @@ namespace Microsoft.CodeAnalysis
         {
             if (PlatformInformation.IsWindows)
             {
-                var serverIdentity = getIdentity(impersonating: false);
+                var serverIdentity = getIdentity();
 
                 (string name, bool admin) clientIdentity = default;
-                pipeStream.RunAsClient(() => { clientIdentity = getIdentity(impersonating: true); });
+                pipeStream.RunAsClient(() => { clientIdentity = getIdentity(); });
 
                 return
                     StringComparer.OrdinalIgnoreCase.Equals(serverIdentity.name, clientIdentity.name) &&
                     serverIdentity.admin == clientIdentity.admin;
 
-                (string name, bool admin) getIdentity(bool impersonating)
+                (string name, bool admin) getIdentity()
                 {
-                    var currentIdentity = WindowsIdentity.GetCurrent(impersonating);
+                    var currentIdentity = WindowsIdentity.GetCurrent();
                     var currentPrincipal = new WindowsPrincipal(currentIdentity);
                     var elevatedToAdmin = currentPrincipal.IsInRole(WindowsBuiltInRole.Administrator);
                     return (currentIdentity.Name, elevatedToAdmin);
@@ -169,7 +171,9 @@ namespace Microsoft.CodeAnalysis
         private const PipeOptions CurrentUserOption = PipeOptions.CurrentUserOnly;
 
         // Validation is handled by CurrentUserOnly
+#pragma warning disable IDE0060 // Remove unused parameter
         internal static bool CheckPipeConnectionOwnership(NamedPipeClientStream pipeStream) => true;
+#pragma warning restore IDE0060 // Remove unused parameter
 
         // Validation is handled by CurrentUserOnly
         internal static PipeSecurity? CreatePipeSecurity() => null;

@@ -59,7 +59,6 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.UnitTests
             CheckLiteralToString(ChrW(7), "ChrW(7)")
             CheckLiteralToString(ChrW(10), "vbLf")
 
-
             '' Unsupported in VB: byte, sbyte, ushort, short
 
             ' uint
@@ -80,7 +79,6 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.UnitTests
             CheckLiteralToString(Long.MinValue, "-9223372036854775808L")
             CheckLiteralToString(Long.MaxValue, "9223372036854775807L")
 
-
             ' float
             CheckLiteralToString(0.0F, "0F")
             CheckLiteralToString(0.012345F, "0.012345F")
@@ -89,7 +87,6 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.UnitTests
 #Else
             CheckLiteralToString(Single.MaxValue, "3.4028235E+38F")
 #End If
-
 
             ' double
             CheckLiteralToString(0.0, "0")
@@ -125,6 +122,17 @@ Integer
 
             Dim type2 = SyntaxFactory.ParseTypeName(code, options:=options)
             Assert.Equal("Integer", type2.ToString())
+        End Sub
+
+        <Fact, WorkItem("https://github.com/dotnet/roslyn/issues/78510")>
+        Public Shared Sub TestParseMethodsKeepParseOptionsInTheTree()
+            Dim parseOptions = VisualBasicParseOptions.Default.WithLanguageVersion(LanguageVersion.Latest)
+
+            Dim compUnit = SyntaxFactory.ParseCompilationUnit("", options:=parseOptions)
+            Assert.Same(parseOptions, compUnit.SyntaxTree.Options)
+
+            Dim typeName = SyntaxFactory.ParseTypeName("", options:=parseOptions)
+            Assert.Same(parseOptions, typeName.SyntaxTree.Options)
         End Sub
     End Class
 End Namespace

@@ -4,8 +4,6 @@
 
 #nullable disable
 
-using System;
-
 namespace Microsoft.CodeAnalysis.Scripting.Hosting
 {
     /// <summary>
@@ -16,7 +14,7 @@ namespace Microsoft.CodeAnalysis.Scripting.Hosting
         /// <remarks>
         /// Internal for testing.
         /// </remarks>
-        internal struct BuilderOptions
+        internal readonly struct BuilderOptions
         {
             public readonly string Indentation;
             public readonly string NewLine;

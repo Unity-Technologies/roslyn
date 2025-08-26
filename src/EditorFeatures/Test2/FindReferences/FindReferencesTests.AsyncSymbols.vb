@@ -2,12 +2,12 @@
 ' The .NET Foundation licenses this file to you under the MIT license.
 ' See the LICENSE file in the project root for more information.
 
-Imports System.Threading.Tasks
 Imports Microsoft.CodeAnalysis.Remote.Testing
 
 Namespace Microsoft.CodeAnalysis.Editor.UnitTests.FindReferences
+    <Trait(Traits.Feature, Traits.Features.FindReferences)>
     Partial Public Class FindReferencesTests
-        <WpfTheory, CombinatorialData, Trait(Traits.Feature, Traits.Features.FindReferences)>
+        <WpfTheory, CombinatorialData>
         Public Async Function TestCSAsyncMethodsName1(kind As TestKind, host As TestHost) As Task
             Dim input =
 <Workspace>
@@ -34,7 +34,7 @@ class Test
             Await TestAPIAndFeature(input, kind, host)
         End Function
 
-        <WpfTheory, CombinatorialData, Trait(Traits.Feature, Traits.Features.FindReferences)>
+        <WpfTheory, CombinatorialData>
         Public Async Function TestVBAsyncMethodsName1(kind As TestKind, host As TestHost) As Task
             Dim input =
 <Workspace>
@@ -57,7 +57,7 @@ End Class
             Await TestAPIAndFeature(input, kind, host)
         End Function
 
-        <WpfTheory, CombinatorialData, Trait(Traits.Feature, Traits.Features.FindReferences)>
+        <WpfTheory, CombinatorialData>
         Public Async Function TestCSAsyncMethodsName2(kind As TestKind, host As TestHost) As Task
             Dim input =
 <Workspace>
@@ -86,7 +86,7 @@ class Test
             Await TestAPIAndFeature(input, kind, host)
         End Function
 
-        <WpfTheory, CombinatorialData, Trait(Traits.Feature, Traits.Features.FindReferences)>
+        <WpfTheory, CombinatorialData>
         Public Async Function TestVBAsyncMethodsName2(kind As TestKind, host As TestHost) As Task
             Dim input =
 <Workspace>
@@ -109,7 +109,7 @@ End Class
             Await TestAPIAndFeature(input, kind, host)
         End Function
 
-        <WpfTheory, CombinatorialData, Trait(Traits.Feature, Traits.Features.FindReferences)>
+        <WpfTheory, CombinatorialData>
         Public Async Function TestCSAsyncMethodsName3(kind As TestKind, host As TestHost) As Task
             Dim input =
 <Workspace>
@@ -135,7 +135,7 @@ class Test
             Await TestAPIAndFeature(input, kind, host)
         End Function
 
-        <WpfTheory, CombinatorialData, Trait(Traits.Feature, Traits.Features.FindReferences)>
+        <WpfTheory, CombinatorialData>
         Public Async Function TestVBAsyncMethodsName3(kind As TestKind, host As TestHost) As Task
             Dim input =
 <Workspace>
@@ -158,7 +158,7 @@ End Class
             Await TestAPIAndFeature(input, kind, host)
         End Function
 
-        <WpfTheory, CombinatorialData, Trait(Traits.Feature, Traits.Features.FindReferences)>
+        <WpfTheory, CombinatorialData>
         Public Async Function TestCSAsyncDelegatesName1(kind As TestKind, host As TestHost) As Task
             Dim input =
 <Workspace>
@@ -183,7 +183,7 @@ class Test
             Await TestAPIAndFeature(input, kind, host)
         End Function
 
-        <WpfTheory, CombinatorialData, Trait(Traits.Feature, Traits.Features.FindReferences)>
+        <WpfTheory, CombinatorialData>
         Public Async Function TestVBAsyncDelegatesName1(kind As TestKind, host As TestHost) As Task
             Dim input =
 <Workspace>
@@ -206,7 +206,7 @@ End Class
             Await TestAPIAndFeature(input, kind, host)
         End Function
 
-        <WpfTheory, CombinatorialData, Trait(Traits.Feature, Traits.Features.FindReferences)>
+        <WpfTheory, CombinatorialData>
         Public Async Function TestCSAsyncDelegatesName2(kind As TestKind, host As TestHost) As Task
             Dim input =
 <Workspace>
@@ -234,7 +234,7 @@ class Test
             Await TestAPIAndFeature(input, kind, host)
         End Function
 
-        <WpfTheory, CombinatorialData, Trait(Traits.Feature, Traits.Features.FindReferences)>
+        <WpfTheory, CombinatorialData>
         Public Async Function TestVBAsyncDelegatesName2(kind As TestKind, host As TestHost) As Task
             Dim input =
 <Workspace>
@@ -259,7 +259,7 @@ End Class
             Await TestAPIAndFeature(input, kind, host)
         End Function
 
-        <WpfTheory, CombinatorialData, Trait(Traits.Feature, Traits.Features.FindReferences)>
+        <WpfTheory, CombinatorialData>
         Public Async Function TestCSAsyncLambdaName1(kind As TestKind, host As TestHost) As Task
             Dim input =
 <Workspace>
@@ -286,7 +286,7 @@ class Test
             Await TestAPIAndFeature(input, kind, host)
         End Function
 
-        <WpfTheory, CombinatorialData, Trait(Traits.Feature, Traits.Features.FindReferences)>
+        <WpfTheory, CombinatorialData>
         Public Async Function TestVBAsyncLambdaName1(kind As TestKind, host As TestHost) As Task
             Dim input =
 <Workspace>
@@ -311,7 +311,7 @@ End Class
             Await TestAPIAndFeature(input, kind, host)
         End Function
 
-        <WpfTheory, CombinatorialData, Trait(Traits.Feature, Traits.Features.FindReferences)>
+        <WpfTheory, CombinatorialData>
         Public Async Function TestAsyncWithinDelegate(kind As TestKind, host As TestHost) As Task
             Dim input =
 <Workspace>
@@ -337,7 +337,7 @@ class Program
             Await TestAPIAndFeature(input, kind, host)
         End Function
 
-        <WpfTheory, CombinatorialData, Trait(Traits.Feature, Traits.Features.FindReferences)>
+        <WpfTheory, CombinatorialData>
         Public Async Function TestAsyncVBWithinAnonFunctions(kind As TestKind, host As TestHost) As Task
             Dim input =
 <Workspace>
@@ -361,7 +361,7 @@ End Class
             Await TestAPIAndFeature(input, kind, host)
         End Function
 
-        <WpfTheory, CombinatorialData, Trait(Traits.Feature, Traits.Features.FindReferences)>
+        <WpfTheory, CombinatorialData>
         Public Async Function TestAsyncWithinLambda(kind As TestKind, host As TestHost) As Task
             Dim input =
 <Workspace>
@@ -387,7 +387,7 @@ class Program
             Await TestAPIAndFeature(input, kind, host)
         End Function
 
-        <WpfTheory, CombinatorialData, Trait(Traits.Feature, Traits.Features.FindReferences)>
+        <WpfTheory, CombinatorialData>
         Public Async Function TestAsyncFunctionWithAsyncParameters1(kind As TestKind, host As TestHost) As Task
             Dim input =
 <Workspace>
@@ -416,7 +416,7 @@ class Test
             Await TestAPIAndFeature(input, kind, host)
         End Function
 
-        <WpfTheory, CombinatorialData, Trait(Traits.Feature, Traits.Features.FindReferences)>
+        <WpfTheory, CombinatorialData>
         Public Async Function TestAsyncVBFunctionWithAsyncParameters1(kind As TestKind, host As TestHost) As Task
             Dim input =
 <Workspace>
@@ -439,7 +439,7 @@ End Class
             Await TestAPIAndFeature(input, kind, host)
         End Function
 
-        <WpfTheory, CombinatorialData, Trait(Traits.Feature, Traits.Features.FindReferences)>
+        <WpfTheory, CombinatorialData>
         Public Async Function TestAsyncVBFunctionWithAsyncParameters2(kind As TestKind, host As TestHost) As Task
             Dim input =
 <Workspace>
@@ -462,7 +462,7 @@ End Class
             Await TestAPIAndFeature(input, kind, host)
         End Function
 
-        <WpfTheory, CombinatorialData, Trait(Traits.Feature, Traits.Features.FindReferences)>
+        <WpfTheory, CombinatorialData>
         Public Async Function TestAsyncFunctionWithAsyncParameters2(kind As TestKind, host As TestHost) As Task
             Dim input =
 <Workspace>
@@ -491,7 +491,7 @@ class Test
             Await TestAPIAndFeature(input, kind, host)
         End Function
 
-        <WpfTheory, CombinatorialData, Trait(Traits.Feature, Traits.Features.FindReferences)>
+        <WpfTheory, CombinatorialData>
         Public Async Function TestAsyncFunctionWithAsyncParameters3(kind As TestKind, host As TestHost) As Task
             Dim input =
 <Workspace>
@@ -517,7 +517,7 @@ class Test
             Await TestAPIAndFeature(input, kind, host)
         End Function
 
-        <WpfTheory, CombinatorialData, Trait(Traits.Feature, Traits.Features.FindReferences)>
+        <WpfTheory, CombinatorialData>
         Public Async Function TestAsyncFunctionWithAsyncParameters4(kind As TestKind, host As TestHost) As Task
             Dim input =
 <Workspace>
@@ -543,7 +543,7 @@ class Test
             Await TestAPIAndFeature(input, kind, host)
         End Function
 
-        <WpfTheory, CombinatorialData, Trait(Traits.Feature, Traits.Features.FindReferences)>
+        <WpfTheory, CombinatorialData>
         Public Async Function TestAsyncCSFunctionWithRecursion(kind As TestKind, host As TestHost) As Task
             Dim input =
 <Workspace>
@@ -569,7 +569,7 @@ class Test
             Await TestAPIAndFeature(input, kind, host)
         End Function
 
-        <WpfTheory, CombinatorialData, Trait(Traits.Feature, Traits.Features.FindReferences)>
+        <WpfTheory, CombinatorialData>
         Public Async Function TestAsyncCSFunctionWithOverloading1(kind As TestKind, host As TestHost) As Task
             Dim input =
 <Workspace>
@@ -602,7 +602,7 @@ class Test
             Await TestAPIAndFeature(input, kind, host)
         End Function
 
-        <WpfTheory, CombinatorialData, Trait(Traits.Feature, Traits.Features.FindReferences)>
+        <WpfTheory, CombinatorialData>
         Public Async Function TestAsyncVBFunctionWithOverloading1(kind As TestKind, host As TestHost) As Task
             Dim input =
 <Workspace>
@@ -630,7 +630,7 @@ End Class
             Await TestAPIAndFeature(input, kind, host)
         End Function
 
-        <WpfTheory, CombinatorialData, Trait(Traits.Feature, Traits.Features.FindReferences)>
+        <WpfTheory, CombinatorialData>
         Public Async Function TestAsyncVBFunctionWithOverloading2(kind As TestKind, host As TestHost) As Task
             Dim input =
 <Workspace>
@@ -658,7 +658,7 @@ End Class
             Await TestAPIAndFeature(input, kind, host)
         End Function
 
-        <WpfTheory, CombinatorialData, Trait(Traits.Feature, Traits.Features.FindReferences)>
+        <WpfTheory, CombinatorialData>
         Public Async Function TestAsyncCSFunctionWithOverloading2(kind As TestKind, host As TestHost) As Task
             Dim input =
 <Workspace>
@@ -692,7 +692,7 @@ class Test
             Await TestAPIAndFeature(input, kind, host)
         End Function
 
-        <WpfTheory, CombinatorialData, Trait(Traits.Feature, Traits.Features.FindReferences)>
+        <WpfTheory, CombinatorialData>
         Public Async Function TestAsyncCSAsIdentifier(kind As TestKind, host As TestHost) As Task
             Dim input =
 <Workspace>
@@ -709,7 +709,7 @@ class Test
             Await TestAPIAndFeature(input, kind, host)
         End Function
 
-        <WpfTheory, CombinatorialData, Trait(Traits.Feature, Traits.Features.FindReferences)>
+        <WpfTheory, CombinatorialData>
         Public Async Function TestAsyncVBAsIdentifier(kind As TestKind, host As TestHost) As Task
             Dim input =
 <Workspace>
@@ -729,7 +729,7 @@ End Class
             Await TestAPIAndFeature(input, kind, host)
         End Function
 
-        <WpfTheory, CombinatorialData, Trait(Traits.Feature, Traits.Features.FindReferences)>
+        <WpfTheory, CombinatorialData>
         Public Async Function TestAwaitCSAsIdentifier(kind As TestKind, host As TestHost) As Task
             Dim input =
 <Workspace>
@@ -746,7 +746,7 @@ class Test
             Await TestAPIAndFeature(input, kind, host)
         End Function
 
-        <WpfTheory, CombinatorialData, Trait(Traits.Feature, Traits.Features.FindReferences)>
+        <WpfTheory, CombinatorialData>
         Public Async Function TestAwaitVBAsIdentifier(kind As TestKind, host As TestHost) As Task
             Dim input =
 <Workspace>

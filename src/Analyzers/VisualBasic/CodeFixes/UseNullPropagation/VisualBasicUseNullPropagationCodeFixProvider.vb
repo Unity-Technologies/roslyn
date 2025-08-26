@@ -9,24 +9,34 @@ Imports Microsoft.CodeAnalysis.UseNullPropagation
 Imports Microsoft.CodeAnalysis.VisualBasic.Syntax
 
 Namespace Microsoft.CodeAnalysis.VisualBasic.UseNullPropagation
-    <ExportCodeFixProvider(LanguageNames.VisualBasic), [Shared]>
-    Friend Class VisualBasicUseNullPropagationCodeFixProvider
+    <ExportCodeFixProvider(LanguageNames.VisualBasic, Name:=PredefinedCodeFixProviderNames.UseNullPropagation), [Shared]>
+    Friend NotInheritable Class VisualBasicUseNullPropagationCodeFixProvider
         Inherits AbstractUseNullPropagationCodeFixProvider(Of
+            VisualBasicUseNullPropagationDiagnosticAnalyzer,
             SyntaxKind,
             ExpressionSyntax,
+            ExecutableStatementSyntax,
             TernaryConditionalExpressionSyntax,
             BinaryExpressionSyntax,
             InvocationExpressionSyntax,
-            MemberAccessExpressionSyntax,
             ConditionalAccessExpressionSyntax,
             InvocationExpressionSyntax,
+            MemberAccessExpressionSyntax,
             InvocationExpressionSyntax,
+            MultiLineIfBlockSyntax,
+            ExpressionStatementSyntax,
             ArgumentListSyntax)
 
         <ImportingConstructor>
         <SuppressMessage("RoslynDiagnosticsReliability", "RS0033:Importing constructor should be [Obsolete]", Justification:="Used in test code: https://github.com/dotnet/roslyn/issues/42814")>
         Public Sub New()
         End Sub
+
+        Protected Overrides ReadOnly Property Analyzer As VisualBasicUseNullPropagationDiagnosticAnalyzer = VisualBasicUseNullPropagationDiagnosticAnalyzer.Instance
+
+        Protected Overrides Function PostProcessElseIf(ifStatement As MultiLineIfBlockSyntax, newWhenTrueStatement As ExecutableStatementSyntax) As SyntaxNode
+            Throw ExceptionUtilities.Unreachable()
+        End Function
 
         Protected Overrides Function ElementBindingExpression(argumentList As ArgumentListSyntax) As InvocationExpressionSyntax
             Return SyntaxFactory.InvocationExpression(Nothing, argumentList)

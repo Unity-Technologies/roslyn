@@ -7,6 +7,7 @@ Imports Microsoft.CodeAnalysis.Editor.UnitTests.CodeActions
 Imports Microsoft.CodeAnalysis.VisualBasic.CodeStyle
 
 Namespace Microsoft.CodeAnalysis.Editor.VisualBasic.UnitTests.RemoveUnusedParametersAndValues
+    <Trait(Traits.Feature, Traits.Features.CodeActionsRemoveUnusedValues)>
     Partial Public Class RemoveUnusedValueExpressionStatementTests
         Inherits RemoveUnusedValuesTestsBase
 
@@ -31,7 +32,7 @@ Namespace Microsoft.CodeAnalysis.Editor.VisualBasic.UnitTests.RemoveUnusedParame
             End Get
         End Property
 
-        <Fact, Trait(Traits.Feature, Traits.Features.CodeActionsRemoveUnusedValues)>
+        <Fact>
         Public Async Function ExpressionStatement_PreferNone() As Task
             Await TestMissingInRegularAndScriptAsync(
 $"Class C
@@ -45,7 +46,7 @@ $"Class C
 End Class", options:=PreferNone)
         End Function
 
-        <Fact, Trait(Traits.Feature, Traits.Features.CodeActionsRemoveUnusedValues)>
+        <Fact>
         Public Async Function ExpressionStatement_PreferDiscard() As Task
             Await TestInRegularAndScriptAsync(
 $"Class C
@@ -65,10 +66,10 @@ $"Class C
     Private Function M2() As Integer
         Return 0
     End Function
-End Class", options:=PreferDiscard)
+End Class", New TestParameters(options:=PreferDiscard))
         End Function
 
-        <Fact, Trait(Traits.Feature, Traits.Features.CodeActionsRemoveUnusedValues)>
+        <Fact>
         Public Async Function ExpressionStatement_PreferUnusedLocal() As Task
             Await TestInRegularAndScriptAsync(
 $"Class C
@@ -88,10 +89,10 @@ $"Class C
     Private Function M2() As Integer
         Return 0
     End Function
-End Class", options:=PreferUnusedLocal)
+End Class", New TestParameters(options:=PreferUnusedLocal))
         End Function
 
-        <Fact, Trait(Traits.Feature, Traits.Features.CodeActionsRemoveUnusedValues)>
+        <Fact>
         Public Async Function CallStatement() As Task
             Await TestMissingInRegularAndScriptAsync(
 $"Class C

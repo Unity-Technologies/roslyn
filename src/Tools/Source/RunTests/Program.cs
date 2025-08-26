@@ -6,14 +6,14 @@
 
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Runtime.InteropServices;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
-using RestSharp;
-using System.Collections.Immutable;
-using Newtonsoft.Json;
-using System.Diagnostics;
 
 namespace RunTests
 {
@@ -30,18 +30,22 @@ namespace RunTests
         internal const int ExitSuccess = 0;
         internal const int ExitFailure = 1;
 
-        private const long MaxTotalDumpSizeInMegabytes = 4096;
+        private const long MaxTotalDumpSizeInMegabytes = 8196;
 
         internal static async Task<int> Main(string[] args)
         {
             Logger.Log("RunTest command line");
             Logger.Log(string.Join(" ", args));
-
             var options = Options.Parse(args);
             if (options == null)
             {
                 return ExitFailure;
             }
+
+            ConsoleUtil.WriteLine($"Running '{options.DotnetFilePath} --version'..");
+            var dotnetResult = await ProcessRunner.CreateProcess(options.DotnetFilePath, arguments: "--version", captureOutput: true).Result;
+            ConsoleUtil.WriteLine(string.Join(Environment.NewLine, dotnetResult.OutputLines));
+            ConsoleUtil.WriteLine(ConsoleColor.Red, string.Join(Environment.NewLine, dotnetResult.ErrorLines));
 
             if (options.CollectDumps)
             {
@@ -68,7 +72,7 @@ namespace RunTests
                 int result;
                 if (options.Timeout is { } timeout)
                 {
-                    result = await RunAsync(options, timeout, cts.Token);
+                    result = await RunCoreAsync(options, cts.Token);
                 }
                 else
                 {
@@ -92,7 +96,7 @@ namespace RunTests
             }
         }
 
-        private static async Task<int> RunAsync(Options options, TimeSpan timeout, CancellationToken cancellationToken)
+        private static async Task<int> RunCoreAsync(Options options, CancellationToken cancellationToken)
         {
             using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
             var runTask = RunAsync(options, cts.Token);
@@ -123,20 +127,28 @@ namespace RunTests
 
         private static async Task<int> RunAsync(Options options, CancellationToken cancellationToken)
         {
-            if (!CheckAssemblyList(options))
+            var assemblyFilePaths = GetAssemblyFilePaths(options);
+            if (options.UseHelix)
             {
+                return await HelixTestRunner.RunAsync(
+                    options,
+                    assemblyFilePaths,
+                    cancellationToken);
+            }
+
+            var testExecutor = new ProcessTestExecutor();
+            var testRunner = new TestRunner(options, testExecutor);
+            var start = DateTime.Now;
+            if (assemblyFilePaths.Length == 0)
+            {
+                WriteLogFile(options);
+                ConsoleUtil.WriteLine(ConsoleColor.Red, "No assemblies to test");
                 return ExitFailure;
             }
 
-            var testExecutor = CreateTestExecutor(options);
-            var testRunner = new TestRunner(options, testExecutor);
-            var start = DateTime.Now;
-            var assemblyInfoList = GetAssemblyList(options);
-
             ConsoleUtil.WriteLine($"Proc dump location: {options.ProcDumpFilePath}");
-            ConsoleUtil.WriteLine($"Running {options.Assemblies.Count} test assemblies in {assemblyInfoList.Count} partitions");
 
-            var result = await testRunner.RunAllAsync(assemblyInfoList, cancellationToken).ConfigureAwait(true);
+            var result = await testRunner.RunAllAsync(assemblyFilePaths, cancellationToken).ConfigureAwait(true);
             var elapsed = DateTime.Now - start;
 
             ConsoleUtil.WriteLine($"Test execution time: {elapsed}");
@@ -186,6 +198,7 @@ namespace RunTests
             var logFilePath = Path.Combine(options.LogFilesDirectory, "runtests.log");
             try
             {
+                Directory.CreateDirectory(options.LogFilesDirectory);
                 using (var writer = new StreamWriter(logFilePath, append: false))
                 {
                     Logger.WriteTo(writer);
@@ -212,7 +225,7 @@ namespace RunTests
 
                 // Our space for saving dump files is limited. Skip dumping for processes that won't contribute
                 // to bug investigations.
-                if (name == "procdump" || name == "conhost")
+                if (name is "procdump" or "conhost")
                 {
                     return;
                 }
@@ -246,16 +259,25 @@ namespace RunTests
                 }
             }
 
-            if (options.CollectDumps && GetProcDumpInfo(options) is { } procDumpInfo)
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            {
+                var screenshotPath = Path.Combine(options.LogFilesDirectory, $"timeout.png");
+                ConsoleUtil.WriteLine($"Taking screenshot on timeout at {screenshotPath}");
+                var output = await ProcessRunner.CreateProcess("Powershell.exe", $"-command \"& {{ . .\\eng\\build-utils-win.ps1; Capture-Screenshot {screenshotPath} }}\"", displayWindow: false, cancellationToken: cancellationToken).Result;
+                ConsoleUtil.WriteLine(string.Join(Environment.NewLine, output.OutputLines));
+                ConsoleUtil.WriteLine(string.Join(Environment.NewLine, output.ErrorLines));
+            }
+
+            if (options.CollectDumps && !string.IsNullOrEmpty(options.ProcDumpFilePath))
             {
                 ConsoleUtil.WriteLine("Roslyn Error: test timeout exceeded, dumping remaining processes");
 
                 var counter = 0;
                 foreach (var proc in ProcessUtil.GetProcessTree(Process.GetCurrentProcess()).OrderBy(x => x.ProcessName))
                 {
-                    var dumpDir = procDumpInfo.DumpDirectory;
+                    var dumpDir = options.LogFilesDirectory;
                     var dumpFilePath = Path.Combine(dumpDir, $"{proc.ProcessName}-{counter}.dmp");
-                    await DumpProcess(proc, procDumpInfo.ProcDumpFilePath, dumpFilePath);
+                    await DumpProcess(proc, options.ProcDumpFilePath, dumpFilePath);
                     counter++;
                 }
             }
@@ -263,57 +285,105 @@ namespace RunTests
             WriteLogFile(options);
         }
 
-        private static ProcDumpInfo? GetProcDumpInfo(Options options)
+        private static ImmutableArray<AssemblyInfo> GetAssemblyFilePaths(Options options)
         {
-            if (!string.IsNullOrEmpty(options.ProcDumpFilePath))
+            var list = new List<AssemblyInfo>();
+            var binDirectory = Path.Combine(options.ArtifactsDirectory, "bin");
+            foreach (var project in Directory.EnumerateDirectories(binDirectory, "*", SearchOption.TopDirectoryOnly))
             {
-                return new ProcDumpInfo(options.ProcDumpFilePath, options.LogFilesDirectory);
-            }
-
-            return null;
-        }
-
-        /// <summary>
-        /// Quick sanity check to look over the set of assemblies to make sure they are valid and something was
-        /// specified.
-        /// </summary>
-        private static bool CheckAssemblyList(Options options)
-        {
-            var anyMissing = false;
-            foreach (var assemblyPath in options.Assemblies)
-            {
-                if (!File.Exists(assemblyPath))
+                var name = Path.GetFileName(project);
+                if (!shouldInclude(name, options) || shouldExclude(name, options))
                 {
-                    ConsoleUtil.WriteLine(ConsoleColor.Red, $"The file '{assemblyPath}' does not exist, is an invalid file name, or you do not have sufficient permissions to read the specified file.");
-                    anyMissing = true;
+                    Console.WriteLine($"Skipping {name} because it is not included or is excluded");
+                    continue;
+                }
+
+                var fileName = $"{name}.dll";
+
+                var configDirectory = Path.Combine(project, options.Configuration);
+                if (!Directory.Exists(configDirectory))
+                {
+                    Console.WriteLine($"Skipping {name} because {options.Configuration} does not exist");
+                    continue;
+                }
+
+                foreach (var targetFrameworkDirectory in Directory.EnumerateDirectories(configDirectory))
+                {
+                    var tfm = Path.GetFileName(targetFrameworkDirectory)!;
+                    if (!IsMatch(options.TestRuntime, tfm))
+                    {
+                        Console.WriteLine($"Skipping {name} {tfm} does not match the target framework");
+                        continue;
+                    }
+
+                    var filePath = Path.Combine(targetFrameworkDirectory, fileName);
+                    if (File.Exists(filePath))
+                    {
+                        list.Add(new AssemblyInfo(filePath));
+                    }
+                    else if (Directory.GetFiles(targetFrameworkDirectory, searchPattern: "*.UnitTests.dll") is { Length: > 0 } matches)
+                    {
+                        // If the unit test assembly name doesn't match the project folder name, but still matches our "unit test" name pattern, we want to run it.
+                        // If more than one such assembly is present in a project output folder, we assume something is wrong with the build configuration.
+                        // For example, one unit test project might be referencing another unit test project.
+                        if (matches.Length > 1)
+                        {
+                            var message = $"Multiple unit test assemblies found in '{targetFrameworkDirectory}'. Please adjust the build to prevent this. Matches:{Environment.NewLine}{string.Join(Environment.NewLine, matches)}";
+                            throw new Exception(message);
+                        }
+
+                        Console.WriteLine($"Found unit test assembly '{matches[0]}' in '{targetFrameworkDirectory}'");
+                        list.Add(new AssemblyInfo(matches[0]));
+                    }
+                    else
+                    {
+                        Console.WriteLine($"{targetFrameworkDirectory} does not contain unit tests");
+                    }
                 }
             }
 
-            if (anyMissing)
+            if (list.Count == 0)
             {
+                throw new InvalidOperationException($"Did not find any test assemblies");
+            }
+
+            list.Sort();
+            return list.ToImmutableArray();
+
+            static bool shouldInclude(string name, Options options)
+            {
+                foreach (var pattern in options.IncludeFilter)
+                {
+                    if (Regex.IsMatch(name, pattern.Trim('\'', '"')))
+                    {
+                        return true;
+                    }
+                }
+
                 return false;
             }
 
-            if (options.Assemblies.Count == 0)
+            static bool shouldExclude(string name, Options options)
             {
-                ConsoleUtil.WriteLine("No test assemblies specified.");
+                foreach (var pattern in options.ExcludeFilter)
+                {
+                    if (Regex.IsMatch(name, pattern.Trim('\'', '"')))
+                    {
+                        return true;
+                    }
+                }
+
                 return false;
             }
 
-            return true;
-        }
-
-        private static List<AssemblyInfo> GetAssemblyList(Options options)
-        {
-            var scheduler = new AssemblyScheduler(options);
-            var list = new List<AssemblyInfo>();
-
-            foreach (var assemblyPath in options.Assemblies.OrderByDescending(x => new FileInfo(x).Length))
-            {
-                list.AddRange(scheduler.Schedule(assemblyPath).Select(x => new AssemblyInfo(x, options.TargetFramework, options.Platform)));
-            }
-
-            return list;
+            static bool IsMatch(TestRuntime testRuntime, string dirName) =>
+                testRuntime switch
+                {
+                    TestRuntime.Both => true,
+                    TestRuntime.Core => Regex.IsMatch(dirName, @"^net\d+\."),
+                    TestRuntime.Framework => dirName is "net472",
+                    _ => throw new InvalidOperationException($"Unexpected {nameof(TestRuntime)} value: {testRuntime}"),
+                };
         }
 
         private static void DisplayResults(Display display, ImmutableArray<TestResult> testResults)
@@ -344,20 +414,6 @@ namespace RunTests
             }
         }
 
-        private static ProcessTestExecutor CreateTestExecutor(Options options)
-        {
-            var testExecutionOptions = new TestExecutionOptions(
-                dotnetFilePath: options.DotnetFilePath,
-                procDumpInfo: options.CollectDumps ? GetProcDumpInfo(options) : null,
-                testResultsDirectory: options.TestResultsDirectory,
-                trait: options.Trait,
-                noTrait: options.NoTrait,
-                includeHtml: options.IncludeHtml,
-                testVsi: options.TestVsi,
-                retry: options.Retry);
-            return new ProcessTestExecutor(testExecutionOptions);
-        }
-
         /// <summary>
         /// Checks the total size of dump file and removes files exceeding a limit.
         /// </summary>
@@ -373,6 +429,7 @@ namespace RunTests
                 currentTotalSize += fileSizeInMegabytes;
                 if (currentTotalSize > MaxTotalDumpSizeInMegabytes)
                 {
+                    ConsoleUtil.WriteLine($"Deleting '{dumpFile}' because we have exceeded our total dump size of {MaxTotalDumpSizeInMegabytes} megabytes.");
                     File.Delete(dumpFile);
                 }
             }

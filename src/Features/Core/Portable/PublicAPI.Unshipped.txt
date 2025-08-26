@@ -1,1 +1,0 @@
-const Microsoft.CodeAnalysis.TextTags.Record = "Record" -> string

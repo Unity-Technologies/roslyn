@@ -2,10 +2,10 @@
 ' The .NET Foundation licenses this file to you under the MIT license.
 ' See the LICENSE file in the project root for more information.
 
-Imports Microsoft.CodeAnalysis.VisualBasic.Syntax
+Imports System.Threading
 Imports Microsoft.CodeAnalysis.VisualBasic.Extensions
 Imports Microsoft.CodeAnalysis.VisualBasic.Extensions.ContextQuery
-Imports System.Threading
+Imports Microsoft.CodeAnalysis.VisualBasic.Syntax
 
 Namespace Microsoft.CodeAnalysis.Editor.VisualBasic.UnitTests.Extensions
     Public Class StatementSyntaxExtensionTests
@@ -207,7 +207,7 @@ End Class</String>.Value
             VerifyTokenName(Of SubNewStatementSyntax)(code, "")
         End Sub
 
-        <Fact, WorkItem(552823, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/552823")>
+        <Fact, WorkItem("http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/552823")>
         Public Sub TestIsInStatementBlockOfKindForBrokenCode()
             Dim code = <String>End Sub
 End Module

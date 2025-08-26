@@ -24,7 +24,7 @@ namespace Microsoft.CodeAnalysis.CSharp
         }
 
         /// <returns>True if a diagnostic was reported</returns>
-        internal bool ReportUnsafeIfNotAllowed(SyntaxNode node, DiagnosticBag diagnostics, TypeSymbol sizeOfTypeOpt = null)
+        internal bool ReportUnsafeIfNotAllowed(SyntaxNode node, BindingDiagnosticBag diagnostics, TypeSymbol sizeOfTypeOpt = null)
         {
             Debug.Assert((node.Kind() == SyntaxKind.SizeOfExpression) == ((object)sizeOfTypeOpt != null), "Should have a type for (only) sizeof expressions.");
             var diagnosticInfo = GetUnsafeDiagnosticInfo(sizeOfTypeOpt);
@@ -38,7 +38,7 @@ namespace Microsoft.CodeAnalysis.CSharp
         }
 
         /// <returns>True if a diagnostic was reported</returns>
-        internal bool ReportUnsafeIfNotAllowed(Location location, DiagnosticBag diagnostics)
+        internal bool ReportUnsafeIfNotAllowed(Location location, BindingDiagnosticBag diagnostics)
         {
             var diagnosticInfo = GetUnsafeDiagnosticInfo(sizeOfTypeOpt: null);
             if (diagnosticInfo == null)
@@ -56,17 +56,15 @@ namespace Microsoft.CodeAnalysis.CSharp
             {
                 return null;
             }
-            else if (this.IsIndirectlyInIterator)
-            {
-                // Spec 8.2: "An iterator block always defines a safe context, even when its declaration
-                // is nested in an unsafe context."
-                return new CSDiagnosticInfo(ErrorCode.ERR_IllegalInnerUnsafe);
-            }
             else if (!this.InUnsafeRegion)
             {
                 return ((object)sizeOfTypeOpt == null)
                     ? new CSDiagnosticInfo(ErrorCode.ERR_UnsafeNeeded)
                     : new CSDiagnosticInfo(ErrorCode.ERR_SizeofUnsafe, sizeOfTypeOpt);
+            }
+            else if (this.IsIndirectlyInIterator && MessageID.IDS_FeatureRefUnsafeInIteratorAsync.GetFeatureAvailabilityDiagnosticInfo(Compilation) is { } unsafeInIteratorDiagnosticInfo)
+            {
+                return unsafeInIteratorDiagnosticInfo;
             }
             else
             {

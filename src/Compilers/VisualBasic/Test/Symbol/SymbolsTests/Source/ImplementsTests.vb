@@ -2,17 +2,9 @@
 ' The .NET Foundation licenses this file to you under the MIT license.
 ' See the LICENSE file in the project root for more information.
 
-Imports System
-Imports System.Globalization
-Imports System.Text
-Imports System.Xml.Linq
-Imports Microsoft.CodeAnalysis.Test.Extensions
+Imports Microsoft.CodeAnalysis.Collections
 Imports Microsoft.CodeAnalysis.Test.Utilities
-Imports Microsoft.CodeAnalysis.Text
 Imports Microsoft.CodeAnalysis.VisualBasic.Symbols
-Imports Microsoft.CodeAnalysis.VisualBasic.Syntax
-
-Imports Microsoft.CodeAnalysis.VisualBasic.UnitTests.Symbols
 Imports Roslyn.Test.Utilities
 
 Namespace Microsoft.CodeAnalysis.VisualBasic.UnitTests
@@ -76,7 +68,6 @@ I said: Lady Gaga rules!
 The answer is: 13
 ]]>)
         End Sub
-
 
         <Fact>
         Public Sub SimpleImplementationProperties()
@@ -148,7 +139,6 @@ You got: Eric Clapton
 ]]>)
 
         End Sub
-
 
         <Fact>
         Public Sub SimpleImplementationOverloadedProperties()
@@ -455,7 +445,6 @@ second
 ]]>)
         End Sub
 
-
         <Fact>
         Public Sub ImplementationOfGenericMethod3()
             CompileAndVerify(
@@ -636,7 +625,6 @@ BC31035: Interface 'I1' is not implemented by this class.
                                                    ~~
             </expected>)
         End Sub
-
 
         <Fact>
         Public Sub UnimplementedInterface2()
@@ -1194,8 +1182,6 @@ BC30401: 'Zing' cannot implement 'Foo' because there is no matching property on 
 </expected>)
         End Sub
 
-
-
         <Fact>
         Public Sub GenericSubstitutionAmbiguity()
             Dim compilation = CompilationUtils.CreateCompilationWithMscorlib40(
@@ -1243,7 +1229,6 @@ BC30937: Member 'I1(Of String).Bar' that matches this signature cannot be implem
                                                    ~~~~~~
                                                             </expected>)
         End Sub
-
 
         <Fact>
         Public Sub GenericSubstitutionAmbiguityProperty()
@@ -1306,7 +1291,6 @@ BC30937: Member 'I1(Of String).Bar' that matches this signature cannot be implem
                                                              ~~~~~~~~~~~~~~~~~
                                                             </expected>)
         End Sub
-
 
         <Fact>
         Public Sub InterfaceReimplementation2()
@@ -1387,7 +1371,6 @@ End Namespace
                                                                  </expected>)
         End Sub
 
-
         <Fact>
         Public Sub UnimplementedMembers()
             Dim compilation = CompilationUtils.CreateCompilationWithMscorlib40AndVBRuntime(
@@ -1445,7 +1428,6 @@ BC30149: Class 'Class1' must implement 'Sub Zap()' for interface 'I3'.
                              ~~
 </expected>)
         End Sub
-
 
         <Fact>
         Public Sub ImplementTwice()
@@ -2355,7 +2337,6 @@ BC30149: Class 'Foo' must implement 'Sub SayItWithStyle(style As String)' for in
 </expected>)
         End Sub
 
-
         <Fact>
         Public Sub UnimplementedProperties()
             Dim comp = CompilationUtils.CreateCompilationWithMscorlib40(
@@ -2507,7 +2488,6 @@ BC31035: Interface 'IFoo' is not implemented by this class.
                                                 ~~~~
 </expected>)
         End Sub
-
 
         <Fact>
         Public Sub GenericInterface()
@@ -2677,7 +2657,6 @@ X.quux1
 ]]>)
         End Sub
 
-
         <Fact>
         Public Sub Bug6095()
             Dim compilation = CompilationUtils.CreateCompilationWithMscorlib40AndVBRuntime(
@@ -2705,7 +2684,6 @@ End Namespace
             CompilationUtils.AssertNoErrors(compilation)
 
         End Sub
-
 
         <Fact>
         Public Sub Bug7931()
@@ -3244,7 +3222,6 @@ BC42333: Interface 'IFoo(Of Y, S(Of U))' is ambiguous with another implemented i
 
         End Sub
 
-
         <Fact()>
         Public Sub VarianceAmbiguity5()
             Dim compilation = CompilationUtils.CreateCompilationWithMscorlib40(
@@ -3360,7 +3337,6 @@ BC30149: Class 'B' must implement 'Sub Foo(x As A(Of A(Of A(Of T).B).B).B)' for 
     Implements I(Of B.B)
                ~~~~~~~~~
                                                             </expected>)
-
 
         End Sub
 
@@ -4439,7 +4415,4 @@ Implementation.M12
 
     End Class
 End Namespace
-
-
-
 

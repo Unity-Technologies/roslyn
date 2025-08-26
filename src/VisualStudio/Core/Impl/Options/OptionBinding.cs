@@ -7,40 +7,39 @@
 using System.ComponentModel;
 using Microsoft.CodeAnalysis.Options;
 
-namespace Microsoft.VisualStudio.LanguageServices.Implementation.Options
+namespace Microsoft.VisualStudio.LanguageServices.Implementation.Options;
+
+internal sealed class OptionBinding<T> : INotifyPropertyChanged
 {
-    internal class OptionBinding<T> : INotifyPropertyChanged
+    private readonly OptionStore _optionStore;
+    private readonly Option2<T> _option;
+
+    public event PropertyChangedEventHandler PropertyChanged;
+
+    public OptionBinding(OptionStore optionStore, Option2<T> option)
     {
-        private readonly OptionStore _optionStore;
-        private readonly Option2<T> _key;
+        _optionStore = optionStore;
+        _option = option;
 
-        public event PropertyChangedEventHandler PropertyChanged;
-
-        public OptionBinding(OptionStore optionStore, Option2<T> key)
+        _optionStore.OptionChanged += (sender, e) =>
         {
-            _optionStore = optionStore;
-            _key = key;
-
-            _optionStore.OptionChanged += (sender, e) =>
+            if (e.Option == _option)
             {
-                if (e.Option == _key)
-                {
-                    PropertyChanged?.Raise(this, new PropertyChangedEventArgs(nameof(Value)));
-                }
-            };
+                PropertyChanged?.Raise(this, new PropertyChangedEventArgs(nameof(Value)));
+            }
+        };
+    }
+
+    public T Value
+    {
+        get
+        {
+            return _optionStore.GetOption<T>(_option);
         }
 
-        public T Value
+        set
         {
-            get
-            {
-                return _optionStore.GetOption(_key);
-            }
-
-            set
-            {
-                _optionStore.SetOption(_key, value);
-            }
+            _optionStore.SetOption(_option, value);
         }
     }
 }

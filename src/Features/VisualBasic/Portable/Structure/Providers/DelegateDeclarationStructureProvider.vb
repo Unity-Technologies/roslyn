@@ -11,11 +11,12 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Structure
     Friend Class DelegateDeclarationStructureProvider
         Inherits AbstractSyntaxNodeStructureProvider(Of DelegateStatementSyntax)
 
-        Protected Overrides Sub CollectBlockSpans(delegateDeclaration As DelegateStatementSyntax,
+        Protected Overrides Sub CollectBlockSpans(previousToken As SyntaxToken,
+                                                  delegateDeclaration As DelegateStatementSyntax,
                                                   spans As ArrayBuilder(Of BlockSpan),
-                                                  optionProvider As BlockStructureOptionProvider,
+                                                  options As BlockStructureOptions,
                                                   cancellationToken As CancellationToken)
-            CollectCommentsRegions(delegateDeclaration, spans, optionProvider)
+            CollectCommentsRegions(delegateDeclaration, spans, options)
         End Sub
     End Class
 End Namespace

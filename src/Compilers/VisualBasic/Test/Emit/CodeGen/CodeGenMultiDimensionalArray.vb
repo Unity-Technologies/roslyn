@@ -2,7 +2,6 @@
 ' The .NET Foundation licenses this file to you under the MIT license.
 ' See the LICENSE file in the project root for more information.
 
-Imports Microsoft.CodeAnalysis.Test.Utilities
 Imports Roslyn.Test.Utilities
 
 Namespace Microsoft.CodeAnalysis.VisualBasic.UnitTests
@@ -1455,7 +1454,6 @@ End Class
 </compilation>).VerifyDiagnostics()
         End Sub
 
-
         <Fact()>
         Public Sub MDArrayTypeRef()
             Dim csCompilation = CreateCSharpCompilation("CS",
@@ -1483,7 +1481,6 @@ SM
 ]]>)
             vbVerifier.VerifyDiagnostics()
         End Sub
-
 
     End Class
 

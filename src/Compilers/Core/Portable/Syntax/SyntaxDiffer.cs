@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Text;
+using Microsoft.CodeAnalysis.Collections;
 using Microsoft.CodeAnalysis.Text;
 using Roslyn.Utilities;
 
@@ -186,7 +187,7 @@ namespace Microsoft.CodeAnalysis
             ReplaceOldWithNew
         }
 
-        private struct DiffAction
+        private readonly struct DiffAction
         {
             public readonly DiffOp Operation;
             public readonly int Count;
@@ -713,23 +714,6 @@ namespace Microsoft.CodeAnalysis
             }
 
             return queue;
-        }
-
-        private static SyntaxNodeOrToken[] ToArray(Stack<SyntaxNodeOrToken> stack, int n)
-        {
-            var nodes = new SyntaxNodeOrToken[n];
-            int i = n - 1;
-            foreach (var node in stack)
-            {
-                nodes[i] = node;
-                i--;
-
-                if (i < 0)
-                {
-                    break;
-                }
-            }
-            return nodes;
         }
 
         private static void RemoveFirst(Stack<SyntaxNodeOrToken> stack, int count)

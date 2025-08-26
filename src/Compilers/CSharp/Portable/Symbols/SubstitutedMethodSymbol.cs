@@ -7,6 +7,7 @@
 using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Threading;
+using Microsoft.CodeAnalysis.Collections;
 using Microsoft.CodeAnalysis.PooledObjects;
 using Roslyn.Utilities;
 
@@ -20,7 +21,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
     // C<X>.M<Y> is a ConstructedMethodSymbol.
     internal class SubstitutedMethodSymbol : WrappedMethodSymbol
     {
-        private readonly NamedTypeSymbol _containingType;
+        private readonly Symbol _containingSymbol;
         private readonly MethodSymbol _underlyingMethod;
         private readonly TypeMap _inputMap;
         private readonly MethodSymbol _constructedFrom;
@@ -43,11 +44,11 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
             Debug.Assert(TypeSymbol.Equals(originalDefinition.ContainingType, containingSymbol.OriginalDefinition, TypeCompareKind.ConsiderEverything2));
         }
 
-        protected SubstitutedMethodSymbol(NamedTypeSymbol containingSymbol, TypeMap map, MethodSymbol originalDefinition, MethodSymbol constructedFrom)
+        protected SubstitutedMethodSymbol(Symbol containingSymbol, TypeMap map, MethodSymbol originalDefinition, MethodSymbol constructedFrom)
         {
             Debug.Assert((object)originalDefinition != null);
             Debug.Assert(originalDefinition.IsDefinition);
-            _containingType = containingSymbol;
+            _containingSymbol = containingSymbol;
             _underlyingMethod = originalDefinition;
             _inputMap = map;
             if ((object)constructedFrom != null)
@@ -99,7 +100,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
 
         private void EnsureMapAndTypeParameters()
         {
-            if (!_lazyTypeParameters.IsDefault)
+            if (!RoslynImmutableInterlocked.VolatileRead(ref _lazyTypeParameters).IsDefault)
             {
                 return;
             }
@@ -169,13 +170,13 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
             }
         }
 
-        public override TypeSymbol GetTypeInferredDuringReduction(TypeParameterSymbol reducedFromTypeParameter)
+        public override TypeWithAnnotations GetTypeInferredDuringReduction(TypeParameterSymbol reducedFromTypeParameter)
         {
             // This will throw if API shouldn't be supported or there is a problem with the argument.
             var notUsed = OriginalDefinition.GetTypeInferredDuringReduction(reducedFromTypeParameter);
 
-            Debug.Assert((object)notUsed == null && (object)OriginalDefinition.ReducedFrom != null);
-            return this.TypeArgumentsWithAnnotations[reducedFromTypeParameter.Ordinal].Type;
+            Debug.Assert(notUsed.Type is null && OriginalDefinition.ReducedFrom is not null);
+            return this.TypeArgumentsWithAnnotations[reducedFromTypeParameter.Ordinal];
         }
 
         public sealed override MethodSymbol ReducedFrom
@@ -190,7 +191,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
         {
             get
             {
-                return _containingType;
+                return _containingSymbol;
             }
         }
 
@@ -198,7 +199,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
         {
             get
             {
-                return _containingType;
+                return _containingSymbol is NamedTypeSymbol nt ? nt : _containingSymbol.ContainingType;
             }
         }
 
@@ -214,6 +215,8 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
 
         internal sealed override UnmanagedCallersOnlyAttributeData GetUnmanagedCallersOnlyAttributeData(bool forceComplete)
             => this.OriginalDefinition.GetUnmanagedCallersOnlyAttributeData(forceComplete);
+
+        internal sealed override bool HasSpecialNameAttribute => throw ExceptionUtilities.Unreachable();
 
         public sealed override Symbol AssociatedSymbol
         {
@@ -237,7 +240,6 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
             }
         }
 
-
         public sealed override ImmutableArray<CustomModifier> RefCustomModifiers
         {
             get
@@ -252,7 +254,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
             {
                 if (_lazyParameters.IsDefault)
                 {
-                    ImmutableInterlocked.InterlockedCompareExchange(ref _lazyParameters, SubstituteParameters(), default(ImmutableArray<ParameterSymbol>));
+                    ImmutableInterlocked.InterlockedInitialize(ref _lazyParameters, SubstituteParameters());
                 }
 
                 return _lazyParameters;
@@ -329,6 +331,9 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
             return true;
         }
 
+        internal override int TryGetOverloadResolutionPriority()
+            => OriginalDefinition.TryGetOverloadResolutionPriority();
+
         private ImmutableArray<ParameterSymbol> SubstituteParameters()
         {
             var unsubstitutedParameters = OriginalDefinition.Parameters;
@@ -353,18 +358,21 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
 
         internal override int CalculateLocalSyntaxOffset(int localPosition, SyntaxTree localTree)
         {
-            throw ExceptionUtilities.Unreachable;
+            throw ExceptionUtilities.Unreachable();
         }
+
+        internal override bool IsNullableAnalysisEnabled() => throw ExceptionUtilities.Unreachable();
 
         private int ComputeHashCode()
         {
             int code = this.OriginalDefinition.GetHashCode();
+            int containingHashCode;
 
             // If the containing type of the original definition is the same as our containing type
             // it's possible that we will compare equal to the original definition under certain conditions 
             // (e.g, ignoring nullability) and want to retain the same hashcode. As such, consider only
             // the original definition for the hashcode when we know equality is possible
-            var containingHashCode = _containingType.GetHashCode();
+            containingHashCode = _containingSymbol.GetHashCode();
             if (containingHashCode == this.OriginalDefinition.ContainingType.GetHashCode() &&
                 wasConstructedForAnnotations(this))
             {
@@ -468,6 +476,11 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
             }
 
             return code;
+        }
+
+        internal sealed override bool HasAsyncMethodBuilderAttribute(out TypeSymbol builderArgument)
+        {
+            return _underlyingMethod.HasAsyncMethodBuilderAttribute(out builderArgument);
         }
     }
 }

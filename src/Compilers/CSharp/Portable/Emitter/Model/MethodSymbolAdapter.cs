@@ -29,6 +29,9 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
         Cci.ITypeDefinitionMember,
         Cci.IMethodDefinition
     {
+        bool Cci.IDefinition.IsEncDeleted
+            => false;
+
         Cci.IGenericMethodInstanceReference Cci.IMethodReference.AsGenericMethodInstanceReference
         {
             get
@@ -72,17 +75,27 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
         {
             Debug.Assert(this.IsDefinitionOrDistinct());
 
-            var synthesizedGlobalMethod = AdaptedMethodSymbol as SynthesizedGlobalMethodSymbol;
+            var synthesizedGlobalMethod = AdaptedMethodSymbol.OriginalDefinition as SynthesizedGlobalMethodSymbol;
             if ((object)synthesizedGlobalMethod != null)
             {
                 return synthesizedGlobalMethod.ContainingPrivateImplementationDetailsType;
             }
 
             NamedTypeSymbol containingType = AdaptedMethodSymbol.ContainingType;
+
+            if (AdaptedMethodSymbol is SynthesizedExtensionMarker marker)
+            {
+                return ((SourceMemberContainerTypeSymbol)containingType.ContainingType).GetExtensionGroupingInfo().GetCorrespondingMarkerType(marker);
+            }
+            else if (AdaptedMethodSymbol.GetIsNewExtensionMember())
+            {
+                return ((SourceMemberContainerTypeSymbol)containingType.ContainingType).GetExtensionGroupingInfo().GetCorrespondingGroupingType((SourceNamedTypeSymbol)containingType);
+            }
+
             var moduleBeingBuilt = (PEModuleBuilder)context.Module;
 
             return moduleBeingBuilt.Translate(containingType,
-                syntaxNodeOpt: (CSharpSyntaxNode)context.SyntaxNodeOpt,
+                syntaxNodeOpt: (CSharpSyntaxNode)context.SyntaxNode,
                 diagnostics: context.Diagnostics,
                 needDeclaration: AdaptedMethodSymbol.IsDefinition);
         }
@@ -137,14 +150,6 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
             get
             {
                 return (ushort)AdaptedMethodSymbol.Arity;
-            }
-        }
-
-        bool Cci.IMethodReference.IsGeneric
-        {
-            get
-            {
-                return AdaptedMethodSymbol.IsGenericMethod;
             }
         }
 
@@ -245,7 +250,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
         Cci.ITypeReference Cci.ISignature.GetType(EmitContext context)
         {
             return ((PEModuleBuilder)context.Module).Translate(AdaptedMethodSymbol.ReturnType,
-                syntaxNodeOpt: (CSharpSyntaxNode)context.SyntaxNodeOpt,
+                syntaxNodeOpt: (CSharpSyntaxNode)context.SyntaxNode,
                 diagnostics: context.Diagnostics);
         }
 
@@ -259,7 +264,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
             {
                 Debug.Assert(arg.CustomModifiers.IsEmpty);
                 yield return moduleBeingBuilt.Translate(arg.Type,
-                                                        syntaxNodeOpt: (CSharpSyntaxNode)context.SyntaxNodeOpt,
+                                                        syntaxNodeOpt: (CSharpSyntaxNode)context.SyntaxNode,
                                                         diagnostics: context.Diagnostics);
             }
         }
@@ -275,7 +280,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
                 // NoPia method might come through here.
                 return ((PEModuleBuilder)context.Module).Translate(
                     (MethodSymbol)AdaptedMethodSymbol.OriginalDefinition,
-                    syntaxNodeOpt: (CSharpSyntaxNode)context.SyntaxNodeOpt,
+                    syntaxNodeOpt: (CSharpSyntaxNode)context.SyntaxNode,
                     diagnostics: context.Diagnostics,
                     needDeclaration: true);
             }
@@ -293,17 +298,27 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
                 return ((MethodSymbol)AdaptedMethodSymbol.OriginalDefinition).GetCciAdapter();
             }
         }
-
+#nullable enable
         Cci.ITypeDefinition Cci.ITypeDefinitionMember.ContainingTypeDefinition
         {
             get
             {
                 CheckDefinitionInvariant();
 
-                var synthesizedGlobalMethod = AdaptedMethodSymbol as SynthesizedGlobalMethodSymbol;
-                if ((object)synthesizedGlobalMethod != null)
+                if (AdaptedMethodSymbol.OriginalDefinition is SynthesizedGlobalMethodSymbol synthesizedGlobalMethod)
                 {
                     return synthesizedGlobalMethod.ContainingPrivateImplementationDetailsType;
+                }
+
+                // Tracked by https://github.com/dotnet/roslyn/issues/78827 : code quality, share logic with Cci.ITypeMemberReference.GetContainingType implementation?
+                if (AdaptedMethodSymbol is SynthesizedExtensionMarker marker)
+                {
+                    return ((SourceMemberContainerTypeSymbol)AdaptedMethodSymbol.ContainingType.ContainingType).GetExtensionGroupingInfo().GetCorrespondingMarkerType(marker);
+                }
+                else if (AdaptedMethodSymbol.GetIsNewExtensionMember())
+                {
+                    var containingType = AdaptedMethodSymbol.ContainingType;
+                    return ((SourceMemberContainerTypeSymbol)containingType.ContainingType).GetExtensionGroupingInfo().GetCorrespondingGroupingType((SourceNamedTypeSymbol)containingType);
                 }
 
                 return AdaptedMethodSymbol.ContainingType.GetCciAdapter();
@@ -315,11 +330,20 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
             get
             {
                 CheckDefinitionInvariant();
-                return PEModuleBuilder.MemberVisibility(AdaptedMethodSymbol);
+                return AdaptedMethodSymbol.MetadataVisibility;
             }
         }
 
-        Cci.IMethodBody Cci.IMethodDefinition.GetBody(EmitContext context)
+        bool Cci.IMethodDefinition.HasBody
+        {
+            get
+            {
+                CheckDefinitionInvariant();
+                return Cci.DefaultImplementations.HasBody(this);
+            }
+        }
+
+        Cci.IMethodBody? Cci.IMethodDefinition.GetBody(EmitContext context)
         {
             CheckDefinitionInvariant();
             return ((PEModuleBuilder)context.Module).GetMethodBody(AdaptedMethodSymbol);
@@ -392,7 +416,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
             {
                 CheckDefinitionInvariant();
 
-                return AdaptedMethodSymbol.IsExternal;
+                return !AdaptedMethodSymbol.ContainingType.IsExtension && AdaptedMethodSymbol.IsExternal;
             }
         }
 
@@ -419,23 +443,23 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
             get
             {
                 CheckDefinitionInvariant();
-                return AdaptedMethodSymbol.GetDllImportData() != null;
+                return !AdaptedMethodSymbol.ContainingType.IsExtension && AdaptedMethodSymbol.GetDllImportData() != null;
             }
         }
-
+#nullable disable
         Cci.IPlatformInvokeInformation Cci.IMethodDefinition.PlatformInvokeData
         {
             get
             {
                 CheckDefinitionInvariant();
-                return AdaptedMethodSymbol.GetDllImportData();
+                return AdaptedMethodSymbol.ContainingType.IsExtension ? null : AdaptedMethodSymbol.GetDllImportData();
             }
         }
 
         System.Reflection.MethodImplAttributes Cci.IMethodDefinition.GetImplementationAttributes(EmitContext context)
         {
             CheckDefinitionInvariant();
-            return AdaptedMethodSymbol.ImplementationAttributes;
+            return AdaptedMethodSymbol.ContainingType.IsExtension ? default : AdaptedMethodSymbol.ImplementationAttributes;
         }
 
         bool Cci.IMethodDefinition.IsRuntimeSpecial
@@ -507,7 +531,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
             CheckDefinitionInvariant();
 
             ImmutableArray<CSharpAttributeData> userDefined = AdaptedMethodSymbol.GetReturnTypeAttributes();
-            ArrayBuilder<SynthesizedAttributeData> synthesized = null;
+            ArrayBuilder<CSharpAttributeData> synthesized = null;
             AdaptedMethodSymbol.AddSynthesizedReturnTypeAttributes((PEModuleBuilder)context.Module, ref synthesized);
 
             // Note that callers of this method (CCI and ReflectionEmitter) have to enumerate 
@@ -655,12 +679,24 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
         /// signature).
         /// WARN WARN WARN: We won't have a final value for this until declaration
         /// diagnostics have been computed for all <see cref="SourceMemberContainerTypeSymbol"/>s, so pass
-        /// ignoringInterfaceImplementationChanges: true if you need a value sooner
+        /// option: <see cref="IsMetadataVirtualOption.IgnoreInterfaceImplementationChanges"/> if you need a value sooner
         /// and aren't concerned about tweaks made to satisfy interface implementation 
         /// requirements.
         /// NOTE: Not ignoring changes can only result in a value that is more true.
+        ///
+        /// Use IsMetadataVirtualOption.ForceCompleteIfNeeded in DEBUG/assertion code
+        /// to get the final value.
         /// </summary>
-        internal abstract bool IsMetadataVirtual(bool ignoreInterfaceImplementationChanges = false);
+        internal abstract bool IsMetadataVirtual(IsMetadataVirtualOption option = IsMetadataVirtualOption.None);
+
+        internal enum IsMetadataVirtualOption
+        {
+            None = 0,
+            IgnoreInterfaceImplementationChanges,
+#if DEBUG
+            ForceCompleteIfNeeded
+#endif
+        }
 
         internal virtual bool ReturnValueIsMarshalledExplicitly
         {
@@ -691,7 +727,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
             if (underlyingMethodSymbol is NativeIntegerMethodSymbol)
             {
                 // Emit should use underlying symbol only.
-                throw ExceptionUtilities.Unreachable;
+                throw ExceptionUtilities.Unreachable();
             }
         }
 

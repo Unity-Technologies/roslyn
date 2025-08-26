@@ -2,8 +2,12 @@
 ' The .NET Foundation licenses this file to you under the MIT license.
 ' See the LICENSE file in the project root for more information.
 
+Imports System.Collections.Immutable
+Imports System.Reflection.Metadata
+Imports System.Runtime.InteropServices
 Imports Microsoft.Cci
 Imports Microsoft.CodeAnalysis.CodeGen
+Imports Microsoft.CodeAnalysis.Collections
 Imports Microsoft.CodeAnalysis.Emit
 Imports Microsoft.CodeAnalysis.ExpressionEvaluator
 Imports Microsoft.CodeAnalysis.PooledObjects
@@ -11,11 +15,6 @@ Imports Microsoft.CodeAnalysis.Symbols
 Imports Microsoft.CodeAnalysis.VisualBasic.Emit
 Imports Microsoft.CodeAnalysis.VisualBasic.Symbols
 Imports Microsoft.CodeAnalysis.VisualBasic.Symbols.Metadata.PE
-Imports System.Collections.Immutable
-Imports System.Diagnostics
-Imports System.Reflection.Metadata
-Imports System.Runtime.InteropServices
-Imports Roslyn.Utilities
 
 Namespace Microsoft.CodeAnalysis.VisualBasic.ExpressionEvaluator
 
@@ -43,8 +42,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.ExpressionEvaluator
             Me.Methods = methods
 
             If testData IsNot Nothing Then
-                SetMethodTestData(testData.Methods)
-                testData.Module = Me
+                SetTestData(testData)
             End If
         End Sub
 
@@ -70,11 +68,36 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.ExpressionEvaluator
             End Get
         End Property
 
-        Public Overrides ReadOnly Property CurrentGenerationOrdinal As Integer
+        Public Overrides ReadOnly Property EncSymbolChanges As SymbolChanges
             Get
-                Return 0
+                Return Nothing
             End Get
         End Property
+
+        Public Overrides ReadOnly Property PreviousGeneration As EmitBaseline
+            Get
+                Return Nothing
+            End Get
+        End Property
+
+        Public Overrides ReadOnly Property FieldRvaSupported As Boolean
+            Get
+                Return True
+            End Get
+        End Property
+
+        Public Overrides Function TryGetOrCreateSynthesizedHotReloadExceptionType() As INamedTypeSymbolInternal
+            Return Nothing
+        End Function
+
+        Public Overrides Function GetOrCreateHotReloadExceptionConstructorDefinition() As IMethodSymbolInternal
+            ' Should only be called when compiling EnC delta.
+            Throw ExceptionUtilities.Unreachable
+        End Function
+
+        Public Overrides Function GetUsedSynthesizedHotReloadExceptionType() As INamedTypeSymbolInternal
+            Return Nothing
+        End Function
 
         Friend Overrides Function TryCreateVariableSlotAllocator(symbol As MethodSymbol, topLevelMethod As MethodSymbol, diagnostics As DiagnosticBag) As VariableSlotAllocator
             Dim method = TryCast(symbol, EEMethodSymbol)
@@ -175,14 +198,25 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.ExpressionEvaluator
                 Return False
             End Function
 
-            Public Overrides Function TryGetPreviousClosure(scopeSyntax As SyntaxNode, <Out> ByRef closureId As DebugId) As Boolean
+            Public Overrides Function TryGetPreviousClosure(closureSyntax As SyntaxNode, parentClosureId As DebugId?, structCaptures As ImmutableArray(Of String), ByRef closureId As DebugId, ByRef runtimeRudeEdit As RuntimeRudeEdit?) As Boolean
                 closureId = Nothing
+                runtimeRudeEdit = Nothing
                 Return False
             End Function
 
-            Public Overrides Function TryGetPreviousLambda(lambdaOrLambdaBodySyntax As SyntaxNode, isLambdaBody As Boolean, <Out> ByRef lambdaId As DebugId) As Boolean
+            Public Overrides Function TryGetPreviousLambda(lambdaOrLambdaBodySyntax As SyntaxNode, isLambdaBody As Boolean, closureOrdinal As Integer, structClosureIds As ImmutableArray(Of DebugId), ByRef lambdaId As DebugId, ByRef runtimeRudeEdit As RuntimeRudeEdit?) As Boolean
                 lambdaId = Nothing
+                runtimeRudeEdit = Nothing
                 Return False
+            End Function
+
+            Public Overrides Function TryGetPreviousStateMachineState(syntax As SyntaxNode, awaitId As AwaitDebugId, ByRef state As StateMachineState) As Boolean
+                state = 0
+                Return False
+            End Function
+
+            Public Overrides Function GetFirstUnusedStateMachineState(increasing As Boolean) As StateMachineState?
+                Return Nothing
             End Function
 
             Public Overrides ReadOnly Property PreviousStateMachineTypeName As String

@@ -3,8 +3,9 @@
 ' See the LICENSE file in the project root for more information.
 
 Imports System.Threading
+Imports Microsoft.CodeAnalysis.Collections
 Imports Microsoft.CodeAnalysis.DocumentationComments
-Imports Microsoft.CodeAnalysis.LanguageServices
+Imports Microsoft.CodeAnalysis.LanguageService
 Imports Microsoft.CodeAnalysis.SignatureHelp
 Imports Microsoft.CodeAnalysis.VisualBasic.Syntax
 
@@ -14,7 +15,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.SignatureHelp
 
         Private Shared Function GetElementAccessItems(leftExpression As ExpressionSyntax,
                                                semanticModel As SemanticModel,
-                                               anonymousTypeDisplayService As IAnonymousTypeDisplayService,
+                                               structuralTypeDisplayService As IStructuralTypeDisplayService,
                                                documentationCommentFormattingService As IDocumentationCommentFormattingService,
                                                within As ISymbol,
                                                defaultProperties As IList(Of IPropertySymbol),
@@ -30,17 +31,17 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.SignatureHelp
             End If
 
             Return accessibleDefaultProperties.Select(
-                Function(s) ConvertIndexer(s, leftExpression.SpanStart, semanticModel, anonymousTypeDisplayService, documentationCommentFormattingService))
+                Function(s) ConvertIndexer(s, leftExpression.SpanStart, semanticModel, structuralTypeDisplayService, documentationCommentFormattingService))
         End Function
 
         Private Shared Function ConvertIndexer(indexer As IPropertySymbol,
                                         position As Integer,
                                         semanticModel As SemanticModel,
-                                        anonymousTypeDisplayService As IAnonymousTypeDisplayService,
+                                        structuralTypeDisplayService As IStructuralTypeDisplayService,
                                         documentationCommentFormattingService As IDocumentationCommentFormattingService) As SignatureHelpItem
             Dim item = CreateItem(
                 indexer, semanticModel, position,
-                anonymousTypeDisplayService,
+                structuralTypeDisplayService,
                 indexer.IsParams(),
                 indexer.GetDocumentationPartsFactory(semanticModel, position, documentationCommentFormattingService),
                 GetIndexerPreambleParts(indexer, semanticModel, position),

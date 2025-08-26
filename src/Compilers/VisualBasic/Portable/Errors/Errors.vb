@@ -1384,7 +1384,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         'ERR_QueryStartsWithLet = 36608
         'ERR_NoQueryExpressionsInDebugger = 36609
         ERR_QueryNameNotDeclared = 36610
-        '// Available 36611
+
+        ERR_SharedEventNeedsHandlerInTheSameType = 36611
 
         ERR_NestedFunctionArgumentNarrowing3 = 36612
 
@@ -1610,7 +1611,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         ERR_PublicKeyContainerFailure = 36981
 
         ERR_InvalidAssemblyCulture = 36982
-        ERR_EncUpdateFailedMissingAttribute = 36983
+        ERR_EncUpdateFailedMissingSymbol = 36983
 
         ERR_CantAwaitAsyncSub1 = 37001
         ERR_ResumableLambdaInExpressionTree = 37050
@@ -1751,6 +1752,44 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         ERR_ReAbstractionInNoPIAType = 37308
         ERR_RuntimeDoesNotSupportDefaultInterfaceImplementation = 37309
         ERR_RuntimeDoesNotSupportProtectedAccessForInterfaceMember = 37310
+
+        ERR_AssignmentInitOnly = 37311
+        ERR_OverridingInitOnlyProperty = 37312
+        ERR_PropertyDoesntImplementInitOnly = 37313
+
+        ERR_BadAbstractStaticMemberAccess = 37314
+        ERR_UnimplementedSharedMember = 37315
+
+        ERR_UnmanagedCallersOnlyNotSupported = 37316
+        ERR_MultipleAnalyzerConfigsInSameDir = 37317
+        ERR_StdInOptionProvidedButConsoleInputIsNotRedirected = 37318
+
+        ERR_UnsupportedCompilerFeature = 37319
+        ERR_DoNotUseCompilerFeatureRequired = 37320
+
+        ERR_RequiredMemberMustBeSet = 37321
+        ERR_CannotInheritFromTypeWithRequiredMembers = 37322
+        ERR_RequiredMembersInvalid = 37323
+        ERR_NewConstraintCannotHaveRequiredMembers = 37324
+        ERR_DoNotUseRequiredMember = 37325
+
+        ERR_UnsupportedRefReturningCallInWithStatement = 37326
+        ERR_SymbolDefinedInAssembly = 37327
+
+        ERR_InvalidExperimentalDiagID = 37328
+
+        ERR_LockTypeUnsupported = 37329
+        ERR_InvalidVersionFormatDeterministic = 37330
+        ERR_TypeReserved = 37331
+        ERR_UnmanagedConstraintNotSatisfied = 37332
+
+        ERR_CannotApplyOverloadResolutionPriorityToOverride = 37333
+        ERR_CannotApplyOverloadResolutionPriorityToMember = 37334
+
+        ERR_EmbeddedAttributeMustFollowPattern = 37335
+        ERR_TooManyUserStrings_RestartRequired = 37336
+
+        ERR_NextAvailable = 37337
 
         '// WARNINGS BEGIN HERE
         WRN_UseOfObsoleteSymbol2 = 40000
@@ -1950,8 +1989,6 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         'WRN_PDBConstantStringValueTooLong = 42363  we gave up on this warning. See comments in commonCompilation.Emit()
         WRN_ReturnTypeAttributeOnWriteOnlyProperty = 42364
 
-        ' // AVAILABLE 42365
-
         WRN_InvalidVersionFormat = 42366
         WRN_MainIgnored = 42367
         WRN_EmptyPrefixAndXmlnsLocalName = 42368
@@ -1975,18 +2012,31 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         WRN_Experimental = 42380
 
         WRN_AttributeNotSupportedInVB = 42381
-        ERR_MultipleAnalyzerConfigsInSameDir = 42500
         WRN_GeneratorFailedDuringInitialization = 42501
         WRN_GeneratorFailedDuringGeneration = 42502
         WRN_AnalyzerReferencesFramework = 42503
 
+        WRN_CallerArgumentExpressionAttributeSelfReferential = 42504
+        WRN_CallerArgumentExpressionAttributeHasInvalidParameterName = 42505
+
+        WRN_AnalyzerReferencesNewerCompiler = 42506
+        WRN_DuplicateAnalyzerReference = 42507
+
+        WRN_ConvertingLock = 42508
+
+        WRN_ExperimentalWithMessage = 42509
+
         ' // AVAILABLE                             42600 - 49998
-        ERRWRN_NextAvailable = 42600
+        WRN_NextAvailable = 42600
+
+        ' NOTE: On adding a new ERRID, you will need to update ErrorFacts.IsBuildOnlyDiagnostic to handle it.
 
         '// HIDDENS AND INFOS BEGIN HERE
         HDN_UnusedImportClause = 50000
         HDN_UnusedImportStatement = 50001
         INF_UnableToLoadSomeTypesInAnalyzer = 50002
+
+        HDN_NextAvailable = 50003
 
         ' // AVAILABLE                             50003 - 54999   
 
@@ -2004,7 +2054,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         IDS_LangVersions = 56010
         IDS_ToolName = 56011
 
-        ERR_StdInOptionProvidedButConsoleInputIsNotRedirected = 56032
+        IDS_NextAvailable = 56012
 
         ' Feature codes
         FEATURE_AutoProperties
@@ -2038,5 +2088,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         FEATURE_InterpolatedStrings
         FEATURE_UnconstrainedTypeParameterInConditional
         FEATURE_CommentsAfterLineContinuation
+        FEATURE_InitOnlySettersUsage
+        FEATURE_CallerArgumentExpression
+        FEATURE_UnmanagedConstraint
+        FEATURE_OverloadResolutionPriority
     End Enum
 End Namespace

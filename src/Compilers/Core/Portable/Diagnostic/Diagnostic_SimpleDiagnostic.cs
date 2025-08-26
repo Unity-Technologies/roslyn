@@ -6,6 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
+using Microsoft.CodeAnalysis.Collections;
 using Microsoft.CodeAnalysis.Diagnostics;
 using Roslyn.Utilities;
 
@@ -166,11 +167,6 @@ namespace Microsoft.CodeAnalysis
                     && _location == other._location
                     && _severity == other._severity
                     && _warningLevel == other._warningLevel;
-            }
-
-            public override bool Equals(object? obj)
-            {
-                return this.Equals(obj as Diagnostic);
             }
 
             public override int GetHashCode()

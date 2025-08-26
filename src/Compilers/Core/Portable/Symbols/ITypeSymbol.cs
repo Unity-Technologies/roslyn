@@ -82,6 +82,17 @@ namespace Microsoft.CodeAnalysis
         bool IsNativeIntegerType { get; }
 
         /// <summary>
+        /// Is this a symbol for an extension declaration.
+        /// </summary>
+        bool IsExtension { get; }
+
+        /// <summary>
+        /// The extension parameter if this is an extension declaration (<see cref="IsExtension"/> is true).
+        /// Note: this may be null even if <see cref="IsExtension"/> is true, in error cases.
+        /// </summary>
+        IParameterSymbol? ExtensionParameter { get; }
+
+        /// <summary>
         /// The original definition of this symbol. If this symbol is constructed from another
         /// symbol by type substitution then <see cref="OriginalDefinition"/> gets the original symbol as it was defined in
         /// source or metadata.
@@ -127,8 +138,12 @@ namespace Microsoft.CodeAnalysis
         bool IsReadOnly { get; }
 
         /// <summary>
-        /// True if the type is a record.
+        /// For source symbols, true if the type is a record.
+        /// For metadata symbols, true if the type is a record and a reference type.
         /// </summary>
+        /// <remarks>
+        /// Returns false for record structs in metadata since they don't have any distinctive marker.
+        /// </remarks>
         bool IsRecord { get; }
 
         /// <summary>
@@ -242,7 +257,7 @@ namespace Microsoft.CodeAnalysis
             return (type as INamedTypeSymbol)?.EnumUnderlyingType;
         }
 
-        [return: NotNullIfNotNull(parameterName: "type")]
+        [return: NotNullIfNotNull(parameterName: nameof(type))]
         internal static ITypeSymbol? GetEnumUnderlyingTypeOrSelf(ITypeSymbol? type)
         {
             return GetEnumUnderlyingType(type) ?? type;
